@@ -36,11 +36,14 @@ export function useAssistant(doc: DocumentModel, source: DocumentSource, pdf: Pd
   const text = textQuery.data;
 
   const liveReady = mode === 'live' && doc.status === 'ready';
-  const adapter = useMemo(() => {
-    if (liveReady) return createLiveChatAdapter(doc.id, doc.name);
-    if (mode === 'demo' && text && hasSearchableText(text)) return createDemoChatAdapter(doc.id, text);
-    return null;
-  }, [doc.id, doc.name, liveReady, mode, text]);
+  // Kept apart on purpose: a changed adapter reloads the conversation and cancels an answer in progress.
+  // Real answers do not depend on the PDF's text, so finishing to read it must not touch them.
+  const liveAdapter = useMemo(() => (liveReady ? createLiveChatAdapter(doc.id, doc.name) : null), [doc.id, doc.name, liveReady]);
+  const demoAdapter = useMemo(
+    () => (mode === 'demo' && text && hasSearchableText(text) ? createDemoChatAdapter(doc.id, text) : null),
+    [doc.id, mode, text],
+  );
+  const adapter = mode === 'live' ? liveAdapter : demoAdapter;
 
   const availability = useMemo<AssistantAvailability>(() => {
     if (doc.status === 'failed') return { state: 'unavailable', reason: 'failed' };

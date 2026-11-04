@@ -2,47 +2,34 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { Check, Copy, ExternalLink } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
-import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/cn';
 import type { EvidenceSource } from '@/types/chat';
+import { useCopyCitation } from './useCopyCitation';
 
 interface Props {
   id?: string;
   source: EvidenceSource;
   active: boolean;
+  /** This source is the one open in the inspector. */
+  selected: boolean;
   onActivate: (marker: number | null) => void;
   onOpen: (source: EvidenceSource) => void;
 }
 
 const COLLAPSED_LINES = 4;
 
-export function SourceCard({ id, source, active, onActivate, onOpen }: Props) {
+export function SourceCard({ id, source, active, selected, onActivate, onOpen }: Props) {
   const { t } = useTranslation();
-  const toast = useToast();
   const quoteRef = useRef<HTMLParagraphElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [overflows, setOverflows] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   useLayoutEffect(() => {
     const element = quoteRef.current;
     if (element && !expanded) setOverflows(element.scrollHeight > element.clientHeight + 1);
   }, [expanded, source.quote]);
 
-  const copy = async () => {
-    const citation =
-      source.page === null
-        ? t('sources.copyFormatSection', { quote: source.quote, name: source.documentName, location: source.location ?? '' })
-        : t('sources.copyFormat', { quote: source.quote, name: source.documentName, page: source.page });
-    try {
-      await navigator.clipboard.writeText(citation);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
-    } catch (error) {
-      console.warn('Clipboard write failed', error);
-      toast.show(t('sources.copyFailed'), 'error');
-    }
-  };
+  const { copied, copy } = useCopyCitation(source);
 
   return (
     <article
@@ -50,13 +37,26 @@ export function SourceCard({ id, source, active, onActivate, onOpen }: Props) {
       data-testid="source-card"
       onMouseEnter={() => onActivate(source.index)}
       onMouseLeave={() => onActivate(null)}
+      data-selected={selected || undefined}
+      aria-current={selected || undefined}
       className={cn(
-        'rounded-control border bg-card p-3 transition-colors duration-150',
-        active ? 'border-accent-2-line bg-card-raised' : 'border-line',
+        'group relative rounded-control border bg-card p-3 transition-colors duration-150',
+        selected
+          ? 'border-accent-line bg-card-raised shadow-[inset_2px_0_0_var(--color-accent)]'
+          : active
+            ? 'border-accent-2-line bg-card-raised'
+            : 'border-line hover:border-line-strong',
       )}
     >
+      {/* The whole card opens the source. Buttons inside it sit above this layer. */}
+      <button
+        type="button"
+        onClick={() => onOpen(source)}
+        aria-label={t('evidence.cardLabel', { index: source.index })}
+        className="absolute inset-0 rounded-control"
+      />
       <header className="flex items-center gap-2 text-xs text-muted">
-        <span className="tabular inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-md border border-accent-2-line px-1 font-medium text-accent-2">
+        <span className={cn("tabular inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-md border px-1 font-medium", selected ? "border-accent bg-accent text-on-accent" : "border-accent-2-line text-accent-2")}>
           {source.index}
         </span>
         <span className="min-w-0 flex-1 truncate" title={source.documentName}>
@@ -87,17 +87,15 @@ export function SourceCard({ id, source, active, onActivate, onOpen }: Props) {
           type="button"
           onClick={() => setExpanded(!expanded)}
           aria-expanded={expanded}
-          className="mt-1 ml-3 text-xs font-medium text-muted hover:text-fg"
+          className="relative z-10 mt-1 ml-3 inline-flex min-h-6 items-center text-xs font-medium text-muted hover:text-fg"
         >
           {expanded ? t('sources.showLess') : t('sources.showMore')}
         </button>
       )}
-      <footer className="mt-3 flex flex-wrap items-center gap-1">
-        {source.page !== null && (
-          <Button size="sm" icon={<ExternalLink size={14} aria-hidden />} onClick={() => onOpen(source)}>
-            {t('sources.openPage', { page: source.page })}
-          </Button>
-        )}
+      <footer className="relative z-10 mt-3 flex flex-wrap items-center gap-1">
+        <Button variant={selected ? 'primary' : 'secondary'} size="sm" icon={<ExternalLink size={14} aria-hidden />} onClick={() => onOpen(source)}>
+          {source.page !== null ? t('sources.openPage', { page: source.page }) : t('evidence.inspect')}
+        </Button>
         <Button
           variant="ghost"
           size="sm"

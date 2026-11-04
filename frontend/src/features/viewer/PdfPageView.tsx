@@ -15,11 +15,13 @@ interface Props {
   marks: Map<number, MarkSpan[]> | undefined;
   /** Quote position from the backend, as fractions of the page. */
   rects: EvidenceRect[] | undefined;
+  /** Changes on every jump, so the arrival accent plays again even for the same source. */
+  rectsKey: number;
   onTextReady: (page: number, element: HTMLElement | null) => void;
 }
 
 /** One page slot. Slots outside the window keep their size but render nothing. */
-export const PdfPageView = memo(function PdfPageView({ pdf, page, scale, width, height, rendered, marks, rects, onTextReady }: Props) {
+export const PdfPageView = memo(function PdfPageView({ pdf, page, scale, width, height, rendered, marks, rects, rectsKey, onTextReady }: Props) {
   const { t } = useTranslation();
   const dpr = Math.min(window.devicePixelRatio || 1, MAX_RENDER_DPR);
   const customTextRenderer = useMemo(
@@ -40,7 +42,7 @@ export const PdfPageView = memo(function PdfPageView({ pdf, page, scale, width, 
     >
       {rects?.map((rect, index) => (
         <span
-          key={index}
+          key={`${rectsKey}-${index}`}
           data-testid="highlight-rect"
           className="hl-rect pointer-events-none absolute z-10"
           style={{ left: `${rect.x * 100}%`, top: `${rect.y * 100}%`, width: `${rect.w * 100}%`, height: `${rect.h * 100}%` }}

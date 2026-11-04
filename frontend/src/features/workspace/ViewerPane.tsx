@@ -18,6 +18,7 @@ interface Props {
   text: DocumentText | undefined;
   jump: JumpRequest | null;
   citedPages: ReadonlySet<number>;
+  quoteNotice: boolean;
   onRetry: () => void;
 }
 
@@ -37,7 +38,7 @@ function Loading({ progress }: { progress: number | null }) {
   );
 }
 
-export function ViewerPane({ doc, source, pdf, text, jump, citedPages, onRetry }: Props) {
+export function ViewerPane({ doc, source, pdf, text, jump, citedPages, quoteNotice, onRetry }: Props) {
   const { t } = useTranslation();
   const codeMessage = useCodeMessage();
 
@@ -97,5 +98,5 @@ export function ViewerPane({ doc, source, pdf, text, jump, citedPages, onRetry }
 
   if (pdf.status !== 'ready') return <Loading progress={pdf.status === 'loading' ? pdf.progress : null} />;
 
-  return <PdfViewer pdf={pdf.pdf} text={text} jump={jump} citedPages={citedPages} />;
+  return <PdfViewer pdf={pdf.pdf} text={text} jump={jump} citedPages={citedPages} quoteNotice={quoteNotice} />;
 }

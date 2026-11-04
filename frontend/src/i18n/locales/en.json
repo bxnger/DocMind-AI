@@ -339,5 +339,35 @@
     "needTwo": "Two ready documents are needed",
     "needTwoBody": "Upload another document and wait until it's ready.",
     "showMore": "Show more"
+  },
+  "evidence": {
+    "title": "Evidence",
+    "inspector": "Evidence inspector",
+    "sources": "Sources of this answer",
+    "sourceN": "Source {{index}}",
+    "prev": "Previous source",
+    "next": "Next source",
+    "position": "{{current}} of {{total}}",
+    "close": "Close evidence",
+    "collapse": "Collapse evidence",
+    "expand": "Expand evidence",
+    "showOnPage": "Show on page",
+    "inspect": "Inspect",
+    "noPage": "No page",
+    "quoteLabel": "Original quote from the document",
+    "keys": "← → switch · Esc closes",
+    "previewHint": "Click to open in the document",
+    "status": {
+      "coordinates": "Exact passage highlighted from the backend's coordinates.",
+      "text": "No coordinates from the backend. The passage was found in the page's text and highlighted.",
+      "page": "Page opened. The exact passage couldn't be located, so nothing is highlighted.",
+      "unknown": "Locating the passage on the page…",
+      "section": "A DOCX source: it has a section and no pages, so there is no page to open.",
+      "viewerLoading": "Opening the document…",
+      "viewerError": "The document couldn't be displayed. The quote is still shown here.",
+      "viewerUnavailable": "The document preview isn't available, so the page can't be shown. The quote is still here.",
+      "otherDocument": "This source belongs to another document, so it can't be shown here."
+    },
+    "cardLabel": "Inspect source {{index}}"
   }
 }

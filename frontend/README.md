@@ -17,6 +17,18 @@ npm run dev               # http://localhost:5173
 Start the backend first (`../backend`, port 8011). Open the app on `localhost`, not `127.0.0.1`: the backend's CORS
 default allows only the former.
 
+## Evidence Jump
+
+Every source of an AI answer is interactive: the `[n]` marker, the source card, and the Evidence Inspector over the document.
+
+- Clicking a source scrolls the PDF smoothly to the page and highlights the quote from the backend's `highlights`
+  (fractions 0..1 of the page), with a short arrival ring. Reduced motion makes the jump instant.
+- Without coordinates it only highlights text it really finds in the page's text layer, and says so. If the quote isn't there,
+  it opens the page and highlights nothing. The inspector always states which of these happened.
+- Several sources: tabs, previous/next with wrap-around, arrow keys, Esc to close. Hovering a marker shows a preview.
+- DOCX sources show their section and quote, never a page number, and nothing is jumped to.
+- Logic lives in `src/features/evidence/` and `src/features/viewer/lib/locate.ts` and is covered by unit tests.
+
 ## Scripts
 
 | Command | What it does |

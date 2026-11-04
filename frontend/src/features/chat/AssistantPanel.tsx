@@ -8,7 +8,7 @@ import { useCodeMessage } from '@/features/system/useErrorMessage';
 import { cn } from '@/lib/cn';
 import { StateBlock } from '@/components/ui/StateBlock';
 import type { DocumentModel } from '@/types/document';
-import type { ChatMode, EvidenceSource } from '@/types/chat';
+import type { ChatMode } from '@/types/chat';
 import { Composer, type ComposerHandle } from './Composer';
 import { MessageList } from './MessageList';
 import type { ChatController } from './useChat';
@@ -28,7 +28,6 @@ interface Props {
   availability: AssistantAvailability;
   chat: ChatController;
   autoFocus: boolean;
-  onOpenSource: (source: EvidenceSource) => void;
 }
 
 function DemoNotice() {
@@ -63,7 +62,7 @@ function Unavailable({ reason, doc }: { reason: UnavailableReason; doc: Document
   );
 }
 
-export function AssistantPanel({ mode, canSwitchMode, onModeChange, doc, availability, chat, autoFocus, onOpenSource }: Props) {
+export function AssistantPanel({ mode, canSwitchMode, onModeChange, doc, availability, chat, autoFocus }: Props) {
   const { t } = useTranslation();
   const composer = useRef<ComposerHandle>(null);
 
@@ -127,7 +126,6 @@ export function AssistantPanel({ mode, canSwitchMode, onModeChange, doc, availab
       ) : chat.messages.length > 0 ? (
         <MessageList
           messages={chat.messages}
-          onOpenSource={onOpenSource}
           onRetry={chat.retry}
           onRephrase={() => composer.current?.focus()}
           onUseDemo={canSwitchMode && doc.kind === 'pdf' ? () => onModeChange('demo') : null}
