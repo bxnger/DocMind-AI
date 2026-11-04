@@ -1,0 +1,11 @@
+{
+ "note": "Questions in English and Kazakh about the Russian lease (demo/lease_v1.pdf). For answer_eval.py only: it needs the real model.",
+ "questions": [
+  {"q": "How long is the lease term?", "page": 3},
+  {"q": "What is the monthly rent?", "page": 2},
+  {"q": "How many days of notice are needed to terminate the contract?", "page": 5},
+  {"q": "Жалдау ақысы қанша?", "page": 2},
+  {"q": "Is there parking in the building?", "page": null},
+  {"q": "Тұрақ бар ма?", "page": null}
+ ]
+}

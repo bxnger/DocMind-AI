@@ -66,7 +66,7 @@ def build_user_message(question: str, excerpts: list[Excerpt], language: str | N
         where = f"page {excerpt.page}" if excerpt.page is not None else (excerpt.location or "document")
         lines.append(
             f'<excerpt number="{excerpt.number}" document="{html.escape(excerpt.document_name)}" '
-            f'location="{html.escape(where)}">\n{excerpt.text}\n</excerpt>'
+            f'location="{html.escape(where)}">\n{html.escape(excerpt.text, quote=False)}\n</excerpt>'
         )
     lines.append("</excerpts>")
     if any(excerpt.sampled for excerpt in excerpts):

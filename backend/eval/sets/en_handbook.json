@@ -1,0 +1,68 @@
+{
+ "note": "Synthetic: employee handbook in English.",
+ "pages": [
+  "Full-time employees work 40 hours per week. Core hours are 10:00 to 16:00, and the rest of the day is flexible.",
+  "Employees receive 24 days of paid annual leave. Unused leave of up to 5 days may be carried over to the next year.",
+  "Sick leave requires a medical certificate after 3 consecutive days of absence. Employees must notify their manager before 9:30 on the first day.",
+  "Expense claims must be submitted within 30 days of purchase with original receipts. Claims above 500 USD need approval from the department head.",
+  "Remote work is allowed up to 2 days per week with manager approval. Equipment provided by the company must be returned when employment ends.",
+  "Either party may end the employment with 60 days written notice. During the probation period of 3 months the notice period is 7 days."
+ ],
+ "questions": [
+  {
+   "q": "How many hours per week do full-time employees work?",
+   "page": 1
+  },
+  {
+   "q": "What are the core hours?",
+   "page": 1
+  },
+  {
+   "q": "How many days of annual leave do employees get?",
+   "page": 2
+  },
+  {
+   "q": "How much unused leave can be carried over?",
+   "page": 2
+  },
+  {
+   "q": "When is a medical certificate needed for sick leave?",
+   "page": 3
+  },
+  {
+   "q": "How long do I have to submit an expense claim?",
+   "page": 4
+  },
+  {
+   "q": "Who approves claims above 500 USD?",
+   "page": 4
+  },
+  {
+   "q": "How many days can I work remotely?",
+   "page": 5
+  },
+  {
+   "q": "What is the notice period during probation?",
+   "page": 6
+  },
+  {
+   "q": "How long is the probation period?",
+   "page": 6
+  },
+  {
+   "q": "What are the rules for annual leave and for sick leave?",
+   "pages": [
+    2,
+    3
+   ]
+  },
+  {
+   "q": "What is the dress code?",
+   "page": null
+  },
+  {
+   "q": "Does the company offer health insurance?",
+   "page": null
+  }
+ ]
+}

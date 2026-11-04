@@ -30,6 +30,7 @@ Principles: `Source.quote` is verbatim text of the stated page or section, check
 - `GET /documents` → `{ items }`; `GET /documents/{id}` → `Document` (poll while `processing`). 404 `DOCUMENT_NOT_FOUND`.
 - `GET /documents/{id}/file` → PDF with Range support. 404 `DOCUMENT_NOT_FOUND`, 404 `PREVIEW_UNAVAILABLE` (DOCX), 409 `DOCUMENT_NOT_READY`.
 - `GET /documents/{id}/pages/{page}` → `{ documentId, page, text }`. 404 `PAGE_NOT_FOUND`, 409 `DOCUMENT_NOT_READY`. PDF only.
+- `GET /documents/{id}/facts` → `{ documentId, facts: [{ kind, value, quote, page, location, highlights }], suggestedQuestions: string[] }`. `kind` is `deadline`, `date`, `duration` (for example "within 3 working days"), `amount` or `percent`. Found by patterns, no model: `quote` is the exact sentence, `page` is null for DOCX (use `location`), `highlights` as in chat sources (empty for DOCX). `suggestedQuestions` are in the document language. At most 60 facts. 409 `DOCUMENT_NOT_READY`.
 - `DELETE /documents/{id}` → 204.
 
 Processing ends in `ready` or `failed`. Failure is in `Document.error`: `PARSE_FAILED`, `PASSWORD_PROTECTED`, `NO_TEXT_FOUND` (scan without OCR), `OCR_FAILED`, `INDEXING_FAILED`.

@@ -4,6 +4,8 @@ from fastapi.responses import FileResponse, Response
 from app.config import MAX_FILE_SIZE_BYTES, SUPPORTED_EXTENSIONS
 from app.deps import get_store
 from app.errors import AppError
+from app.facts import extract_facts, suggested_questions
+from app.highlights import quote_highlights
 from app.pipeline import process_document
 from app.ratelimit import limit_uploads
 from app.schemas import Document, DocumentList
@@ -89,6 +91,25 @@ def get_document_page(doc_id: str, page: int, store: Store = Depends(get_store))
     if text is None:
         raise AppError(404, "PAGE_NOT_FOUND", "Page not found")
     return {"documentId": doc_id, "page": page, "text": text}
+
+
+@router.get("/{doc_id}/facts")
+def get_document_facts(doc_id: str, store: Store = Depends(get_store)) -> dict:
+    """Dates, deadlines, amounts and percentages with their exact sentence, plus questions worth asking."""
+    doc = store.get(doc_id)
+    if doc["status"] != "ready":
+        raise AppError(409, "DOCUMENT_NOT_READY", "Document is still being processed")
+    facts = extract_facts(store.segments_for_document(doc_id))
+    for fact in facts:
+        highlights = []
+        if doc["kind"] == "pdf" and fact["page"] is not None:
+            highlights = quote_highlights(store.file_path(doc_id, "pdf"), fact["page"], fact["quote"])
+        fact["highlights"] = highlights
+    return {
+        "documentId": doc_id,
+        "facts": facts,
+        "suggestedQuestions": suggested_questions(facts, doc.get("language")),
+    }
 
 
 @router.delete("/{doc_id}", status_code=204, response_class=Response)

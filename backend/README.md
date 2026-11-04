@@ -49,7 +49,7 @@ Environment variables:
 - `LLM_PROVIDER` — `anthropic` (default) or `gemini`
 - `ANTHROPIC_API_KEY` — required for chat with `anthropic`
 - `GEMINI_API_KEY` — required for chat with `gemini`
-- `GEMINI_MODEL` — default `gemini-2.5-flash-lite`
+- `GEMINI_MODEL` — default `gemini-3.5-flash-lite`
 - `GEMINI_THINKING_LEVEL` — `minimal`, `low`, `medium` or `high`. Empty (default) keeps the model's own default. Set it only after `eval/gemini_latency.py` shows thinking is the slow part
 - `CLAUDE_MODEL` — default `claude-opus-5-5`
 - `DATA_DIR` — where `app.db` and uploaded files go (default `data/`)
