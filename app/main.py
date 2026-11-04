@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import Settings
 from app.deps import get_settings
 from app.errors import register_error_handlers
-from app.routers import documents
+from app.routers import conversations, documents
 from app.schemas import Capabilities, default_capabilities
 
 VERSION = "0.1.0"
@@ -42,6 +42,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return default_capabilities(VERSION)
 
     app.include_router(documents.router, prefix="/api/v1")
+    app.include_router(conversations.router, prefix="/api/v1")
     return app
 
 

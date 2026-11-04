@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 from app.config import MAX_DOCUMENTS_PER_CONVERSATION, MAX_FILE_SIZE_BYTES, MAX_PAGES
@@ -37,6 +37,20 @@ class Document(BaseModel):
 
 class DocumentList(BaseModel):
     items: list[Document]
+
+
+class CreateConversation(BaseModel):
+    model_config = CAMEL
+
+    document_ids: list[str] = Field(min_length=1, max_length=MAX_DOCUMENTS_PER_CONVERSATION)
+    title: str | None = Field(default=None, max_length=200)
+
+
+class SendMessage(BaseModel):
+    model_config = CAMEL
+
+    content: str = Field(max_length=10_000)
+    language: Literal["kk", "ru", "en"] | None = None
 
 
 class Limits(BaseModel):

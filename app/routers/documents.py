@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, File, Request, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, UploadFile
 from fastapi.responses import FileResponse, Response
 
 from app.config import MAX_FILE_SIZE_BYTES, SUPPORTED_EXTENSIONS
 from app.deps import get_store
 from app.errors import AppError
+from app.pipeline import process_document
 from app.schemas import Document, DocumentList
 from app.store import Store
 
@@ -24,6 +25,7 @@ def _detect_kind(filename: str) -> str:
 
 @router.post("", status_code=202, response_model=Document)
 async def upload_document(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     store: Store = Depends(get_store),
 ) -> dict:
@@ -52,7 +54,9 @@ async def upload_document(
         path.unlink(missing_ok=True)
         raise
 
-    return store.insert(doc_id, filename, kind, size)
+    document = store.insert(doc_id, filename, kind, size)
+    background_tasks.add_task(process_document, store, doc_id)
+    return document
 
 
 @router.get("", response_model=DocumentList)

@@ -1,3 +1,6 @@
 fastapi[standard]
+pymupdf
+python-docx
+anthropic
 pytest
 httpx
