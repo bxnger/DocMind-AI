@@ -146,3 +146,33 @@ def test_delete_document_removes_file_and_text(client, store):
 
 def test_every_response_has_request_id_header(client):
     assert client.get("/api/v1/health").headers["X-Request-Id"]
+
+
+def test_page_text_endpoint(client):
+    created = upload(client, "a.pdf", make_pdf(["First page text.", "Second page text."])).json()
+    response = client.get(f"/api/v1/documents/{created['id']}/pages/2")
+    assert response.status_code == 200
+    assert response.json() == {"documentId": created["id"], "page": 2, "text": "Second page text."}
+
+
+def test_page_text_unknown_page_is_404(client):
+    created = upload(client, "a.pdf", make_pdf(["Only page."])).json()
+    for page in (0, 2):
+        response = client.get(f"/api/v1/documents/{created['id']}/pages/{page}")
+        assert response.status_code == 404
+        assert response.json()["error"]["code"] == "PAGE_NOT_FOUND"
+
+
+def test_page_text_for_unready_document_is_409(client):
+    created = upload(client, "scan.pdf", make_pdf([""])).json()
+    response = client.get(f"/api/v1/documents/{created['id']}/pages/1")
+    assert response.status_code == 409
+
+
+def test_file_supports_range_requests(client):
+    data = make_pdf(["Hello"])
+    created = upload(client, "a.pdf", data).json()
+    response = client.get(f"/api/v1/documents/{created['id']}/file", headers={"Range": "bytes=0-9"})
+    assert response.status_code == 206
+    assert response.content == data[:10]
+    assert response.headers["content-range"] == f"bytes 0-9/{len(data)}"

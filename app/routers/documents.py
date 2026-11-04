@@ -79,6 +79,17 @@ def get_document_file(doc_id: str, store: Store = Depends(get_store)) -> FileRes
     return FileResponse(store.file_path(doc_id, "pdf"), media_type="application/pdf")
 
 
+@router.get("/{doc_id}/pages/{page}")
+def get_document_page(doc_id: str, page: int, store: Store = Depends(get_store)) -> dict:
+    doc = store.get(doc_id)
+    if doc["status"] != "ready":
+        raise AppError(409, "DOCUMENT_NOT_READY", "Document is still being processed")
+    text = store.get_page_text(doc_id, page)
+    if text is None:
+        raise AppError(404, "PAGE_NOT_FOUND", "Page not found")
+    return {"documentId": doc_id, "page": page, "text": text}
+
+
 @router.delete("/{doc_id}", status_code=204, response_class=Response)
 def delete_document(doc_id: str, store: Store = Depends(get_store)) -> Response:
     store.delete(doc_id)

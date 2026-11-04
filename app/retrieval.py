@@ -5,11 +5,27 @@ from collections import Counter
 TOKEN = re.compile(r"\w+")
 K1 = 1.5
 B = 0.75
+STEM_LENGTH = 5
+
+
+VERB_PREFIXES = ("пере", "при", "под", "про", "раз", "за", "по", "на", "вы", "от", "об", "до", "со")
+MIN_LENGTH_FOR_PREFIX_STRIP = 9
+
+
+def stem(word: str) -> str:
+    # Long Russian words lose a common prefix, so "зарегистрироваться" meets "регистрация".
+    if len(word) >= MIN_LENGTH_FOR_PREFIX_STRIP:
+        for prefix in VERB_PREFIXES:
+            if word.startswith(prefix):
+                word = word[len(prefix):]
+                break
+    # Cutting to the first 5 letters is a crude stemmer, but it matches the endings of
+    # Russian, Kazakh and English alike ("регистрация" / "регистрации").
+    return word[:STEM_LENGTH]
 
 
 def tokenize(text: str) -> list[str]:
-    # No stemming yet: Russian and Kazakh word forms are not matched across endings.
-    return TOKEN.findall(text.lower())
+    return [stem(word) for word in TOKEN.findall(text.lower())]
 
 
 def rank(query: str, texts: list[str], top_k: int) -> list[tuple[int, float]]:

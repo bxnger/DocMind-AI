@@ -7,20 +7,20 @@ FastAPI backend for DOCMIND AI. Contract: `/api/v1`, camelCase JSON.
 - `GET /api/v1/health`, `GET /api/v1/capabilities` (reports only what is implemented)
 - `POST /api/v1/documents` for PDF and DOCX (type and size checks, 202 `processing`)
 - Processing after upload: `queued → extracting → indexing → ready` or `failed` with `PARSE_FAILED`, `PASSWORD_PROTECTED`, `NO_TEXT_FOUND` or `INDEXING_FAILED`
-- `GET /api/v1/documents`, `GET /api/v1/documents/{id}`, `DELETE /api/v1/documents/{id}`, `GET /api/v1/documents/{id}/file` (ready PDFs only)
+- `GET /api/v1/documents`, `GET /api/v1/documents/{id}`, `DELETE /api/v1/documents/{id}`, `GET /api/v1/documents/{id}/file` (ready PDFs only, Range supported), `GET /api/v1/documents/{id}/pages/{page}`
+- Document `language` (`kk`/`ru`/`en`/`mixed`) is guessed from the script
 - `POST /api/v1/conversations`, `GET`/`DELETE /api/v1/conversations/{id}`, `GET /api/v1/conversations/{id}/messages`
 - `POST /api/v1/conversations/{id}/messages` streams SSE (`start`, `token`, `sources`, `done`, `error`)
   - BM25 retrieval over chunks, top 5 excerpts go to Claude
   - Only `[n]` markers that point at a real excerpt become sources, and each quote is checked to be verbatim in its page or section
+  - Follow-up questions: the last 3 answered turns go to the model, and a very short question borrows the previous one for search
   - No usable citation means `not_found`. With no relevant excerpt the model is not called at all
 
 ## Not implemented yet
 
 - OCR (scanned PDFs fail with `NO_TEXT_FOUND`)
 - DOCX preview (`docxPreview: "none"`), tables in DOCX
-- Range requests on `/file`
-- `GET /documents/{id}/pages/{page}`
-- Embeddings (retrieval is keyword-only, no stemming: Russian and Kazakh endings are not matched)
+- Embeddings: retrieval is keyword-only (BM25 with a crude 5-letter stemmer and Russian prefix stripping), so synonyms are not matched
 - Comparisons, highlights
 
 ## Run
@@ -39,6 +39,14 @@ Environment variables:
 - `CLAUDE_MODEL` — default `claude-opus-5-5`
 - `DATA_DIR` — where `app.db` and uploaded files go (default `data/`)
 - `CORS_ORIGINS` — comma-separated frontend origins (default `http://localhost:5173`)
+
+## Evaluate search
+
+```bash
+python eval/retrieval_eval.py [your_set.json]
+```
+
+Checks only the search step (is the expected page in the top 5, is nothing found for off-topic questions). The bundled `eval/sample_set.json` is a tiny synthetic set and the stemmer was tuned while looking at it, so its 12/12 is not a measure of real accuracy. Put the questions on the demo documents in the same format.
 
 ## Test
 

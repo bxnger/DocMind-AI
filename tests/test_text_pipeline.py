@@ -64,3 +64,8 @@ def test_rank_prefers_documents_sharing_query_terms():
 
 def test_rank_returns_nothing_without_overlap():
     assert rank("quantum chromodynamics", ["The library opens at nine."], top_k=5) == []
+
+
+def test_prefixed_verb_meets_the_noun():
+    texts = ["Регистрация команд заканчивается 5 ноября.", "Библиотека открывается в девять."]
+    assert rank("До какого числа нужно зарегистрироваться?", texts, top_k=5)[0][0] == 0

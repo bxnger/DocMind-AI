@@ -1,5 +1,6 @@
 import io
 import zipfile
+from pathlib import Path
 
 import pymupdf as fitz
 import pytest
@@ -18,9 +19,11 @@ class FakeAnswerer:
     def __init__(self, reply: str = "") -> None:
         self.reply = reply
         self.calls: list[tuple[str, list[Excerpt], str | None]] = []
+        self.histories: list[list[tuple[str, str]]] = []
 
-    async def stream(self, question, excerpts, language):
+    async def stream(self, question, excerpts, language, history):
         self.calls.append((question, excerpts, language))
+        self.histories.append(history)
         for start in range(0, len(self.reply), 7):
             yield self.reply[start : start + 7]
 
@@ -43,13 +46,35 @@ def client(store, answerer) -> TestClient:
     return TestClient(app)
 
 
+CYRILLIC_FONT = next(
+    (
+        path
+        for path in (
+            r"C:\Windows\Fonts\arial.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/System/Library/Fonts/Supplemental/Arial.ttf",
+        )
+        if Path(path).exists()
+    ),
+    None,
+)
+needs_cyrillic_font = pytest.mark.skipif(CYRILLIC_FONT is None, reason="no TrueType font with Cyrillic found")
+
+
 def make_pdf(pages: list[str]) -> bytes:
-    """A real PDF with one line of ASCII text per page. An empty string gives a blank page."""
+    """A real PDF with one line of text per page. An empty string gives a blank page.
+
+    Non-ASCII text needs a TrueType font on the machine (see needs_cyrillic_font).
+    """
     doc = fitz.open()
     for text in pages:
         page = doc.new_page()
-        if text:
+        if not text:
+            continue
+        if text.isascii():
             page.insert_text((72, 72), text)
+        else:
+            page.insert_text((72, 72), text, fontname="cyr", fontfile=CYRILLIC_FONT)
     data = doc.tobytes()
     doc.close()
     return data

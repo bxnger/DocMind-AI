@@ -159,13 +159,20 @@ class Store:
                     (doc_id, segment_ids[seq], text),
                 )
 
-    def mark_ready(self, doc_id: str, page_count: int | None) -> None:
+    def mark_ready(self, doc_id: str, page_count: int | None, language: str | None = None) -> None:
         with self._db() as conn:
             conn.execute(
-                "UPDATE documents SET status = 'ready', stage = NULL, page_count = ?, ocr_used = 0,"
-                " error_json = NULL WHERE id = ?",
-                (page_count, doc_id),
+                "UPDATE documents SET status = 'ready', stage = NULL, page_count = ?, language = ?,"
+                " ocr_used = 0, error_json = NULL WHERE id = ?",
+                (page_count, language, doc_id),
             )
+
+    def get_page_text(self, doc_id: str, page: int) -> str | None:
+        with self._db() as conn:
+            row = conn.execute(
+                "SELECT text FROM segments WHERE document_id = ? AND page = ?", (doc_id, page)
+            ).fetchone()
+        return None if row is None else row["text"]
 
     def mark_failed(self, doc_id: str, code: str, message: str) -> None:
         error = {"code": code, "message": message, "retryable": False, "requestId": None}

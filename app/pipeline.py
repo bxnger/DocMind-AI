@@ -4,6 +4,7 @@ from app.chunking import build_chunks
 from app.config import MAX_PAGES
 from app.errors import AppError
 from app.extraction import ExtractionError, extract_docx, extract_pdf
+from app.language import detect_language
 from app.store import Store
 
 log = logging.getLogger(__name__)
@@ -30,7 +31,8 @@ def process_document(store: Store, doc_id: str) -> None:
 
         store.set_stage(doc_id, "indexing")
         store.save_content(doc_id, segments, build_chunks(segments))
-        store.mark_ready(doc_id, page_count=len(segments) if is_pdf else None)
+        language = detect_language(" ".join(segment.text for segment in segments))
+        store.mark_ready(doc_id, page_count=len(segments) if is_pdf else None, language=language)
     except ExtractionError as exc:
         store.mark_failed(doc_id, exc.code, exc.message)
     except Exception:

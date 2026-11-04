@@ -10,14 +10,16 @@ from app.citations import is_verbatim
 from app.config import MAX_MESSAGE_CHARS
 from app.deps import get_answerer, get_store
 from app.errors import AppError
-from app.llm import Answerer, Excerpt, LlmTimeout, LlmUnavailable
-from app.retrieval import rank
+from app.llm import Answerer, Excerpt, History, LlmTimeout, LlmUnavailable
+from app.retrieval import rank, tokenize
 from app.schemas import CreateConversation, SendMessage
 from app.store import Store
 
 router = APIRouter(prefix="/conversations", tags=["conversations"])
 
 EXCERPTS_PER_ANSWER = 5
+HISTORY_TURNS = 3
+SHORT_QUESTION_TOKENS = 3
 NOT_FOUND_MARKER = "NOT_FOUND"
 CITATION = re.compile(r"\[(\d+)\]")
 
@@ -82,16 +84,35 @@ async def send_message(
     if answerer is None:
         raise AppError(503, "LLM_UNAVAILABLE", "The AI model is not configured", retryable=True)
 
+    history = build_history(store.list_messages(conversation_id))
     chunks = store.chunks_for_documents(conversation["documentIds"])
-    hits = rank(question, [chunk["text"] for chunk in chunks], EXCERPTS_PER_ANSWER)
+    hits = rank(retrieval_query(question, history), [chunk["text"] for chunk in chunks], EXCERPTS_PER_ANSWER)
     picked = [chunks[index] for index, _score in hits]
 
     store.add_message(conversation_id, "user", question)
     assistant_id = uuid.uuid4().hex
     return StreamingResponse(
-        answer_stream(request, store, answerer, conversation_id, assistant_id, question, body.language, picked),
+        answer_stream(
+            request, store, answerer, conversation_id, assistant_id, question, body.language, picked, history
+        ),
         media_type="text/event-stream",
     )
+
+
+def build_history(messages: list[dict]) -> History:
+    """The last few answered (question, answer) pairs, for follow-up questions."""
+    pairs: History = []
+    for earlier, later in zip(messages, messages[1:]):
+        if earlier["role"] == "user" and later["role"] == "assistant" and later["answerStatus"] == "answered":
+            pairs.append((earlier["content"], later["content"]))
+    return pairs[-HISTORY_TURNS:]
+
+
+def retrieval_query(question: str, history: History) -> str:
+    """A very short question ("and when?") borrows the words of the previous one."""
+    if history and len(tokenize(question)) <= SHORT_QUESTION_TOKENS:
+        return f"{history[-1][0]} {question}"
+    return question
 
 
 async def answer_stream(
@@ -103,6 +124,7 @@ async def answer_stream(
     question: str,
     language: str | None,
     picked: list[dict],
+    history: History,
 ) -> AsyncIterator[str]:
     yield sse("start", {"messageId": assistant_id})
 
@@ -130,7 +152,7 @@ async def answer_stream(
     decided = False
     refused = False
     try:
-        async for piece in answerer.stream(question, excerpts, language):
+        async for piece in answerer.stream(question, excerpts, language, history):
             if await request.is_disconnected():
                 return  # the client stopped; leaving the loop closes the model stream
             answer += piece

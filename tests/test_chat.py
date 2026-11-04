@@ -181,3 +181,26 @@ def test_delete_conversation(client):
     conversation_id = conversation_for(client, document_id)
     assert client.delete(f"/api/v1/conversations/{conversation_id}").status_code == 204
     assert client.get(f"/api/v1/conversations/{conversation_id}").status_code == 404
+
+
+def test_short_follow_up_borrows_the_previous_question_for_retrieval(client, answerer):
+    document_id = ready_document(client)
+    conversation_id = conversation_for(client, document_id)
+    answerer.reply = ANSWER_TEXT
+    ask(client, conversation_id, "When does registration close?")
+
+    ask(client, conversation_id, "Where?")
+    _question, excerpts, _language = answerer.calls[1]
+    assert excerpts[0].page == 1
+    assert answerer.histories[1] == [("When does registration close?", ANSWER_TEXT)]
+
+
+def test_not_found_turns_are_left_out_of_the_history(client, answerer):
+    document_id = ready_document(client)
+    conversation_id = conversation_for(client, document_id)
+    answerer.reply = "NOT_FOUND"
+    ask(client, conversation_id, "When does registration close?")
+
+    answerer.reply = ANSWER_TEXT
+    ask(client, conversation_id, "When does registration close?")
+    assert answerer.histories[1] == []
