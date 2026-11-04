@@ -73,14 +73,14 @@ class Capabilities(BaseModel):
     limits: Limits
 
 
-def default_capabilities(version: str) -> Capabilities:
+def build_capabilities(version: str, ocr: bool) -> Capabilities:
     return Capabilities(
         version=version,
         languages=[],
-        ocr=False,
+        ocr=ocr,
         docx_preview="none",
-        comparison=False,
-        highlights=False,
+        comparison=True,
+        highlights=True,
         limits=Limits(
             max_file_size_bytes=MAX_FILE_SIZE_BYTES,
             max_pages=MAX_PAGES,

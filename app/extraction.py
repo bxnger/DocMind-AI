@@ -4,8 +4,12 @@ from pathlib import Path
 
 import pymupdf as fitz
 from docx import Document as DocxDocument
+from docx.table import Table
+from docx.text.paragraph import Paragraph
 
 WHITESPACE = re.compile(r"\s+")
+OCR_LANGUAGES = ("kaz", "rus", "eng")
+OCR_DPI = 300
 
 
 class ExtractionError(Exception):
@@ -28,7 +32,21 @@ def normalize(text: str) -> str:
     return WHITESPACE.sub(" ", text).strip()
 
 
-def extract_pdf(path: Path) -> list[Segment]:
+def ocr_languages() -> str | None:
+    """Tesseract languages usable for OCR, like "kaz+rus+eng", or None when OCR is not set up."""
+    try:
+        tessdata = fitz.get_tessdata()
+    except Exception:
+        return None
+    if not tessdata:
+        return None
+    present = [lang for lang in OCR_LANGUAGES if (Path(tessdata) / f"{lang}.traineddata").exists()]
+    return "+".join(present) or None
+
+
+def extract_pdf(path: Path, languages: str | None = None) -> list[Segment]:
+    """Text per page. With `languages`, every page is read with OCR instead of its text layer."""
+    failure = "OCR_FAILED" if languages else "PARSE_FAILED"
     try:
         doc = fitz.open(path)
     except Exception as exc:
@@ -36,38 +54,60 @@ def extract_pdf(path: Path) -> list[Segment]:
     try:
         if doc.needs_pass:
             raise ExtractionError("PASSWORD_PROTECTED", "The PDF is password protected")
-        return [
-            Segment(page=number, location=None, text=normalize(page.get_text("text")))
-            for number, page in enumerate(doc, start=1)
-        ]
+        segments = []
+        for number, page in enumerate(doc, start=1):
+            if languages:
+                textpage = page.get_textpage_ocr(language=languages, dpi=OCR_DPI, full=True)
+                text = page.get_text("text", textpage=textpage)
+            else:
+                text = page.get_text("text")
+            segments.append(Segment(page=number, location=None, text=normalize(text)))
+        return segments
     except ExtractionError:
         raise
     except Exception as exc:
-        raise ExtractionError("PARSE_FAILED", "The PDF could not be read") from exc
+        raise ExtractionError(failure, "The PDF could not be read") from exc
     finally:
         doc.close()
 
 
 def extract_docx(path: Path) -> list[Segment]:
-    """Paragraphs only. Tables are not read yet."""
+    """Paragraphs and tables, grouped into sections by heading."""
     try:
         document = DocxDocument(path)
+        blocks = list(document.iter_inner_content())
     except Exception as exc:
         raise ExtractionError("PARSE_FAILED", "The DOCX could not be read") from exc
 
     sections: list[tuple[str | None, list[str]]] = [(None, [])]
-    for paragraph in document.paragraphs:
-        text = normalize(paragraph.text)
-        if not text:
-            continue
-        style = paragraph.style.name.lower() if paragraph.style is not None else ""
-        if style.startswith(("heading", "title")):
-            sections.append((text, [text]))
-        else:
-            sections[-1][1].append(text)
+    for block in blocks:
+        if isinstance(block, Paragraph):
+            text = normalize(block.text)
+            if not text:
+                continue
+            style = block.style.name.lower() if block.style is not None else ""
+            if style.startswith(("heading", "title")):
+                sections.append((text, [text]))
+            else:
+                sections[-1][1].append(text)
+        elif isinstance(block, Table):
+            sections[-1][1].extend(_table_lines(block))
 
     return [
         Segment(page=None, location=heading, text=" ".join(lines))
         for heading, lines in sections
         if lines
     ]
+
+
+def _table_lines(table: Table) -> list[str]:
+    lines = []
+    for row in table.rows:
+        cells: list[str] = []
+        for cell in row.cells:
+            text = normalize(cell.text)
+            if text and (not cells or cells[-1] != text):  # merged cells repeat in row.cells
+                cells.append(text)
+        if cells:
+            lines.append(" | ".join(cells))
+    return lines

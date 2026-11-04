@@ -16,3 +16,5 @@ class Settings:
         os.environ.get("CORS_ORIGINS", "http://localhost:5173").split(",")
     )
     claude_model: str = os.environ.get("CLAUDE_MODEL", "claude-opus-5-5")
+    upload_limit_per_minute: int = 30
+    chat_limit_per_minute: int = 30

@@ -10,6 +10,8 @@ from app.citations import is_verbatim
 from app.config import MAX_MESSAGE_CHARS
 from app.deps import get_answerer, get_store
 from app.errors import AppError
+from app.highlights import quote_highlights
+from app.ratelimit import limit_chat
 from app.llm import Answerer, Excerpt, History, LlmTimeout, LlmUnavailable
 from app.retrieval import rank, tokenize
 from app.schemas import CreateConversation, SendMessage
@@ -63,7 +65,7 @@ def list_messages(conversation_id: str, store: Store = Depends(get_store)) -> di
     return {"items": store.list_messages(conversation_id)}
 
 
-@router.post("/{conversation_id}/messages")
+@router.post("/{conversation_id}/messages", dependencies=[Depends(limit_chat)])
 async def send_message(
     conversation_id: str,
     body: SendMessage,
@@ -180,7 +182,7 @@ async def answer_stream(
         if not refused and pending:
             yield sse("token", {"text": pending})
 
-    sources = [] if refused else verified_sources(answer, excerpts)
+    sources = [] if refused else verified_sources(answer, excerpts, store)
     status = "answered" if sources else "not_found"
     if sources:
         yield sse("sources", {"sources": sources})
@@ -195,8 +197,11 @@ async def answer_stream(
     )
 
 
-def verified_sources(answer: str, excerpts: list[Excerpt]) -> list[dict]:
-    """Sources for the [n] markers the answer uses, keeping only quotes found verbatim in their segment."""
+def verified_sources(answer: str, excerpts: list[Excerpt], store: Store) -> list[dict]:
+    """Sources for the [n] markers the answer uses, keeping only quotes found verbatim in their segment.
+
+    PDF sources also carry `highlights`, the quote's rectangles on the page, when they can be located.
+    """
     cited = sorted({int(match) for match in CITATION.findall(answer)})
     sources = []
     for number in cited:
@@ -205,14 +210,17 @@ def verified_sources(answer: str, excerpts: list[Excerpt]) -> list[dict]:
         excerpt = excerpts[number - 1]
         if not is_verbatim(excerpt.text, excerpt.segment_text):
             continue
-        sources.append(
-            {
-                "index": number,
-                "documentId": excerpt.document_id,
-                "documentName": excerpt.document_name,
-                "page": excerpt.page,
-                "location": excerpt.location,
-                "quote": excerpt.text,
-            }
-        )
+        source = {
+            "index": number,
+            "documentId": excerpt.document_id,
+            "documentName": excerpt.document_name,
+            "page": excerpt.page,
+            "location": excerpt.location,
+            "quote": excerpt.text,
+        }
+        if excerpt.page is not None:
+            highlights = quote_highlights(store.file_path(excerpt.document_id, "pdf"), excerpt.page, excerpt.text)
+            if highlights:
+                source["highlights"] = highlights
+        sources.append(source)
     return sources

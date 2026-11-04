@@ -77,6 +77,8 @@ def test_answer_streams_text_and_verified_source(client, answerer):
     assert streamed == ANSWER_TEXT
 
     sources = next(data["sources"] for name, data in events if name == "sources")
+    highlights = sources[0].pop("highlights")
+    assert highlights and all(0 <= value <= 1 for box in highlights for value in box.values())
     assert sources == [
         {
             "index": 1,

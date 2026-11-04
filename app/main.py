@@ -6,15 +6,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import Settings
 from app.deps import get_settings
 from app.errors import register_error_handlers
-from app.routers import conversations, documents
-from app.schemas import Capabilities, default_capabilities
+from app.extraction import ocr_languages
+from app.ratelimit import RateLimiter
+from app.routers import comparisons, conversations, documents
+from app.schemas import Capabilities, build_capabilities
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     app = FastAPI(title="Document Assistant API", version=VERSION)
+    app.state.upload_limiter = RateLimiter(settings.upload_limit_per_minute)
+    app.state.chat_limiter = RateLimiter(settings.chat_limit_per_minute)
 
     app.add_middleware(
         CORSMiddleware,
@@ -39,10 +43,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.get("/api/v1/capabilities", response_model=Capabilities)
     def capabilities() -> Capabilities:
-        return default_capabilities(VERSION)
+        return build_capabilities(VERSION, ocr=ocr_languages() is not None)
 
     app.include_router(documents.router, prefix="/api/v1")
     app.include_router(conversations.router, prefix="/api/v1")
+    app.include_router(comparisons.router, prefix="/api/v1")
     return app
 
 

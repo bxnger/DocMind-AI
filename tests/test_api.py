@@ -8,11 +8,17 @@ def test_health(client):
     assert response.json() == {"status": "ok"}
 
 
-def test_capabilities_reports_only_what_is_implemented(client):
+def test_capabilities_report_ocr_when_tesseract_is_set_up(client, monkeypatch):
+    monkeypatch.setattr("app.main.ocr_languages", lambda: "rus+eng")
+    assert client.get("/api/v1/capabilities").json()["ocr"] is True
+
+
+def test_capabilities_reports_only_what_is_implemented(client, monkeypatch):
+    monkeypatch.setattr("app.main.ocr_languages", lambda: None)
     body = client.get("/api/v1/capabilities").json()
     assert body["ocr"] is False
-    assert body["comparison"] is False
-    assert body["highlights"] is False
+    assert body["comparison"] is True
+    assert body["highlights"] is True
     assert body["docxPreview"] == "none"
     assert body["limits"]["maxFileSizeBytes"] == MAX_FILE_SIZE_BYTES
 

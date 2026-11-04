@@ -16,12 +16,15 @@ FastAPI backend for DOCMIND AI. Contract: `/api/v1`, camelCase JSON.
   - Follow-up questions: the last 3 answered turns go to the model, and a very short question borrows the previous one for search
   - No usable citation means `not_found`. With no relevant excerpt the model is not called at all
 
+Also: `highlights` on PDF sources, `POST /api/v1/comparisons` (sentence diff, no model), rate limits (30 uploads and 30 chat messages per minute), DOCX tables. Full contract: [docs/api-contract.md](docs/api-contract.md).
+
+OCR: scanned PDFs are read with Tesseract through PyMuPDF when Tesseract and its `kaz`/`rus`/`eng` data are installed (set `TESSDATA_PREFIX` if needed). Otherwise they fail with `NO_TEXT_FOUND`. Tesseract is not installed on the dev machine, so the OCR call itself has never been run, only the pipeline around it.
+
 ## Not implemented yet
 
-- OCR (scanned PDFs fail with `NO_TEXT_FOUND`)
-- DOCX preview (`docxPreview: "none"`), tables in DOCX
+- DOCX preview (`docxPreview: "none"`)
 - Embeddings: retrieval is keyword-only (BM25 with a crude 5-letter stemmer and Russian prefix stripping), so synonyms are not matched
-- Comparisons, highlights
+- Model-based comparison (meaning, conflicts)
 
 ## Run
 

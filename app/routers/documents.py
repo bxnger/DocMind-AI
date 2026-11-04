@@ -5,6 +5,7 @@ from app.config import MAX_FILE_SIZE_BYTES, SUPPORTED_EXTENSIONS
 from app.deps import get_store
 from app.errors import AppError
 from app.pipeline import process_document
+from app.ratelimit import limit_uploads
 from app.schemas import Document, DocumentList
 from app.store import Store
 
@@ -23,7 +24,7 @@ def _detect_kind(filename: str) -> str:
     raise AppError(415, "UNSUPPORTED_TYPE", "Only PDF and DOCX files are supported")
 
 
-@router.post("", status_code=202, response_model=Document)
+@router.post("", status_code=202, response_model=Document, dependencies=[Depends(limit_uploads)])
 async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),

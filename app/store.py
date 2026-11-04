@@ -60,6 +60,19 @@ SCHEMA = [
     )
     """,
     """
+    CREATE TABLE IF NOT EXISTS comparisons (
+        id TEXT PRIMARY KEY,
+        document_a_id TEXT NOT NULL,
+        document_b_id TEXT NOT NULL,
+        status TEXT NOT NULL,
+        progress REAL,
+        summary TEXT,
+        differences_json TEXT,
+        error_json TEXT,
+        created_at TEXT NOT NULL
+    )
+    """,
+    """
     CREATE TABLE IF NOT EXISTS messages (
         id TEXT PRIMARY KEY,
         conversation_id TEXT NOT NULL,
@@ -159,13 +172,22 @@ class Store:
                     (doc_id, segment_ids[seq], text),
                 )
 
-    def mark_ready(self, doc_id: str, page_count: int | None, language: str | None = None) -> None:
+    def mark_ready(
+        self, doc_id: str, page_count: int | None, language: str | None = None, ocr_used: bool = False
+    ) -> None:
         with self._db() as conn:
             conn.execute(
                 "UPDATE documents SET status = 'ready', stage = NULL, page_count = ?, language = ?,"
-                " ocr_used = 0, error_json = NULL WHERE id = ?",
-                (page_count, language, doc_id),
+                " ocr_used = ?, error_json = NULL WHERE id = ?",
+                (page_count, language, int(ocr_used), doc_id),
             )
+
+    def segments_for_document(self, doc_id: str) -> list[dict]:
+        with self._db() as conn:
+            rows = conn.execute(
+                "SELECT page, location, text FROM segments WHERE document_id = ? ORDER BY seq", (doc_id,)
+            ).fetchall()
+        return [{"page": row["page"], "location": row["location"], "text": row["text"]} for row in rows]
 
     def get_page_text(self, doc_id: str, page: int) -> str | None:
         with self._db() as conn:
@@ -317,6 +339,54 @@ class Store:
             }
             for row in rows
         ]
+
+    # Comparisons
+
+    def create_comparison(self, document_a_id: str, document_b_id: str) -> dict:
+        comparison_id = self.new_id()
+        with self._db() as conn:
+            conn.execute(
+                "INSERT INTO comparisons (id, document_a_id, document_b_id, status, progress, created_at)"
+                " VALUES (?, ?, ?, 'processing', 0.0, ?)",
+                (comparison_id, document_a_id, document_b_id, _now()),
+            )
+        return self.get_comparison(comparison_id)
+
+    def get_comparison(self, comparison_id: str) -> dict:
+        with self._db() as conn:
+            row = conn.execute("SELECT * FROM comparisons WHERE id = ?", (comparison_id,)).fetchone()
+        if row is None:
+            raise AppError(404, "COMPARISON_NOT_FOUND", "Comparison not found")
+        return {
+            "id": row["id"],
+            "documentAId": row["document_a_id"],
+            "documentBId": row["document_b_id"],
+            "status": row["status"],
+            "progress": row["progress"],
+            "summary": row["summary"],
+            "differences": json.loads(row["differences_json"]) if row["differences_json"] else None,
+            "error": json.loads(row["error_json"]) if row["error_json"] else None,
+        }
+
+    def set_comparison_progress(self, comparison_id: str, progress: float) -> None:
+        with self._db() as conn:
+            conn.execute("UPDATE comparisons SET progress = ? WHERE id = ?", (progress, comparison_id))
+
+    def finish_comparison(self, comparison_id: str, summary: str, differences: list[dict]) -> None:
+        with self._db() as conn:
+            conn.execute(
+                "UPDATE comparisons SET status = 'ready', progress = 1.0, summary = ?, differences_json = ?"
+                " WHERE id = ?",
+                (summary, json.dumps(differences, ensure_ascii=False), comparison_id),
+            )
+
+    def fail_comparison(self, comparison_id: str, code: str, message: str) -> None:
+        error = {"code": code, "message": message, "retryable": False, "requestId": None}
+        with self._db() as conn:
+            conn.execute(
+                "UPDATE comparisons SET status = 'failed', progress = NULL, error_json = ? WHERE id = ?",
+                (json.dumps(error), comparison_id),
+            )
 
     @staticmethod
     def _conversation(conn: sqlite3.Connection, row: sqlite3.Row) -> dict:
