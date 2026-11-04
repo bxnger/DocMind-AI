@@ -9,6 +9,7 @@ interface Props {
   scale: number;
   fit: boolean;
   railOpen: boolean;
+  hideRailToggle?: boolean;
   searchOpen: boolean;
   onPage: (page: number) => void;
   onZoomStep: (direction: 1 | -1) => void;
@@ -18,7 +19,7 @@ interface Props {
 }
 
 export function ViewerToolbar(props: Props) {
-  const { page, pageCount, scale, fit, railOpen, searchOpen, onPage, onZoomStep, onFit, onToggleRail, onToggleSearch } = props;
+  const { page, pageCount, scale, fit, railOpen, hideRailToggle, searchOpen, onPage, onZoomStep, onFit, onToggleRail, onToggleSearch } = props;
   const { t } = useTranslation();
   /** Null unless the user is typing, so the field otherwise follows the scroll position. */
   const [draft, setDraft] = useState<string | null>(null);
@@ -32,7 +33,7 @@ export function ViewerToolbar(props: Props) {
 
   return (
     <div role="toolbar" aria-label={t('viewer.toolbar')} className="flex h-11 shrink-0 items-center gap-1 overflow-x-auto border-b border-line px-2">
-      <IconButton dense label={t('viewer.pages')} active={railOpen} aria-pressed={railOpen} icon={<PanelLeft size={16} aria-hidden />} onClick={onToggleRail} className="max-sm:hidden" />
+      {!hideRailToggle && <IconButton dense label={t('viewer.pages')} active={railOpen} aria-pressed={railOpen} icon={<PanelLeft size={16} aria-hidden />} onClick={onToggleRail} className="max-sm:hidden" />}
       <div className="mx-auto flex items-center gap-1">
         <IconButton dense label={t('viewer.prevPage')} icon={<ChevronLeft size={16} aria-hidden />} disabled={page <= 1} onClick={() => onPage(page - 1)} />
         <input

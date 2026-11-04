@@ -1,12 +1,11 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { AssistantAvailability } from '@/features/chat/AssistantPanel';
 import type { PdfState } from '@/features/viewer/usePdfDocument';
+import { usePdfText } from '@/features/viewer/usePdfText';
 import {
   createDemoChatAdapter,
   createLiveChatAdapter,
-  extractDocumentText,
   frequentTerms,
   hasSearchableText,
 } from '@/services/chat';
@@ -18,21 +17,10 @@ import type { DocumentSource } from './useDocumentSource';
 /** Chooses the adapter: real AI through the backend, or the separate demo search. */
 export function useAssistant(doc: DocumentModel, source: DocumentSource, pdf: PdfState, requestedMode: ChatMode) {
   const { t, i18n } = useTranslation();
-  const proxy = pdf.status === 'ready' ? pdf.pdf : null;
   // The sample is not on the backend, so real AI cannot answer about it.
   const mode: ChatMode = isSampleDocument(doc.id) ? 'demo' : requestedMode;
 
-  const textQuery = useQuery({
-    queryKey: ['pdf-text', doc.id, proxy?.fingerprints[0]],
-    queryFn: () => {
-      if (!proxy) throw new Error('PDF is not loaded');
-      return extractDocumentText(proxy);
-    },
-    enabled: proxy !== null,
-    staleTime: Infinity,
-    gcTime: 0,
-    retry: false,
-  });
+  const textQuery = usePdfText(doc.id, pdf);
   const text = textQuery.data;
 
   const liveReady = mode === 'live' && doc.status === 'ready';

@@ -35,6 +35,13 @@ The Map view in the workspace is an interactive graph of a PDF's repeated terms,
 (`src/features/knowledgeMap/`). It is word statistics, not AI, and says so: a link means two terms share sentences. Every
 fragment is verbatim and opens through Evidence Jump. DOCX has no map, because its text isn't available in the browser.
 
+## Compare documents
+
+`/compare` shows the backend's sentence diff (`POST /comparisons`) of two ready documents. It is not AI and says so.
+Changes view: aligned passages with word marks computed from the two real quotes. Documents view: the PDF viewer on both
+sides, marking changes only where the text is found on the page, with an optional proportional scroll lock.
+DOCX has no preview, and the API gives it no location, so its changes appear as text only.
+
 ## Scripts
 
 | Command | What it does |
