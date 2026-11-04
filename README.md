@@ -43,6 +43,16 @@ Environment variables:
 - `DATA_DIR` — where `app.db` and uploaded files go (default `data/`)
 - `CORS_ORIGINS` — comma-separated frontend origins (default `http://localhost:5173`)
 
+Robustness: SQLite runs in WAL mode; documents left `processing` by a restart are processed again on startup and unfinished comparisons are marked failed; Claude requests time out after 60 s (`LLM_TIMEOUT`). Source quotes are the single best sentence of the cited excerpt, so highlights are precise.
+
+## Evaluate answers (needs a key)
+
+```bash
+python eval/answer_eval.py demo.pdf eval/sample_set.json
+```
+
+Uploads the PDF, asks every question through the real chat endpoint with Claude, and counts answers whose cited pages include the expected one and off-topic questions that were refused. This is the honest accuracy number for the presentation, once you replace `sample_set.json` with questions on the demo document. It has only been run with a fake answerer so far.
+
 ## Evaluate search
 
 ```bash

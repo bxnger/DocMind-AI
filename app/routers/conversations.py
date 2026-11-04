@@ -6,6 +6,7 @@ from collections.abc import AsyncIterator
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import Response, StreamingResponse
 
+from app.chunking import SENTENCE_END
 from app.citations import is_verbatim
 from app.config import MAX_MESSAGE_CHARS
 from app.deps import get_answerer, get_store
@@ -182,7 +183,7 @@ async def answer_stream(
         if not refused and pending:
             yield sse("token", {"text": pending})
 
-    sources = [] if refused else verified_sources(answer, excerpts, store)
+    sources = [] if refused else verified_sources(answer, excerpts, store, question)
     status = "answered" if sources else "not_found"
     if sources:
         yield sse("sources", {"sources": sources})
@@ -197,9 +198,31 @@ async def answer_stream(
     )
 
 
-def verified_sources(answer: str, excerpts: list[Excerpt], store: Store) -> list[dict]:
+def claim_for(answer: str, number: int) -> str:
+    """The sentence of the answer that carries the marker [number]."""
+    marker = f"[{number}]"
+    return next((sentence for sentence in SENTENCE_END.split(answer) if marker in sentence), "")
+
+
+def best_sentence(excerpt_text: str, focus: str) -> str:
+    """The sentence of the excerpt that shares the most words with `focus`, or the whole excerpt.
+
+    A shorter quote shows the reader exactly where the answer comes from. Sentences are exact
+    substrings of the excerpt, so the quote stays verbatim.
+    """
+    sentences = [sentence for sentence in SENTENCE_END.split(excerpt_text) if sentence]
+    if len(sentences) < 2:
+        return excerpt_text
+    focus_words = set(tokenize(focus))
+    scores = [len(focus_words & set(tokenize(sentence))) for sentence in sentences]
+    best = max(scores)
+    return excerpt_text if best == 0 else sentences[scores.index(best)]
+
+
+def verified_sources(answer: str, excerpts: list[Excerpt], store: Store, question: str = "") -> list[dict]:
     """Sources for the [n] markers the answer uses, keeping only quotes found verbatim in their segment.
 
+    The quote is the sentence of the excerpt closest to the question and the cited claim.
     PDF sources also carry `highlights`, the quote's rectangles on the page, when they can be located.
     """
     cited = sorted({int(match) for match in CITATION.findall(answer)})
@@ -208,7 +231,8 @@ def verified_sources(answer: str, excerpts: list[Excerpt], store: Store) -> list
         if not 1 <= number <= len(excerpts):
             continue
         excerpt = excerpts[number - 1]
-        if not is_verbatim(excerpt.text, excerpt.segment_text):
+        quote = best_sentence(excerpt.text, f"{question} {claim_for(answer, number)}")
+        if not is_verbatim(quote, excerpt.segment_text):
             continue
         source = {
             "index": number,
@@ -216,10 +240,10 @@ def verified_sources(answer: str, excerpts: list[Excerpt], store: Store) -> list
             "documentName": excerpt.document_name,
             "page": excerpt.page,
             "location": excerpt.location,
-            "quote": excerpt.text,
+            "quote": quote,
         }
         if excerpt.page is not None:
-            highlights = quote_highlights(store.file_path(excerpt.document_id, "pdf"), excerpt.page, excerpt.text)
+            highlights = quote_highlights(store.file_path(excerpt.document_id, "pdf"), excerpt.page, quote)
             if highlights:
                 source["highlights"] = highlights
         sources.append(source)

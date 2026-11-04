@@ -103,7 +103,9 @@ class Store:
 
     @contextmanager
     def _db(self) -> Iterator[sqlite3.Connection]:
-        conn = sqlite3.connect(self.db_path)
+        # Background tasks write while requests read: WAL plus a wait avoids "database is locked".
+        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn.execute("PRAGMA journal_mode=WAL")
         conn.row_factory = sqlite3.Row
         try:
             yield conn
@@ -149,6 +151,26 @@ class Store:
             conn.execute("DELETE FROM conversation_documents WHERE document_id = ?", (doc_id,))
             conn.execute("DELETE FROM documents WHERE id = ?", (doc_id,))
         self.file_path(doc_id, doc["kind"]).unlink(missing_ok=True)
+
+    def unfinished_document_ids(self) -> list[str]:
+        """Documents whose processing was cut off, for example by a server restart."""
+        with self._db() as conn:
+            rows = conn.execute("SELECT id FROM documents WHERE status = 'processing' ORDER BY rowid").fetchall()
+        return [row["id"] for row in rows]
+
+    def fail_unfinished_comparisons(self) -> None:
+        error = {
+            "code": "INTERNAL_ERROR",
+            "message": "The server restarted during the comparison. Start it again",
+            "retryable": True,
+            "requestId": None,
+        }
+        with self._db() as conn:
+            conn.execute(
+                "UPDATE comparisons SET status = 'failed', progress = NULL, error_json = ?"
+                " WHERE status = 'processing'",
+                (json.dumps(error),),
+            )
 
     def set_stage(self, doc_id: str, stage: str) -> None:
         with self._db() as conn:

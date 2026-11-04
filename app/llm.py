@@ -5,6 +5,8 @@ from typing import Protocol
 
 import anthropic
 
+REQUEST_TIMEOUT_SECONDS = 60.0
+
 SYSTEM_PROMPT = """You answer questions about the user's uploaded documents.
 
 Use only the numbered excerpts in the user message. Do not use outside knowledge.
@@ -63,7 +65,8 @@ class ClaudeAnswerer:
     def __init__(self, model: str) -> None:
         self.model = model
         # Reads ANTHROPIC_API_KEY from the environment.
-        self.client = anthropic.AsyncAnthropic()
+        # A bounded wait so a stuck request ends as LLM_TIMEOUT instead of hanging the chat.
+        self.client = anthropic.AsyncAnthropic(timeout=REQUEST_TIMEOUT_SECONDS, max_retries=1)
 
     async def stream(
         self, question: str, excerpts: list[Excerpt], language: str | None, history: History

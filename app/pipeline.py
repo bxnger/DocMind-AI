@@ -10,6 +10,13 @@ from app.store import Store
 log = logging.getLogger(__name__)
 
 
+def recover_unfinished(store: Store) -> None:
+    """On startup: documents left `processing` by a restart are processed again, comparisons fail."""
+    store.fail_unfinished_comparisons()
+    for doc_id in store.unfinished_document_ids():
+        process_document(store, doc_id)
+
+
 def process_document(store: Store, doc_id: str) -> None:
     """Runs after upload. Ends the document in `ready` or `failed`."""
     try:

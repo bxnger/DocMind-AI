@@ -50,7 +50,7 @@ Processing ends in `ready` or `failed`. Failure is in `Document.error`: `PARSE_F
 
 Errors before the stream: 404 `CONVERSATION_NOT_FOUND`, 409 `DOCUMENT_NOT_READY`, 422 `EMPTY_MESSAGE`, 422 `MESSAGE_TOO_LONG`, 429 `RATE_LIMITED`, 503 `LLM_UNAVAILABLE` (no API key). Closing the connection stops generation.
 
-A `[n]` in the text matches `Source.index`. If the model's answer contains no valid `[n]`, the result is `not_found` even though its text was already streamed: hide the text for `not_found`.
+A `[n]` in the text matches `Source.index`. `Source.quote` is the sentence of the cited excerpt closest to the question and to the claim (the whole excerpt, at most 500 characters, when no sentence stands out). If the model's answer contains no valid `[n]`, the result is `not_found` even though its text was already streamed: hide the text for `not_found`.
 
 ## Comparison
 
