@@ -10,7 +10,7 @@ export interface Passage {
   quote: string;
 }
 
-const STOPWORDS = new Set(
+export const STOPWORDS = new Set(
   `a an and any are as at be been but by can could did do does for from had has have how i if in into is it its
   of on or our should so than that the their them then there these they this to under was we were what when where
   which who whom why will with would you your about document mention mentions mentioned say says said tell give show
@@ -28,7 +28,7 @@ export function tokenize(text: string): string[] {
 }
 
 /** Light prefix stemming so inflected forms match in English, Russian and Kazakh. */
-function stem(token: string): string {
+export function stem(token: string): string {
   return token.length < 6 ? token : token.slice(0, Math.max(5, Math.floor(token.length * 0.7)));
 }
 

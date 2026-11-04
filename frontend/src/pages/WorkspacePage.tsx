@@ -20,6 +20,8 @@ import { EvidenceInspector } from '@/features/evidence/EvidenceInspector';
 import { sourceJump } from '@/features/evidence/evidenceState';
 import { evidenceStatus, type ViewerAvailability } from '@/features/evidence/status';
 import { useEvidence } from '@/features/evidence/useEvidence';
+import type { Fragment, TopicNode } from '@/features/knowledgeMap/buildGraph';
+import { KnowledgeMap } from '@/features/knowledgeMap/KnowledgeMap';
 import { locateEvidence } from '@/features/viewer/lib/locate';
 import type { JumpRequest } from '@/features/viewer/PdfViewer';
 import { usePdfDocument, type PdfInput } from '@/features/viewer/usePdfDocument';
@@ -32,7 +34,7 @@ import { usePersistentState } from '@/hooks/usePersistentState';
 import { cn } from '@/lib/cn';
 import { markOpened } from '@/services/recents';
 import { isSampleDocument } from '@/services/sampleDocument';
-import type { ChatMode } from '@/types/chat';
+import type { AssistantMessage, ChatMode } from '@/types/chat';
 import type { DocumentModel } from '@/types/document';
 
 const DEFAULT_CHAT_WIDTH = 420;
@@ -40,6 +42,27 @@ const MIN_CHAT_WIDTH = 340;
 const MAX_CHAT_WIDTH = 640;
 
 type Pane = 'document' | 'assistant';
+
+/** A topic's fragments in the shape Evidence Jump reads. It has no answer text and never enters the chat. */
+function fragmentMessage(node: TopicNode, doc: DocumentModel): AssistantMessage {
+  return {
+    id: `map:${node.id}`,
+    role: 'assistant',
+    question: node.label,
+    mode: 'demo',
+    text: '',
+    status: 'done',
+    answerStatus: 'answered',
+    sources: node.fragments.map((fragment, index) => ({
+      index: index + 1,
+      documentId: doc.id,
+      documentName: doc.name,
+      page: fragment.page,
+      location: null,
+      quote: fragment.quote,
+    })),
+  };
+}
 
 function RegionCrash({ reset }: { reset: () => void }) {
   const { t } = useTranslation();
@@ -78,7 +101,11 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
   const { text, adapter, availability, mode: effectiveMode } = useAssistant(doc, source, pdf, mode);
   const chat = useChat(doc.id, doc.name, adapter);
 
-  const evidence = useEvidence(chat.messages);
+  // Fragments from the map go through the same Evidence Jump as answers, as a source list kept outside the chat.
+  const [view, setView] = useState<'document' | 'map'>('document');
+  const [mapEvidence, setMapEvidence] = useState<AssistantMessage | null>(null);
+  const evidenceMessages = useMemo(() => (mapEvidence ? [...chat.messages, mapEvidence] : chat.messages), [chat.messages, mapEvidence]);
+  const evidence = useEvidence(evidenceMessages);
   const { selection, open: openEvidence } = evidence;
   const picked = selection?.source ?? null;
   const pickedNonce = selection?.nonce ?? 0;
@@ -93,12 +120,25 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
       open: (messageId, opened) => {
         setRouteJump(null);
         openEvidence(messageId, opened);
+        setView('document');
         // On a narrow screen the document is its own tab.
         setPane('document');
       },
     }),
     [openEvidence, selection],
   );
+
+  const openFragment = (node: TopicNode, fragment: Fragment) => {
+    const message = fragmentMessage(node, doc);
+    const opened = message.sources.find((candidate) => candidate.page === fragment.page && candidate.quote === fragment.quote);
+    if (!opened) return;
+    setMapEvidence(message);
+    setRouteJump(null);
+    openEvidence(message.id, opened);
+    setView('document');
+    setPane('document');
+  };
+  const fromMap = selection?.messageId === mapEvidence?.id;
 
   const viewer: ViewerAvailability =
     source.kind === 'unavailable' ? 'unavailable' : source.kind === 'checking' ? 'loading' : pdf.status === 'error' ? 'error' : pdf.status === 'ready' ? 'ready' : 'loading';
@@ -157,7 +197,32 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
       )}
 
       <div className="flex min-h-0 flex-1">
-        <div className={cn('relative min-w-0 flex-1', !split && pane !== 'document' && 'hidden')}>
+        <div className={cn('flex min-w-0 flex-1 flex-col', !split && pane !== 'document' && 'hidden')}>
+          <div role="group" aria-label={t('map.views')} className="flex h-9 shrink-0 items-center gap-0.5 border-b border-line bg-sidebar px-2">
+            {(['document', 'map'] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={view === value}
+                onClick={() => setView(value)}
+                className={cn('pressable h-7 rounded-lg px-3 text-xs font-medium', view === value ? 'bg-accent-tint text-fg' : 'text-muted hover:text-fg')}
+              >
+                {t(`map.view.${value}`)}
+              </button>
+            ))}
+          </div>
+          <div className="relative min-h-0 flex-1">
+          {/* Stays mounted, so coming back from a fragment keeps the topic and zoom. */}
+          <div className={cn('h-full', view !== 'map' && 'hidden')}>
+            <ErrorBoundary fallback={(reset) => <RegionCrash reset={reset} />}>
+              <KnowledgeMap
+                text={text}
+                unavailable={doc.kind === 'docx' ? 'docx' : source.kind === 'unavailable' || pdf.status === 'error' ? 'other' : null}
+                onOpenFragment={openFragment}
+              />
+            </ErrorBoundary>
+          </div>
+          <div className={cn('h-full', view !== 'document' && 'hidden')}>
           <ErrorBoundary fallback={(reset) => <RegionCrash reset={reset} />}>
             <ViewerPane
               doc={doc}
@@ -170,8 +235,9 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
               onRetry={() => setAttempt(attempt + 1)}
             />
           </ErrorBoundary>
+          </div>
           <AnimatePresence>
-            {selection && status && (
+            {view === 'document' && selection && status && (
               <EvidenceInspector
                 key="inspector"
                 evidence={selection}
@@ -180,10 +246,12 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
                 onStep={evidence.step}
                 onRefocus={evidence.refocus}
                 onClose={evidence.close}
-                onBack={split ? null : () => setPane('assistant')}
+                onBack={fromMap ? () => setView('map') : split ? null : () => setPane('assistant')}
+                backLabel={fromMap ? t('map.back') : undefined}
               />
             )}
           </AnimatePresence>
+          </div>
         </div>
         {split && (
           <ResizeHandle

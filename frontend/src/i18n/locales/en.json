@@ -369,5 +369,35 @@
       "otherDocument": "This source belongs to another document, so it can't be shown here."
     },
     "cardLabel": "Inspect source {{index}}"
+  },
+  "map": {
+    "view": {
+      "document": "Document",
+      "map": "Map"
+    },
+    "views": "Document or map",
+    "canvas": "Map of the document's topics. Use the arrow keys to move, plus and minus to zoom.",
+    "search": "Find a topic",
+    "counts": "{{nodes}} topics · {{links}} links",
+    "matches": "Matches: {{count}}",
+    "controls": "Map controls",
+    "fit": "Fit to screen",
+    "noticeTitle": "Word statistics, not AI.",
+    "noticeBody": "Topics are repeated terms from this PDF. A link means they share sentences, not that they are related in meaning.",
+    "panel": "Selected topic",
+    "closePanel": "Close topic",
+    "stats": "Mentions: {{count}} · Pages: {{pages}}",
+    "fragments": "Where it appears",
+    "related": "Often appears with",
+    "together": "{{count}}×",
+    "openFragment": "Open this fragment on page {{page}}",
+    "nodeLabel": "{{label}}, mentions: {{count}}",
+    "back": "Back to the map",
+    "reading": "Reading the document's text",
+    "emptyTitle": "Too little text for a map",
+    "emptyBody": "No term repeats in this document, or its pages have no text layer, such as a scan.",
+    "unavailableTitle": "No map for this document",
+    "unavailableDocx": "The map reads text in the browser, which works only for PDF for now.",
+    "unavailableOther": "The document's text isn't available on this device."
   }
 }

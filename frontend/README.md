@@ -29,6 +29,12 @@ Every source of an AI answer is interactive: the `[n]` marker, the source card, 
 - DOCX sources show their section and quote, never a page number, and nothing is jumped to.
 - Logic lives in `src/features/evidence/` and `src/features/viewer/lib/locate.ts` and is covered by unit tests.
 
+## Knowledge Map
+
+The Map view in the workspace is an interactive graph of a PDF's repeated terms, built in the browser from its real text
+(`src/features/knowledgeMap/`). It is word statistics, not AI, and says so: a link means two terms share sentences. Every
+fragment is verbatim and opens through Evidence Jump. DOCX has no map, because its text isn't available in the browser.
+
 ## Scripts
 
 | Command | What it does |
