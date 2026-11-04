@@ -29,6 +29,7 @@ export function AppShell() {
   const { t } = useTranslation();
   const location = useLocation();
   const isWorkspace = useMatch('/documents/:id') !== null;
+  const isCompare = useMatch('/compare') !== null;
   const mobile = useMediaQuery(MOBILE_QUERY);
   const tablet = useMediaQuery('(max-width: 1023px)');
   const [collapsedPreference, setCollapsedPreference] = usePersistentState('docmind.sidebar.collapsed', false);
@@ -38,7 +39,7 @@ export function AppShell() {
   useRefetchOnReconnect();
 
   // The workspace and tablets get the rail, so the document has the room it needs.
-  const forcedRail = isWorkspace || tablet;
+  const forcedRail = isWorkspace || isCompare || tablet;
   const collapsed = forcedRail || collapsedPreference;
 
   useEffect(() => {

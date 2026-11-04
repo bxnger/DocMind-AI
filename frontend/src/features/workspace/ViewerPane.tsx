@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { StateBlock } from '@/components/ui/StateBlock';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useCodeMessage } from '@/features/system/useErrorMessage';
-import { PdfViewer, type JumpRequest } from '@/features/viewer/PdfViewer';
+import { PdfViewer, type Annotation, type JumpRequest } from '@/features/viewer/PdfViewer';
 import type { PdfState } from '@/features/viewer/usePdfDocument';
 import type { DocumentText } from '@/services/chat';
 import type { DocumentModel } from '@/types/document';
@@ -19,6 +19,8 @@ interface Props {
   jump: JumpRequest | null;
   citedPages: ReadonlySet<number>;
   quoteNotice: boolean;
+  annotations?: Annotation[];
+  compact?: boolean;
   onRetry: () => void;
 }
 
@@ -38,7 +40,7 @@ function Loading({ progress }: { progress: number | null }) {
   );
 }
 
-export function ViewerPane({ doc, source, pdf, text, jump, citedPages, quoteNotice, onRetry }: Props) {
+export function ViewerPane({ doc, source, pdf, text, jump, citedPages, quoteNotice, annotations, compact, onRetry }: Props) {
   const { t } = useTranslation();
   const codeMessage = useCodeMessage();
 
@@ -98,5 +100,5 @@ export function ViewerPane({ doc, source, pdf, text, jump, citedPages, quoteNoti
 
   if (pdf.status !== 'ready') return <Loading progress={pdf.status === 'loading' ? pdf.progress : null} />;
 
-  return <PdfViewer pdf={pdf.pdf} text={text} jump={jump} citedPages={citedPages} quoteNotice={quoteNotice} />;
+  return <PdfViewer pdf={pdf.pdf} text={text} jump={jump} citedPages={citedPages} quoteNotice={quoteNotice} annotations={annotations} compact={compact} />;
 }

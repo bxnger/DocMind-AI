@@ -206,6 +206,15 @@ label[for] {
   box-shadow: 0 0 0 1px rgb(85 200 232 / 0.5);
   animation: quote-arrive 1.2s var(--ease-out);
 }
+.textLayer mark.hl-added {
+  background: rgb(114 194 154 / 0.35);
+}
+.textLayer mark.hl-removed {
+  background: rgb(230 138 138 / 0.35);
+}
+.textLayer mark.hl-changed {
+  background: rgb(139 124 255 / 0.3);
+}
 .textLayer mark.hl-search {
   background: rgb(217 174 102 / 0.4);
 }

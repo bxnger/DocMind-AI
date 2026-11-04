@@ -9,7 +9,7 @@ import { hasSearchableText, type DocumentText } from '@/services/chat';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { usePersistentState } from '@/hooks/usePersistentState';
 import { locateEvidence } from './lib/locate';
-import type { MarkSpan, TextMatch } from './lib/textMatch';
+import { findMatches, type MarkSpan, type TextMatch } from './lib/textMatch';
 import { PdfPageView } from './PdfPageView';
 import { ThumbnailRail } from './ThumbnailRail';
 import { useDocumentSearch, type SearchHit } from './useDocumentSearch';
@@ -26,6 +26,13 @@ export interface JumpRequest {
   nonce: number;
 }
 
+/** Text to mark on a page, for example one side of a comparison. Marked only where it is really found. */
+export interface Annotation {
+  page: number;
+  quote: string;
+  className: string;
+}
+
 interface Props {
   pdf: PDFDocumentProxy;
   text: DocumentText | undefined;
@@ -33,6 +40,9 @@ interface Props {
   citedPages: ReadonlySet<number>;
   /** The inspector already says when a passage could not be located. Without it, the viewer says so itself. */
   quoteNotice?: boolean;
+  annotations?: Annotation[];
+  /** For a narrow pane: no thumbnail rail. */
+  compact?: boolean;
 }
 
 function addMarks(target: Map<number, Map<number, MarkSpan[]>>, page: number, match: TextMatch, className: string) {
@@ -45,7 +55,7 @@ function addMarks(target: Map<number, Map<number, MarkSpan[]>>, page: number, ma
   target.set(page, pageMarks);
 }
 
-export function PdfViewer({ pdf, text, jump, citedPages, quoteNotice = true }: Props) {
+export function PdfViewer({ pdf, text, jump, citedPages, quoteNotice = true, annotations, compact = false }: Props) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const sizes = usePageSizes(pdf);
@@ -53,7 +63,7 @@ export function PdfViewer({ pdf, text, jump, citedPages, quoteNotice = true }: P
   const { goToPage, goToSpot, scrollBy, ready: scrollerReady } = scroller;
   const roomy = useMediaQuery('(min-width: 1180px)');
   const [railPreference, setRailPreference] = usePersistentState('docmind.viewer.rail', true);
-  const railOpen = railPreference && roomy;
+  const railOpen = railPreference && roomy && !compact;
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -126,12 +136,23 @@ export function PdfViewer({ pdf, text, jump, citedPages, quoteNotice = true }: P
     }
   }, [hits]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const annotatedMatches = useMemo(
+    () =>
+      (annotations ?? []).flatMap((annotation) => {
+        const pageText = text?.[annotation.page - 1];
+        const [match] = pageText ? findMatches(pageText.items, annotation.quote, { limit: 1 }) : [];
+        return match ? [{ page: annotation.page, match, className: annotation.className }] : [];
+      }),
+    [annotations, text],
+  );
+
   const marksByPage = useMemo(() => {
     const result = new Map<number, Map<number, MarkSpan[]>>();
     if (quote) addMarks(result, quote.page, quote.match, 'hl-quote');
+    for (const annotation of annotatedMatches) addMarks(result, annotation.page, annotation.match, annotation.className);
     hits.forEach((hit, index) => addMarks(result, hit.page, hit.match, index === activeHit ? 'hl-active' : 'hl-search'));
     return result;
-  }, [quote, hits, activeHit]);
+  }, [quote, annotatedMatches, hits, activeHit]);
 
   const closeSearch = () => {
     setSearchOpen(false);
@@ -154,6 +175,7 @@ export function PdfViewer({ pdf, text, jump, citedPages, quoteNotice = true }: P
         scale={scroller.scale}
         fit={scroller.fit}
         railOpen={railOpen}
+        hideRailToggle={compact}
         searchOpen={searchOpen}
         onPage={goToPage}
         onZoomStep={scroller.zoomStep}
