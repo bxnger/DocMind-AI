@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+.env.local
+*.tsbuildinfo
+.DS_Store
+# Copied from pdfjs-dist by scripts/copy-pdf-assets.mjs
+public/pdfjs

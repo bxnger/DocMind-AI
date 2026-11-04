@@ -1,0 +1,279 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter/index.css';
+@import '@fontsource-variable/source-serif-4/index.css';
+@import 'react-pdf/dist/Page/TextLayer.css';
+
+/* Design tokens. Components use only these, through Tailwind utilities. */
+@theme {
+  --color-bg: #090b10;
+  --color-sidebar: #0d1017;
+  --color-card: #121722;
+  --color-card-raised: #181e2b;
+  --color-line: #242b38;
+  --color-line-strong: #343d4f;
+  --color-accent: #8b7cff;
+  --color-accent-strong: #a094ff;
+  --color-accent-2: #55c8e8;
+  --color-fg: #f4f5fa;
+  --color-muted: #939baa;
+  --color-on-accent: #0e0b24;
+  --color-hover: rgb(255 255 255 / 0.04);
+  --color-accent-tint: rgb(139 124 255 / 0.14);
+  --color-accent-line: rgb(139 124 255 / 0.4);
+  --color-accent-2-tint: rgb(85 200 232 / 0.12);
+  --color-accent-2-line: rgb(85 200 232 / 0.38);
+  --color-success: #72c29a;
+  --color-success-tint: rgb(114 194 154 / 0.12);
+  --color-warning: #d9ae66;
+  --color-warning-tint: rgb(217 174 102 / 0.12);
+  --color-danger: #e68a8a;
+  --color-danger-tint: rgb(230 138 138 / 0.12);
+
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-quote: 'Source Serif 4 Variable', ui-serif, Georgia, serif;
+
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-sm: 13px;
+  --text-sm--line-height: 20px;
+  --text-base: 14px;
+  --text-base--line-height: 22px;
+  --text-md: 16px;
+  --text-md--line-height: 24px;
+  --text-lg: 20px;
+  --text-lg--line-height: 28px;
+  --text-xl: 24px;
+  --text-xl--line-height: 32px;
+  --text-2xl: 32px;
+  --text-2xl--line-height: 40px;
+
+  --radius-control: 12px;
+  --radius-panel: 16px;
+
+  --shadow-float: 0 24px 64px rgb(0 0 0 / 0.5), inset 0 1px 0 rgb(255 255 255 / 0.04);
+}
+
+:root {
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-instant: 80ms;
+  --dur-fast: 140ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+  color-scheme: dark;
+}
+
+/* In the base layer so that utilities such as outline-none can override these. */
+@layer base {
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--text-base--line-height);
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: var(--color-accent-line);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-strong) transparent;
+}
+
+button:not(:disabled),
+[role='button']:not([aria-disabled='true']),
+label[for] {
+  cursor: pointer;
+}
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.micro-label {
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* Pressable controls share one press response. */
+.pressable {
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    opacity var(--dur-fast) var(--ease-out),
+    transform var(--dur-instant) var(--ease-out);
+}
+.pressable:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-card);
+  border-radius: 8px;
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.05), transparent);
+  animation: shimmer 1.4s linear infinite;
+}
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.pulse-dot {
+  animation: pulse-dot 1.6s var(--ease-in-out) infinite;
+}
+@keyframes pulse-dot {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.shake {
+  animation: shake 0.28s var(--ease-in-out) 2;
+}
+@keyframes shake {
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+/* Expand and collapse without animating height directly. */
+.expand {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--dur-base) var(--ease-out);
+}
+.expand[data-open='true'] {
+  grid-template-rows: 1fr;
+}
+.expand > * {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* PDF text-layer marks. The glyphs stay on the canvas underneath. */
+.textLayer mark {
+  color: transparent;
+  border-radius: 2px;
+  margin: -1px;
+  padding: 1px;
+}
+.textLayer mark.hl-quote {
+  background: rgb(85 200 232 / 0.36);
+  box-shadow: 0 0 0 1px rgb(85 200 232 / 0.5);
+  animation: quote-arrive 1.2s var(--ease-out);
+}
+.textLayer mark.hl-search {
+  background: rgb(217 174 102 / 0.4);
+}
+.textLayer mark.hl-active {
+  background: rgb(139 124 255 / 0.5);
+  box-shadow: 0 0 0 1px var(--color-accent);
+}
+@keyframes quote-arrive {
+  from {
+    background: rgb(85 200 232 / 0.8);
+  }
+}
+
+.hl-rect {
+  background: rgb(85 200 232 / 0.36);
+  box-shadow: 0 0 0 1px rgb(85 200 232 / 0.5);
+  border-radius: 2px;
+  animation: quote-arrive 1.2s var(--ease-out);
+}
+
+/* Answer prose */
+.prose-answer {
+  overflow-wrap: anywhere;
+}
+.prose-answer > * + * {
+  margin-top: 12px;
+}
+.prose-answer ul,
+.prose-answer ol {
+  padding-left: 20px;
+}
+.prose-answer ul {
+  list-style: disc;
+}
+.prose-answer ol {
+  list-style: decimal;
+}
+.prose-answer code {
+  background: var(--color-card);
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  padding: 0 4px;
+  font-size: 13px;
+}
+.prose-answer pre,
+.prose-answer table {
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/* The motion setting and the OS preference reach the same result:
+   movement stops, colour and opacity feedback stays. */
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion='full']) *,
+  html:not([data-motion='full']) *::before,
+  html:not([data-motion='full']) *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+html[data-motion='reduced'] *,
+html[data-motion='reduced'] *::before,
+html[data-motion='reduced'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}

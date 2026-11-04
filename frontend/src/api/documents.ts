@@ -1,0 +1,118 @@
+import type { DocumentModel, DocumentError } from '@/types/document';
+import {
+  AppError,
+  ERROR_BAD_RESPONSE,
+  apiUrl,
+  deleteResource,
+  errorFromBody,
+  getJson,
+  isRecord,
+  networkError,
+} from './client';
+
+function badResponse(): AppError {
+  return new AppError({ code: ERROR_BAD_RESPONSE, message: 'Unexpected response from the backend' });
+}
+
+function toDocumentError(value: unknown): DocumentError | null {
+  if (!isRecord(value)) return null;
+  return {
+    code: typeof value.code === 'string' ? value.code : 'UNKNOWN',
+    message: typeof value.message === 'string' ? value.message : '',
+    retryable: value.retryable === true,
+  };
+}
+
+const oneOf = <T extends string>(value: unknown, options: readonly T[]): T | null =>
+  options.find((option) => option === value) ?? null;
+
+/** Validates the backend's Document at the boundary so the UI works with clean types. */
+export function toDocument(dto: unknown): DocumentModel {
+  if (!isRecord(dto)) throw badResponse();
+  const kind = oneOf(dto.kind, ['pdf', 'docx'] as const);
+  const status = oneOf(dto.status, ['processing', 'ready', 'failed'] as const);
+  if (
+    typeof dto.id !== 'string' ||
+    typeof dto.name !== 'string' ||
+    typeof dto.sizeBytes !== 'number' ||
+    typeof dto.createdAt !== 'string' ||
+    !kind ||
+    !status
+  ) {
+    throw badResponse();
+  }
+  return {
+    id: dto.id,
+    name: dto.name,
+    kind,
+    status,
+    sizeBytes: dto.sizeBytes,
+    createdAt: dto.createdAt,
+    stage: oneOf(dto.stage, ['queued', 'extracting', 'ocr', 'indexing'] as const),
+    pageCount: typeof dto.pageCount === 'number' ? dto.pageCount : null,
+    language: oneOf(dto.language, ['kk', 'ru', 'en', 'mixed'] as const),
+    ocrUsed: typeof dto.ocrUsed === 'boolean' ? dto.ocrUsed : null,
+    hasPreview: dto.hasPreview === true,
+    error: toDocumentError(dto.error),
+  };
+}
+
+export async function listDocuments(signal?: AbortSignal): Promise<DocumentModel[]> {
+  const body = await getJson('/documents', signal);
+  if (!isRecord(body) || !Array.isArray(body.items)) throw badResponse();
+  return body.items.map(toDocument);
+}
+
+export async function getDocument(id: string, signal?: AbortSignal): Promise<DocumentModel> {
+  return toDocument(await getJson(`/documents/${encodeURIComponent(id)}`, signal));
+}
+
+export function deleteDocument(id: string): Promise<void> {
+  return deleteResource(`/documents/${encodeURIComponent(id)}`);
+}
+
+export function documentFileUrl(id: string): string {
+  return apiUrl(`/documents/${encodeURIComponent(id)}/file`);
+}
+
+export interface UploadCallbacks {
+  /** Real byte progress from the browser, between 0 and 1. */
+  onProgress: (fraction: number) => void;
+  signal: AbortSignal;
+}
+
+/** XMLHttpRequest because fetch still has no upload progress events. */
+export function uploadDocument(file: File, { onProgress, signal }: UploadCallbacks): Promise<DocumentModel> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const form = new FormData();
+    form.append('file', file);
+
+    xhr.open('POST', apiUrl('/documents'));
+    xhr.responseType = 'text';
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress(event.loaded / event.total);
+    };
+    xhr.onerror = () => reject(networkError());
+    xhr.onabort = () => reject(new DOMException('Upload cancelled', 'AbortError'));
+    xhr.onload = () => {
+      let body: unknown = null;
+      try {
+        body = JSON.parse(xhr.responseText);
+      } catch {
+        // A non-JSON body is handled below: errorFromBody and toDocument both reject null.
+      }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(toDocument(body));
+        } catch (error) {
+          reject(error);
+        }
+      } else {
+        reject(errorFromBody(xhr.status, body));
+      }
+    };
+    signal.addEventListener('abort', () => xhr.abort(), { once: true });
+    xhr.send(form);
+  });
+}

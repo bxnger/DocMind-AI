@@ -1,0 +1,7 @@
+fastapi[standard]
+pymupdf
+python-docx
+anthropic
+google-genai
+pytest
+httpx

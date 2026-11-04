@@ -1,0 +1,92 @@
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ArrowDown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/Button';
+import type { ChatMessage, EvidenceSource } from '@/types/chat';
+import { AnswerMessage } from './AnswerMessage';
+
+const BOTTOM_TOLERANCE = 48;
+
+interface Props {
+  messages: ChatMessage[];
+  onOpenSource: (source: EvidenceSource) => void;
+  onRetry: (id: string) => void;
+  onRephrase: () => void;
+  onUseDemo: (() => void) | null;
+}
+
+export function MessageList({ messages, onOpenSource, onRetry, onRephrase, onUseDemo }: Props) {
+  const { t } = useTranslation();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [atBottom, setAtBottom] = useState(true);
+  // Answers restored from the session appear without an entrance animation.
+  const [restored] = useState(() => new Set(messages.map((message) => message.id)));
+  const lastUserMessage = [...messages].reverse().find((message) => message.role === 'user')?.id;
+  const previousUser = useRef(lastUserMessage);
+
+  const toBottom = () => {
+    const element = scrollRef.current;
+    if (element) element.scrollTop = element.scrollHeight;
+  };
+
+  // Follow new content only if the reader is already at the end.
+  useLayoutEffect(() => {
+    if (atBottom) toBottom();
+  }, [messages, atBottom]);
+
+  // Asking a new question always brings the answer into view.
+  useEffect(() => {
+    if (lastUserMessage !== previousUser.current) {
+      previousUser.current = lastUserMessage;
+      toBottom();
+      setAtBottom(true);
+    }
+  }, [lastUserMessage]);
+
+  return (
+    <div className="relative min-h-0 flex-1">
+      <div
+        ref={scrollRef}
+        role="log"
+        aria-live="polite"
+        aria-label={t('chat.history')}
+        tabIndex={0}
+        onScroll={(event) => {
+          const element = event.currentTarget;
+          setAtBottom(element.scrollHeight - element.scrollTop - element.clientHeight < BOTTOM_TOLERANCE);
+        }}
+        className="h-full space-y-6 overflow-y-auto p-4 outline-offset-[-2px]"
+      >
+        {messages.map((message) =>
+          message.role === 'user' ? (
+            <div key={message.id} className="ml-8 flex justify-end">
+              <p className="rounded-control rounded-br-sm border border-line bg-card-raised px-3 py-2 break-words whitespace-pre-wrap [overflow-wrap:anywhere]">
+                {message.text}
+              </p>
+            </div>
+          ) : (
+            <AnswerMessage
+              key={message.id}
+              message={message}
+              animate={!restored.has(message.id)}
+              onOpenSource={onOpenSource}
+              onRetry={onRetry}
+              onRephrase={onRephrase}
+              onUseDemo={onUseDemo}
+            />
+          ),
+        )}
+      </div>
+      {!atBottom && (
+        <Button
+          size="sm"
+          icon={<ArrowDown size={14} aria-hidden />}
+          onClick={toBottom}
+          className="absolute bottom-3 left-1/2 -translate-x-1/2 shadow-float"
+        >
+          {t('chat.jumpLatest')}
+        </Button>
+      )}
+    </div>
+  );
+}

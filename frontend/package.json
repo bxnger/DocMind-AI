@@ -1,0 +1,52 @@
+{
+  "name": "docmind-ai-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "predev": "node scripts/copy-pdf-assets.mjs",
+    "dev": "vite",
+    "prebuild": "node scripts/copy-pdf-assets.mjs",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "pretest": "node scripts/copy-pdf-assets.mjs",
+    "test": "vitest run",
+    "generate:sample": "node scripts/generate-sample-pdf.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource-variable/source-serif-4": "^5.3.1",
+    "@tanstack/react-query": "^5.105.3",
+    "i18next": "^26.7.1",
+    "lucide-react": "^1.68.0",
+    "motion": "^14.9.0",
+    "pdfjs-dist": "6.3.289",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-i18next": "^17.1.12",
+    "react-markdown": "^10.1.0",
+    "react-pdf": "^11.0.0",
+    "react-router": "^8.5.1",
+    "remark-gfm": "^4.0.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@tailwindcss/vite": "^4.3.4",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.2.1",
+    "eslint": "^10.14.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "tailwindcss": "^4.3.4",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.1",
+    "vite": "^8.3.5",
+    "vitest": "^5.1.0"
+  }
+}
