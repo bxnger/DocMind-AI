@@ -219,11 +219,30 @@ label[for] {
   }
 }
 
+/* Quote from backend coordinates. It stays until the source is closed; the ring is the arrival accent. */
 .hl-rect {
-  background: rgb(85 200 232 / 0.36);
-  box-shadow: 0 0 0 1px rgb(85 200 232 / 0.5);
-  border-radius: 2px;
-  animation: quote-arrive 1.2s var(--ease-out);
+  background: rgb(85 200 232 / 0.28);
+  outline: 1px solid rgb(85 200 232 / 0.55);
+  border-radius: 3px;
+}
+.hl-rect::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border: 2px solid var(--color-accent-2);
+  border-radius: 7px;
+  opacity: 0;
+  animation: rect-ring 1.6s var(--ease-out) 1;
+}
+@keyframes rect-ring {
+  0% {
+    opacity: 0.95;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
 }
 
 /* Answer prose */

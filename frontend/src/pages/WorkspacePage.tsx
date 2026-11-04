@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeft, CornerUpLeft, FileQuestion, HardDrive, RotateCcw, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, ArrowLeft, FileQuestion, HardDrive, RotateCcw, Trash2 } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { AnimatePresence } from 'motion/react';
 import { AppError, isRecord } from '@/api/client';
 import { Button, buttonClasses } from '@/components/ui/Button';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
@@ -14,6 +15,12 @@ import { DeleteDocumentDialog } from '@/features/documents/DeleteDocumentDialog'
 import { StatusBadge } from '@/features/documents/StatusBadge';
 import { isStaleProcessing, useDocument } from '@/features/documents/useDocuments';
 import { useErrorMessage } from '@/features/system/useErrorMessage';
+import { EvidenceProvider, type EvidenceApi } from '@/features/evidence/EvidenceContext';
+import { EvidenceInspector } from '@/features/evidence/EvidenceInspector';
+import { sourceJump } from '@/features/evidence/evidenceState';
+import { evidenceStatus, type ViewerAvailability } from '@/features/evidence/status';
+import { useEvidence } from '@/features/evidence/useEvidence';
+import { locateEvidence } from '@/features/viewer/lib/locate';
 import type { JumpRequest } from '@/features/viewer/PdfViewer';
 import { usePdfDocument, type PdfInput } from '@/features/viewer/usePdfDocument';
 import { ResizeHandle } from '@/features/workspace/ResizeHandle';
@@ -25,7 +32,7 @@ import { usePersistentState } from '@/hooks/usePersistentState';
 import { cn } from '@/lib/cn';
 import { markOpened } from '@/services/recents';
 import { isSampleDocument } from '@/services/sampleDocument';
-import type { ChatMode, EvidenceSource } from '@/types/chat';
+import type { ChatMode } from '@/types/chat';
 import type { DocumentModel } from '@/types/document';
 
 const DEFAULT_CHAT_WIDTH = 420;
@@ -58,14 +65,12 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
   const [attempt, setAttempt] = useState(0);
   const [mode, setMode] = useState<ChatMode>('live');
   // Opening a document from a comparison passes the page to show.
-  const [jump, setJump] = useState<JumpRequest | null>(() => {
+  const [routeJump, setRouteJump] = useState<JumpRequest | null>(() => {
     const state: unknown = routerLocation.state;
     if (!isRecord(state) || !isRecord(state.jump) || typeof state.jump.page !== 'number') return null;
     return { page: state.jump.page, quote: typeof state.jump.quote === 'string' ? state.jump.quote : null, nonce: 0 };
   });
-  const [cameFromAnswer, setCameFromAnswer] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const nonce = useRef(0);
 
   const source = useDocumentSource(doc);
   const input: PdfInput | null = source.kind === 'pdf' ? source.input : null;
@@ -73,13 +78,32 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
   const { text, adapter, availability, mode: effectiveMode } = useAssistant(doc, source, pdf, mode);
   const chat = useChat(doc.id, doc.name, adapter);
 
-  const openSource = useCallback((evidence: EvidenceSource) => {
-    if (evidence.page === null) return;
-    nonce.current += 1;
-    setJump({ page: evidence.page, quote: evidence.quote, highlights: evidence.highlights, nonce: nonce.current });
-    setPane('document');
-    setCameFromAnswer(true);
-  }, []);
+  const evidence = useEvidence(chat.messages);
+  const { selection, open: openEvidence } = evidence;
+  const picked = selection?.source ?? null;
+  const pickedNonce = selection?.nonce ?? 0;
+
+  // A picked source decides what the viewer shows. Until one is picked, a page handed over by the comparison page applies.
+  const evidenceJump = useMemo(() => sourceJump(picked, pickedNonce, doc.id), [picked, pickedNonce, doc.id]);
+  const jump = evidenceJump ?? routeJump;
+
+  const evidenceApi = useMemo<EvidenceApi>(
+    () => ({
+      selected: selection ? { messageId: selection.messageId, sourceIndex: selection.source.index } : null,
+      open: (messageId, opened) => {
+        setRouteJump(null);
+        openEvidence(messageId, opened);
+        // On a narrow screen the document is its own tab.
+        setPane('document');
+      },
+    }),
+    [openEvidence, selection],
+  );
+
+  const viewer: ViewerAvailability =
+    source.kind === 'unavailable' ? 'unavailable' : source.kind === 'checking' ? 'loading' : pdf.status === 'error' ? 'error' : pdf.status === 'ready' ? 'ready' : 'loading';
+  const located = useMemo(() => (picked ? locateEvidence(picked, text) : null), [picked, text]);
+  const status = picked && located ? evidenceStatus({ kind: located.kind, viewer, foreign: picked.documentId !== doc.id }) : null;
 
   const origin = source.kind === 'pdf' ? source.origin : null;
   const isSample = isSampleDocument(doc.id);
@@ -142,18 +166,24 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
               text={text}
               jump={jump}
               citedPages={chat.citedPages}
+              quoteNotice={selection === null}
               onRetry={() => setAttempt(attempt + 1)}
             />
           </ErrorBoundary>
-          {!split && cameFromAnswer && (
-            <Button
-              icon={<CornerUpLeft size={14} aria-hidden />}
-              onClick={() => setPane('assistant')}
-              className="absolute bottom-4 left-1/2 -translate-x-1/2 shadow-float"
-            >
-              {t('workspace.backToAnswer')}
-            </Button>
-          )}
+          <AnimatePresence>
+            {selection && status && (
+              <EvidenceInspector
+                key="inspector"
+                evidence={selection}
+                status={status}
+                onSelect={evidence.select}
+                onStep={evidence.step}
+                onRefocus={evidence.refocus}
+                onClose={evidence.close}
+                onBack={split ? null : () => setPane('assistant')}
+              />
+            )}
+          </AnimatePresence>
         </div>
         {split && (
           <ResizeHandle
@@ -169,7 +199,9 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
           style={split ? { width: chatWidth } : undefined}
         >
           <ErrorBoundary fallback={(reset) => <RegionCrash reset={reset} />}>
-            <AssistantPanel mode={effectiveMode} canSwitchMode={!isSample} onModeChange={setMode} doc={doc} availability={availability} chat={chat} autoFocus={split} onOpenSource={openSource} />
+            <EvidenceProvider value={evidenceApi}>
+            <AssistantPanel mode={effectiveMode} canSwitchMode={!isSample} onModeChange={setMode} doc={doc} availability={availability} chat={chat} autoFocus={split} />
+            </EvidenceProvider>
           </ErrorBoundary>
         </div>
       </div>

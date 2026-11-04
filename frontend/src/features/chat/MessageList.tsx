@@ -2,20 +2,19 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ArrowDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
-import type { ChatMessage, EvidenceSource } from '@/types/chat';
+import type { ChatMessage } from '@/types/chat';
 import { AnswerMessage } from './AnswerMessage';
 
 const BOTTOM_TOLERANCE = 48;
 
 interface Props {
   messages: ChatMessage[];
-  onOpenSource: (source: EvidenceSource) => void;
   onRetry: (id: string) => void;
   onRephrase: () => void;
   onUseDemo: (() => void) | null;
 }
 
-export function MessageList({ messages, onOpenSource, onRetry, onRephrase, onUseDemo }: Props) {
+export function MessageList({ messages, onRetry, onRephrase, onUseDemo }: Props) {
   const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
@@ -69,7 +68,6 @@ export function MessageList({ messages, onOpenSource, onRetry, onRephrase, onUse
               key={message.id}
               message={message}
               animate={!restored.has(message.id)}
-              onOpenSource={onOpenSource}
               onRetry={onRetry}
               onRephrase={onRephrase}
               onUseDemo={onUseDemo}

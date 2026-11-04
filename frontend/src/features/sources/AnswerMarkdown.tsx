@@ -18,6 +18,7 @@ interface Props {
   text: string;
   sources: EvidenceSource[];
   activeMarker: number | null;
+  selectedMarker: number | null;
   onActivate: (marker: number | null) => void;
   onOpenSource: (source: EvidenceSource) => void;
 }
@@ -32,10 +33,9 @@ function MarkdownLink({ href, children }: ComponentPropsWithoutRef<'a'>) {
     if (source) {
       return (
         <CitationMarker
-          marker={marker}
-          page={source.page}
-          location={source.location}
+          source={source}
           active={context.activeMarker === marker}
+          selected={context.selectedMarker === marker}
           onActivate={context.onActivate}
           onOpen={() => context.onOpenSource(source)}
         />
@@ -52,10 +52,10 @@ function MarkdownLink({ href, children }: ComponentPropsWithoutRef<'a'>) {
 // Constant on purpose: a new component identity would remount a marker on hover and lose the click.
 const COMPONENTS: Components = { a: ({ href, children }) => <MarkdownLink href={href}>{children}</MarkdownLink> };
 
-export function AnswerMarkdown({ text, sources, activeMarker, onActivate, onOpenSource }: Props) {
+export function AnswerMarkdown({ text, sources, activeMarker, selectedMarker, onActivate, onOpenSource }: Props) {
   const context = useMemo(
-    () => ({ sources, activeMarker, onActivate, onOpenSource }),
-    [activeMarker, onActivate, onOpenSource, sources],
+    () => ({ sources, activeMarker, selectedMarker, onActivate, onOpenSource }),
+    [activeMarker, onActivate, onOpenSource, selectedMarker, sources],
   );
   return (
     <CitationContext.Provider value={context}>

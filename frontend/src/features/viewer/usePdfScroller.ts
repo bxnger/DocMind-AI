@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { prefersReducedMotion } from '@/lib/motionPreference';
 import type { PageSize } from './usePageSizes';
 
 export const PAGE_GAP = 16;
@@ -14,6 +15,16 @@ const RESIZE_SETTLE_MS = 120;
 const OVERSCAN = 1;
 
 export type Zoom = 'fit' | number;
+
+/** Scroll position that puts a spot of a page, as a fraction of the page's height, in the upper third of the viewport. */
+export function spotScrollTop(pageTop: number, pageHeight: number, fraction: number, viewportHeight: number): number {
+  return Math.max(0, pageTop + pageHeight * fraction - viewportHeight / 3);
+}
+
+/** Scroll position that shows the top of a page. */
+export function pageScrollTop(pageTop: number): number {
+  return Math.max(0, pageTop - PAGE_GAP);
+}
 
 /** Scroll, zoom and windowing math for the continuous page view. */
 export function usePdfScroller(containerRef: RefObject<HTMLDivElement | null>, sizes: PageSize[] | null) {
@@ -93,27 +104,32 @@ export function usePdfScroller(containerRef: RefObject<HTMLDivElement | null>, s
   const first = Math.max(1, pageAt(scrollTop) - OVERSCAN);
   const last = Math.min(offsets.length, pageAt(scrollTop + box.height) + OVERSCAN);
 
-  const goToPage = useCallback(
-    (page: number) => {
-      const offset = offsets[page - 1];
-      if (containerRef.current && offset !== undefined) {
-        containerRef.current.scrollTop = Math.max(0, offset - PAGE_GAP);
-        setScrollTop(containerRef.current.scrollTop);
-      }
+  /** Smooth by default for jumps the user asked for; instant when the user prefers reduced motion. */
+  const scrollTo = useCallback(
+    (top: number, smooth: boolean) => {
+      containerRef.current?.scrollTo({ top, behavior: smooth && !prefersReducedMotion() ? 'smooth' : 'auto' });
     },
-    [containerRef, offsets],
+    [containerRef],
+  );
+
+  const goToPage = useCallback(
+    (page: number, smooth = false) => {
+      const offset = offsets[page - 1];
+      if (offset !== undefined) scrollTo(pageScrollTop(offset), smooth);
+    },
+    [offsets, scrollTo],
   );
 
   /** Puts a spot on a page, given as a fraction of its height, in the upper third of the viewport. */
   const goToSpot = useCallback(
-    (page: number, fraction: number) => {
+    (page: number, fraction: number, smooth = false) => {
       const offset = offsets[page - 1];
       const size = sizes?.[page - 1];
-      if (!containerRef.current || offset === undefined || !size) return;
-      containerRef.current.scrollTop = Math.max(0, offset + size.height * scale * fraction - containerRef.current.clientHeight / 3);
-      setScrollTop(containerRef.current.scrollTop);
+      const container = containerRef.current;
+      if (!container || offset === undefined || !size) return;
+      scrollTo(spotScrollTop(offset, size.height * scale, fraction, container.clientHeight), smooth);
     },
-    [containerRef, offsets, scale, sizes],
+    [containerRef, offsets, scale, scrollTo, sizes],
   );
 
   const zoomStep = useCallback(
@@ -135,6 +151,7 @@ export function usePdfScroller(containerRef: RefObject<HTMLDivElement | null>, s
     onScroll,
     goToPage,
     goToSpot,
+    scrollBy: (delta: number, smooth: boolean) => containerRef.current?.scrollBy({ top: delta, behavior: smooth && !prefersReducedMotion() ? 'smooth' : 'auto' }),
     currentPage,
     isRendered: (page: number) => page >= first && page <= last,
     ready: box.width > 0 && offsets.length > 0,

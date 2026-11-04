@@ -8,7 +8,8 @@ import type { EvidenceRect } from '@/types/chat';
 import { hasSearchableText, type DocumentText } from '@/services/chat';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { usePersistentState } from '@/hooks/usePersistentState';
-import { findMatches, type MarkSpan, type TextMatch } from './lib/textMatch';
+import { locateEvidence } from './lib/locate';
+import type { MarkSpan, TextMatch } from './lib/textMatch';
 import { PdfPageView } from './PdfPageView';
 import { ThumbnailRail } from './ThumbnailRail';
 import { useDocumentSearch, type SearchHit } from './useDocumentSearch';
@@ -30,6 +31,8 @@ interface Props {
   text: DocumentText | undefined;
   jump: JumpRequest | null;
   citedPages: ReadonlySet<number>;
+  /** The inspector already says when a passage could not be located. Without it, the viewer says so itself. */
+  quoteNotice?: boolean;
 }
 
 function addMarks(target: Map<number, Map<number, MarkSpan[]>>, page: number, match: TextMatch, className: string) {
@@ -42,12 +45,12 @@ function addMarks(target: Map<number, Map<number, MarkSpan[]>>, page: number, ma
   target.set(page, pageMarks);
 }
 
-export function PdfViewer({ pdf, text, jump, citedPages }: Props) {
+export function PdfViewer({ pdf, text, jump, citedPages, quoteNotice = true }: Props) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const sizes = usePageSizes(pdf);
   const scroller = usePdfScroller(containerRef, sizes);
-  const { goToPage, goToSpot, ready: scrollerReady } = scroller;
+  const { goToPage, goToSpot, scrollBy, ready: scrollerReady } = scroller;
   const roomy = useMediaQuery('(min-width: 1180px)');
   const [railPreference, setRailPreference] = usePersistentState('docmind.viewer.rail', true);
   const railOpen = railPreference && roomy;
@@ -59,15 +62,11 @@ export function PdfViewer({ pdf, text, jump, citedPages }: Props) {
   const [activePosition, setActivePosition] = useState<{ hits: SearchHit[]; index: number } | null>(null);
   const activeHit = activePosition?.hits === hits ? activePosition.index : 0;
 
-  const quote = useMemo(() => {
-    // Rectangles from the backend win. The text layer is the fallback when they are absent.
-    const pageText = jump?.quote && !jump.highlights?.length ? text?.[jump.page - 1] : undefined;
-    if (!jump?.quote || !pageText) return null;
-    const [match] = findMatches(pageText.items, jump.quote, { limit: 1 });
-    return match ? { page: jump.page, match } : null;
-  }, [jump, text]);
+  // Rectangles from the backend win. The text layer is the fallback, and it only ever marks text that is really there.
+  const located = useMemo(() => (jump ? locateEvidence(jump, text) : null), [jump, text]);
+  const quote = useMemo(() => (jump && located?.match ? { page: jump.page, match: located.match } : null), [jump, located]);
   const [dismissedNotice, setDismissedNotice] = useState<number | null>(null);
-  const notice = Boolean(jump?.quote) && !jump?.highlights?.length && text !== undefined && quote === null && dismissedNotice !== jump?.nonce;
+  const notice = quoteNotice && located?.kind === 'page' && Boolean(jump?.quote) && dismissedNotice !== jump?.nonce;
   /** The next text layer to finish on this page scrolls its highlight into view. */
   const pendingReveal = useRef<number | null>(null);
 
@@ -75,8 +74,8 @@ export function PdfViewer({ pdf, text, jump, citedPages }: Props) {
     const container = containerRef.current;
     if (!container) return;
     const box = container.getBoundingClientRect();
-    container.scrollTop += element.getBoundingClientRect().top - box.top - box.height / 3;
-  }, []);
+    scrollBy(element.getBoundingClientRect().top - box.top - box.height / 3, true);
+  }, [scrollBy]);
 
   const onTextReady = useCallback(
     (page: number, element: HTMLElement | null) => {
@@ -95,10 +94,10 @@ export function PdfViewer({ pdf, text, jump, citedPages }: Props) {
     if (!jump || !scrollerReady) return;
     const firstRect = jump.highlights?.[0];
     if (firstRect) {
-      goToSpot(jump.page, firstRect.y);
+      goToSpot(jump.page, firstRect.y, true);
       pendingReveal.current = null;
     } else {
-      goToPage(jump.page);
+      goToPage(jump.page, true);
       pendingReveal.current = jump.quote ? jump.page : null;
     }
     // Only a new jump, or the viewer becoming visible, should move the document.
@@ -205,6 +204,7 @@ export function PdfViewer({ pdf, text, jump, citedPages }: Props) {
                 rendered={scroller.isRendered(index + 1)}
                 marks={marksByPage.get(index + 1)}
                 rects={jump?.page === index + 1 ? jump.highlights : undefined}
+                rectsKey={jump?.nonce ?? 0}
                 onTextReady={onTextReady}
               />
             ))}

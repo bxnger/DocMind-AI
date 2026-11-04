@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { CircleAlert, RotateCcw, SearchX } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
+import { useEvidenceApi } from '@/features/evidence/EvidenceContext';
 import { AnswerMarkdown } from '@/features/sources/AnswerMarkdown';
 import { SourceCard } from '@/features/sources/SourceCard';
 import type { AssistantMessage, EvidenceSource } from '@/types/chat';
@@ -10,7 +11,6 @@ import type { AssistantMessage, EvidenceSource } from '@/types/chat';
 interface Props {
   message: AssistantMessage;
   animate: boolean;
-  onOpenSource: (source: EvidenceSource) => void;
   onRetry: (id: string) => void;
   onRephrase: () => void;
   onUseDemo: (() => void) | null;
@@ -46,18 +46,13 @@ function NotFound({ onRephrase }: { onRephrase: () => void }) {
   );
 }
 
-export function AnswerMessage({ message, animate, onOpenSource, onRetry, onRephrase, onUseDemo }: Props) {
+export function AnswerMessage({ message, animate, onRetry, onRephrase, onUseDemo }: Props) {
   const { t } = useTranslation();
   const [activeMarker, setActiveMarker] = useState<number | null>(null);
-  const open = (source: EvidenceSource) => {
-    if (source.page !== null) {
-      onOpenSource(source);
-      return;
-    }
-    // DOCX has no page to open, so a marker leads to its source card.
-    document.getElementById(`source-${message.id}-${source.index}`)?.scrollIntoView({ block: 'nearest' });
-    setActiveMarker(source.index);
-  };
+  const evidence = useEvidenceApi();
+  const selectedMarker = evidence.selected?.messageId === message.id ? evidence.selected.sourceIndex : null;
+  // Pages open in the viewer. A DOCX source has no page, so the inspector shows its section and quote instead.
+  const open = (source: EvidenceSource) => evidence.open(message.id, source);
   const notFound = message.answerStatus === 'not_found';
   const streaming = message.status === 'pending' && Boolean(message.text);
   const label = message.mode === 'demo' ? t('chat.labelDemo') : t('chat.labelAnswer');
@@ -80,6 +75,7 @@ export function AnswerMessage({ message, animate, onOpenSource, onRetry, onRephr
           text={message.text}
           sources={message.sources}
           activeMarker={activeMarker}
+          selectedMarker={selectedMarker}
           onActivate={setActiveMarker}
           onOpenSource={open}
         />
@@ -101,6 +97,7 @@ export function AnswerMessage({ message, animate, onOpenSource, onRetry, onRephr
               id={`source-${message.id}-${source.index}`}
               source={source}
               active={activeMarker === source.index}
+              selected={selectedMarker === source.index}
               onActivate={setActiveMarker}
               onOpen={open}
             />
