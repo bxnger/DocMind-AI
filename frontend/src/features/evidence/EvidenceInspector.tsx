@@ -20,6 +20,7 @@ interface Props {
   onClose: () => void;
   /** Only on narrow screens, where the answer is on another tab. */
   onBack: (() => void) | null;
+  backLabel?: string;
 }
 
 const TONE: Record<EvidenceStatus, 'precise' | 'caution' | 'danger' | 'quiet'> = {
@@ -54,7 +55,7 @@ function StatusLine({ status }: { status: EvidenceStatus }) {
 }
 
 /** Floating panel over the document: which source is shown, what it says, and how precisely it was found. */
-export function EvidenceInspector({ evidence, status, onSelect, onStep, onRefocus, onClose, onBack }: Props) {
+export function EvidenceInspector({ evidence, status, onSelect, onStep, onRefocus, onClose, onBack, backLabel }: Props) {
   const { t } = useTranslation();
   const { source, sources, position } = evidence;
   const [collapsed, setCollapsed] = useState(false);
@@ -133,7 +134,7 @@ export function EvidenceInspector({ evidence, status, onSelect, onStep, onRefocu
             <IconButton dense label={t('evidence.next')} icon={<ChevronRight size={16} aria-hidden />} onClick={() => onStep(1)} />
           </span>
         )}
-        {onBack && <IconButton dense label={t('workspace.backToAnswer')} icon={<CornerUpLeft size={16} aria-hidden />} onClick={onBack} />}
+        {onBack && <IconButton dense label={backLabel ?? t('workspace.backToAnswer')} icon={<CornerUpLeft size={16} aria-hidden />} onClick={onBack} />}
         <IconButton
           dense
           label={collapsed ? t('evidence.expand') : t('evidence.collapse')}
