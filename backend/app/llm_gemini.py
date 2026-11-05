@@ -32,6 +32,7 @@ GATEWAY_TIMEOUT = 504
 THINKING_LEVELS = ("minimal", "low", "medium", "high")
 # With a backup model the main one gets less time, so a stalled request moves on early.
 PRIMARY_BUDGET_SECONDS = 25.0
+BACKUP_BUDGET_SECONDS = 15.0  # the backup Gemini model, when another provider still waits behind it
 TRANSLATE_TIMEOUT_SECONDS = 8.0  # a search aid must never hold the answer up for long
 MAX_ATTEMPTS = 3
 RETRY_DELAY_SECONDS = 0.7
@@ -151,8 +152,10 @@ class GeminiAnswerer:
         thinking_level: str | None = None,
         timeout_seconds: float | None = None,
         fallback: "GeminiAnswerer | None" = None,
+        external: object | None = None,
     ) -> None:
         self.model = model
+        self.external = external  # another provider (Groq), asked last when every Gemini model failed
         self.fallback = fallback  # asked when this model is rate limited or too slow before any text
         self.timeout_seconds = timeout_seconds  # None: REQUEST_TIMEOUT_SECONDS
         self.thinking_level = thinking_level
@@ -200,24 +203,48 @@ class GeminiAnswerer:
                     return text
             except (TimeoutError, errors.APIError, httpx.HTTPError) as exc:
                 logger.warning("query translation failed on %s (%s %s)", answerer.model, type(exc).__name__, getattr(exc, "code", ""))
+        remaining = deadline - loop.time()
+        translate_elsewhere = getattr(self.external, "translate_query", None)
+        if translate_elsewhere is not None and remaining > 0.5:
+            return await translate_elsewhere(question, target_languages, timeout=remaining)
         return None
 
     async def stream(
         self, question: str, excerpts: list[Excerpt], language: str | None, history: History
     ) -> AsyncIterator[str]:
-        """Once text has reached the client nothing is retried on the other model, so words are never repeated."""
+        """The chain: this model, the backup Gemini model, then the external provider.
+
+        Each link is tried only if the one before failed before any text reached the client, so words are never
+        repeated. When every link fails, the first error is raised: it is the most useful one for the user
+        (a rate limit stays a retryable rate limit even if the last backup also refused).
+        """
+        chain = [link for link in (self, self.fallback, self.external) if link is not None]
         yielded = False
-        try:
-            async for piece in self._stream_once(question, excerpts, language, history):
-                yielded = True
-                yield piece
-            return
-        except (LlmRateLimited, LlmTimeout) as exc:
-            if yielded or self.fallback is None:
-                raise
-            logger.warning("Gemini %s failed (%s), falling back to %s", self.model, type(exc).__name__, self.fallback.model)
-        async for piece in self.fallback._stream_once(question, excerpts, language, history):
-            yield piece
+        first_error: LlmUnavailable | None = None
+        while chain:
+            link = chain.pop(0)
+            source = (
+                link._stream_once(question, excerpts, language, history)
+                if isinstance(link, GeminiAnswerer)
+                else link.stream(question, excerpts, language, history)
+            )
+            try:
+                async for piece in source:
+                    yielded = True
+                    yield piece
+                return
+            except LlmUnavailable as exc:
+                if yielded:
+                    raise
+                first_error = first_error or exc
+                if isinstance(exc, LlmAuthFailed) and isinstance(link, GeminiAnswerer):
+                    # The same key would fail on the other Gemini model too; only another provider can still answer.
+                    chain = [other for other in chain if not isinstance(other, GeminiAnswerer)]
+                if not chain:
+                    raise first_error from exc
+                logger.warning(
+                    "%s failed (%s), trying %s", link.model, type(exc).__name__, getattr(chain[0], "model", "the next backup")
+                )
 
     async def _stream_once(
         self, question: str, excerpts: list[Excerpt], language: str | None, history: History

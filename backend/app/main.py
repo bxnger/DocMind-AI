@@ -35,13 +35,16 @@ def describe_llm(settings: Settings, env: Mapping[str, str]) -> str:
     provider = settings.llm_provider
     if provider == "gemini":
         thinking = settings.gemini_thinking_level or "default"
+        backup = f" backup=groq:{settings.groq_model}" if env.get("GROQ_API_KEY") else ""
         return (
             f"provider=gemini model={settings.gemini_model} thinking={thinking}"
-            f" key={'set' if env.get('GEMINI_API_KEY') else 'MISSING'}"
+            f" key={'set' if env.get('GEMINI_API_KEY') else 'MISSING'}{backup}"
         )
+    if provider == "groq":
+        return f"provider=groq model={settings.groq_model} key={'set' if env.get('GROQ_API_KEY') else 'MISSING'}"
     if provider == "anthropic":
         return f"provider=anthropic model={settings.claude_model} key={'set' if env.get('ANTHROPIC_API_KEY') else 'MISSING'}"
-    return f"provider={provider!r} is not supported, expected anthropic or gemini"
+    return f"provider={provider!r} is not supported, expected anthropic, gemini or groq"
 
 
 VERSION = "0.2.0"

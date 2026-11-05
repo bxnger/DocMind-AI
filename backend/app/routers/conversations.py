@@ -22,7 +22,7 @@ from app.llm import Answerer, Excerpt, History, LlmAuthFailed, LlmMisconfigured,
 from app.retrieval import is_overview_question, overview_chunks, rank, tokenize
 from app.schemas import CreateConversation, SendMessage
 from app.store import Store
-from app.translate import search_translation
+from app.translate import query_language, search_translation
 
 router = APIRouter(prefix="/conversations", tags=["conversations"])
 
@@ -130,7 +130,11 @@ async def send_message(
     assistant_id = uuid.uuid4().hex
     return StreamingResponse(
         answer_stream(
-            request, store, answerer, conversation_id, assistant_id, question, body.language, picked, history, overview, prep_ms, len(chunks)
+            request, store, answerer, conversation_id, assistant_id, question,
+            # The requested language wins. Without one the answer follows the question, not the document:
+            # an English question about a Russian contract is answered in English.
+            body.language or query_language(question),
+            picked, history, overview, prep_ms, len(chunks)
         ),
         media_type="text/event-stream",
     )

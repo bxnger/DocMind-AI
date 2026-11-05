@@ -150,3 +150,33 @@ def test_a_garbled_translation_leaves_the_search_on_the_original_question():
 
     translated, targets, _ = asyncio.run(search_translation(Garbled(), "Когда выплачивается стипендия?", ["kk"]))
     assert translated == "" and targets == ["kk"]
+
+
+# --- the answer follows the question's language, not the document's
+
+def test_the_answer_language_is_named_in_the_prompt():
+    from app.llm import Excerpt, build_user_message
+
+    message = build_user_message("Q?", [Excerpt(1, "d", "a.pdf", 1, None, "t", "t")], "en")
+    assert "Answer language: English" in message and "even when the excerpts are in another language" in message
+    assert "Answer language: Kazakh" in build_user_message("Q?", [], "kk")
+
+
+def test_without_a_requested_language_the_question_script_decides(client, answerer):
+    document = ready_document(client)
+    seen = []
+
+    async def stream(question, excerpts, language, history):
+        seen.append(language)
+        yield "Registration closes on 5 November 2026 [1]."
+
+    answerer.stream = stream
+    ask(client, conversation_for(client, document), "When does registration close?")
+    ask(client, conversation_for(client, document), "Когда закрывается регистрация?")
+    client.post  # a requested language still wins over the script of the question
+    response = client.post(
+        f"/api/v1/conversations/{conversation_for(client, document)}/messages",
+        json={"content": "When does registration close now?", "language": "kk"},
+    )
+    assert response.status_code == 200
+    assert seen == ["en", "ru", "kk"]

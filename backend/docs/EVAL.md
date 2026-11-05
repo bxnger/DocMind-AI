@@ -1,8 +1,8 @@
-# Evaluation report
+﻿# Evaluation report
 
 Three kinds of evidence, kept apart:
 
-- **A. Controlled fixtures** (unit and API tests, no model): `pytest`, 251 tests.
+- **A. Controlled fixtures** (unit and API tests, no model): `pytest`, 280 tests.
 - **B. Real backend with a scripted model**: the chat, citation checks and cache tests use a scripted answerer, so they
   prove the backend's behaviour for given model outputs, not the model's quality.
 - **C. Real model (Gemini)**: run on 5 November 2026, see the last section.
@@ -111,7 +111,64 @@ The model's own time is in the real runs above (about 2 to 5 s when the provider
 `GET /documents/{id}/text` returns the extracted text by page (PDF) or by heading, paragraph and table row (DOCX), and a DOCX
 chat source carries `paragraph`, the block that contains the quote, so a text reader can scroll to it. Word has no stable
 pages, so none are invented, and there is no layout preview. Tested with generated DOCX files (`tests/test_docx_text.py`) and
-with the real model on `demo/lease_v1.docx` (16/16 above). Not tested: DOCX with images, footnotes, text boxes or tracked changes.
+with the real model on `demo/lease_v1.docx` (16/16 above).
+
+Real Word files have more than paragraphs. An edge-case file with an image, tracked changes, a text box, a nested table,
+a hyperlink, a header and a footnote showed that the first version **silently missed** inserted text, text boxes, nested
+tables and footnotes. Fixed (`tests/test_docx_edge.py`): the final text of the document is indexed and shown in the reader.
+
+| In a DOCX | Indexed and shown |
+|---|---|
+| Paragraphs, headings, hyperlinks, tables | yes |
+| Inserted text of tracked changes | yes |
+| Deleted text of tracked changes | no, on purpose: it is not part of the final text |
+| Text boxes | yes (own blocks, `kind: "text_box"`) |
+| Nested tables | yes, flattened into their cell |
+| Footnotes and endnotes | yes, as a final section "Footnotes" (`kind: "footnote"`) |
+| Headers and footers | **no** (repeated on every page, little value; not extracted) |
+| Text inside images, charts, SmartArt | **no** (would need OCR) |
+
+A cited quote that starts with its section heading is now located in the paragraph it belongs to (`paragraph`).
+Checked with generated files only: no real contract from outside was used.
+
+## Groq as a backup provider (B, C)
+
+`GROQ_API_KEY` in `backend/.env` adds an independent backup behind Gemini: Gemini model, backup Gemini model, then Groq,
+each tried only if the one before failed before any text was sent. Mock tests: `tests/test_groq.py` (request shape, every
+HTTP error mapped, the chain, the first error is the one raised, wiring).
+
+Real runs with the dev key, on the 20-page Russian lease:
+
+- **Failover.** Gemini key broken on purpose: all 12 Russian questions were answered by Groq, 10/10 with the expected page,
+  2/2 refusals, 0 errors, median 1.4 s. The log shows the chain: flash-lite, flash, then Groq.
+- **Groq as the only provider, questions in English and Kazakh** (24, with pauses so the free quota was not the limit):
+  qwen/qwen3.8-27b 16/20 (4/4 refusals, median 0.9 s); openai/gpt-oss-120b 12/20 (4/4, median 1.5 s); Gemini 18/20.
+  The misses of gpt-oss-120b are English questions: its translation of the query ("ежемесячная аренда") shares no word with
+  the page that holds the answer («Арендная плата … в месяц»), so the search never found it. The model was not at fault.
+- Groq's free tier has its own per-minute limit: without pauses 2 to 8 of 22 questions came back `RATE_LIMITED`.
+
+Conclusion: Gemini stays the main provider and the translator; Groq (qwen by default) is a safety net, not an equal.
+Only one key was tried and the samples are small.
+
+## Answer language
+
+The frontend sent no `language`, so the model answered in the document's language: an English question about a Russian lease
+got a Russian answer (seen in the browser). The backend now names the language in the prompt, and when none is requested it
+uses the language of the question. Checked with the real model: English question, English answer; Russian, Russian.
+
+## Checked in the real frontend (manual, 5 November)
+
+With the backend and the Vite app running: an English question about the Russian PDF is answered with a source on page 2,
+and the highlight is exact, translucent, with the text readable. The same for the DOCX: the source shows the section
+("Раздел 2") and the quote. The frontend does not yet use `/text`, `/facts`, `paragraph` or `reason`, shows an outdated hint
+that a question in another language may find nothing, and sends no `language`. Solid yellow bars hiding the text were seen only in
+its keyword demo mode, not with backend coordinates.
+
+## Not verified
+
+- **Scanned PDFs.** Without Tesseract the backend answers `NO_TEXT_FOUND` with a clear message (checked with an image-only PDF).
+  The recognition itself needs Tesseract with kaz/rus/eng data and has never been run: NOT VERIFIED.
+- **Translation through Claude** (`ClaudeAnswerer.translate_query`): no Anthropic key: NOT VERIFIED. The same prompt as Gemini and Groq.
 
 ## Citation checks (B): `tests/test_citation_support.py`, `tests/test_chat.py`
 

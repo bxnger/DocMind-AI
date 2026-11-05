@@ -1,4 +1,5 @@
 import re
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -71,68 +72,144 @@ def extract_pdf(path: Path, languages: str | None = None) -> list[Segment]:
         doc.close()
 
 
-def extract_docx(path: Path) -> list[Segment]:
-    """Paragraphs and tables, grouped into sections by heading."""
+W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+MC_FALLBACK = "{http://schemas.openxmlformats.org/markup-compatibility/2006}Fallback"
+NOTE_PARTS = (("word/footnotes.xml", "footnote"), ("word/endnotes.xml", "endnote"))
+NOTES_HEADING = "Footnotes"
+
+
+def _text_of(element, text_boxes: list) -> str:
+    """The text a reader sees in a paragraph element: inserted text is kept, deleted text is not.
+
+    Text boxes are collected apart (they are blocks of their own), and the duplicate copy Word keeps in
+    mc:Fallback is skipped.
+    """
+    parts: list[str] = []
+
+    def walk(node) -> None:
+        for child in node:
+            tag = child.tag
+            if tag in (W + "del", MC_FALLBACK):
+                continue
+            if tag == W + "txbxContent":
+                text_boxes.append(child)
+            elif tag == W + "t":
+                parts.append(child.text or "")
+            elif tag in (W + "tab", W + "br", W + "cr"):
+                parts.append(" ")
+            else:
+                walk(child)
+
+    walk(element)
+    return normalize("".join(parts))
+
+
+def _container_items(container, document) -> list[tuple[str, str, bool]]:
+    """(kind, text, is_heading) for the paragraphs, text boxes and table rows inside a body, in order."""
+    items: list[tuple[str, str, bool]] = []
+    for child in container:
+        if child.tag == W + "p":
+            boxes: list = []
+            text = _text_of(child, boxes)
+            if text:
+                style = Paragraph(child, document).style
+                name = style.name.lower() if style is not None and style.name else ""
+                heading = name.startswith(("heading", "title"))
+                items.append(("heading" if heading else "paragraph", text, heading))
+            for box in boxes:
+                items.extend(("text_box", item[1], False) for item in _container_items(box, document) if item[1])
+        elif child.tag == W + "tbl":
+            items.extend(("table_row", line, False) for line in _table_rows(child))
+        elif child.tag == W + "sdt":  # content controls wrap ordinary paragraphs
+            content = child.find(W + "sdtContent")
+            if content is not None:
+                items.extend(_container_items(content, document))
+    return items
+
+
+def _table_rows(table) -> list[str]:
+    """One line per row, cells joined by " | ". A nested table is flattened into its cell."""
+    rows = []
+    for row in table.findall(W + "tr"):
+        cells: list[str] = []
+        for cell in row.findall(W + "tc"):
+            pieces = []
+            for child in cell:
+                if child.tag == W + "p":
+                    pieces.append(_text_of(child, []))
+                elif child.tag == W + "tbl":
+                    pieces.append(" ; ".join(_table_rows(child)))
+            text = normalize(" ".join(piece for piece in pieces if piece))
+            if text and (not cells or cells[-1] != text):  # merged cells repeat
+                cells.append(text)
+        if cells:
+            rows.append(" | ".join(cells))
+    return rows
+
+
+def _notes(path: Path) -> list[str]:
+    """Footnote and endnote texts, "[n] text". Not part of the body, so python-docx does not return them."""
+    from lxml import etree
+
+    notes: list[str] = []
+    parser = etree.XMLParser(resolve_entities=False, no_network=True)  # an uploaded file is untrusted
+    try:
+        with zipfile.ZipFile(path) as archive:
+            for part, tag in NOTE_PARTS:
+                if part not in archive.namelist():
+                    continue
+                root = etree.fromstring(archive.read(part), parser)
+                for note in root.findall(W + tag):
+                    if note.get(W + "type") in ("separator", "continuationSeparator", "continuationNotice"):
+                        continue
+                    text = normalize(" ".join(_text_of(paragraph, []) for paragraph in note.findall(W + "p")))
+                    if text:
+                        notes.append(f"[{note.get(W + 'id')}] {text}")
+    except (zipfile.BadZipFile, etree.XMLSyntaxError, KeyError):
+        return notes
+    return notes
+
+
+def _docx_items(path: Path) -> list[tuple[str, str, bool]]:
     try:
         document = DocxDocument(path)
-        blocks = list(document.iter_inner_content())
+        items = _container_items(document.element.body, document)
     except Exception as exc:
         raise ExtractionError("PARSE_FAILED", "The DOCX could not be read") from exc
+    notes = _notes(path)
+    if notes:
+        items.append(("heading", NOTES_HEADING, True))
+        items.extend(("footnote", note, False) for note in notes)
+    return items
 
+
+def extract_docx(path: Path) -> list[Segment]:
+    """Paragraphs, text boxes, tables (nested too), tracked insertions and footnotes, grouped into sections by heading.
+
+    Not extracted: headers and footers, deleted text, text inside images.
+    """
     sections: list[tuple[str | None, list[str]]] = [(None, [])]
-    for block in blocks:
-        if isinstance(block, Paragraph):
-            text = normalize(block.text)
-            if not text:
-                continue
-            style = block.style.name.lower() if block.style is not None else ""
-            if style.startswith(("heading", "title")):
-                sections.append((text, [text]))
-            else:
-                sections[-1][1].append(text)
-        elif isinstance(block, Table):
-            sections[-1][1].extend(_table_lines(block))
-
-    return [
-        Segment(page=None, location=heading, text=" ".join(lines))
-        for heading, lines in sections
-        if lines
-    ]
+    for _kind, text, heading in _docx_items(path):
+        if heading:
+            sections.append((text, [text]))
+        else:
+            sections[-1][1].append(text)
+    return [Segment(page=None, location=heading, text=" ".join(lines)) for heading, lines in sections if lines]
 
 
 def docx_blocks(path: Path) -> list[dict]:
-    """The DOCX as a flat list of blocks for a text reader: headings, paragraphs and table rows.
+    """The DOCX as a flat list of blocks for a text reader: headings, paragraphs, text boxes, table rows, footnotes.
 
-    Word has no stable page numbers, so each block gets its position (`index`) and the heading it sits under
-    (`section`). Block text is normalized exactly like the indexed text, so a cited quote is a substring of the
-    block that contains it.
+    Word has no stable page numbers, so each block gets its position (`index`) and the heading it sits
+    under (`section`). Block text is normalized exactly like the indexed text, so a cited quote is a
+    substring of the block that contains it.
     """
-    try:
-        document = DocxDocument(path)
-        content = list(document.iter_inner_content())
-    except Exception as exc:
-        raise ExtractionError("PARSE_FAILED", "The DOCX could not be read") from exc
-
     blocks: list[dict] = []
     section: str | None = None
-
-    def add(kind: str, text: str) -> None:
+    for kind, text, heading in _docx_items(path):
+        if heading:
+            section = text
         blocks.append({"index": len(blocks), "kind": kind, "section": section, "text": text})
-
-    for block in content:
-        if isinstance(block, Paragraph):
-            text = normalize(block.text)
-            if not text:
-                continue
-            style = block.style.name.lower() if block.style is not None else ""
-            if style.startswith(("heading", "title")):
-                section = text
-                add("heading", text)
-            else:
-                add("paragraph", text)
-        elif isinstance(block, Table):
-            for line in _table_lines(block):
-                add("table_row", line)
     return blocks
 
 
@@ -141,17 +218,10 @@ def find_block(blocks: list[dict], quote: str) -> int | None:
     needle = normalize(quote)
     if not needle:
         return None
-    return next((block["index"] for block in blocks if needle in block["text"]), None)
-
-
-def _table_lines(table: Table) -> list[str]:
-    lines = []
-    for row in table.rows:
-        cells: list[str] = []
-        for cell in row.cells:
-            text = normalize(cell.text)
-            if text and (not cells or cells[-1] != text):  # merged cells repeat in row.cells
-                cells.append(text)
-        if cells:
-            lines.append(" | ".join(cells))
-    return lines
+    inside = next((block["index"] for block in blocks if needle in block["text"]), None)
+    if inside is not None:
+        return inside
+    # A quote often begins with its section heading ("Footnotes [2] Penalty is ..."), so it spans two blocks.
+    # Then the block with the most text that the quote contains is the passage itself, not the heading.
+    contained = [block for block in blocks if block["text"] and block["text"] in needle]
+    return max(contained, key=lambda block: len(block["text"]))["index"] if contained else None

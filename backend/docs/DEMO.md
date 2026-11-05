@@ -68,7 +68,7 @@ The first log lines must say `key=set`. If they say `key=MISSING`, `.env` is not
 | Symptom | Cause | Do |
 |---|---|---|
 | Chat says model unavailable (503) | No key loaded | Fix `backend/.env`, restart, check `key=set` |
-| `RATE_LIMITED` error in the chat | Provider quota | The backend already tried the fallback model. Wait a minute, or ask a question already asked in the warm-up |
+| `RATE_LIMITED` error in the chat | Provider quota | The backend already tried the fallback Gemini model, and Groq when `GROQ_API_KEY` is set. Wait a minute, or ask a question already asked in the warm-up. A Groq key in `backend/.env` is the best protection: it is another company with its own quota |
 | `LLM_TIMEOUT` | Provider stalled | Ask again; the repeat goes to the fallback model |
 | `LLM_UNAVAILABLE`, not retryable | Wrong key or model name (404/403) | Run `python eval/gemini_diagnose.py`, copy a working model name into `GEMINI_MODEL` |
 | Answer is «not found» for a question that is in the document | Search missed it (synonyms) or the cited number did not match | Rephrase with words from the document. Keyword search does not understand synonyms. The `reason` in the `done` event says which case it was |

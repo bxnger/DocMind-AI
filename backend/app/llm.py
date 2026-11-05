@@ -60,6 +60,9 @@ class Answerer(Protocol):
     ) -> AsyncIterator[str]: ...
 
 
+ANSWER_LANGUAGES = {"en": "English", "ru": "Russian", "kk": "Kazakh"}
+
+
 def build_user_message(question: str, excerpts: list[Excerpt], language: str | None) -> str:
     lines = ["<excerpts>"]
     for excerpt in excerpts:
@@ -75,7 +78,8 @@ def build_user_message(question: str, excerpts: list[Excerpt], language: str | N
             " across its length, not search results. Say what the excerpts cover, and cite them."
         )
     if language:
-        lines.append(f"Answer language: {language}")
+        name = ANSWER_LANGUAGES.get(language, language)
+        lines.append(f"Answer language: {name} (write the answer in {name} even when the excerpts are in another language)")
     lines.append(f"Question: {question}")
     return "\n".join(lines)
 
