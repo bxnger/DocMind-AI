@@ -29,6 +29,15 @@ export function revealHeight(container: { clientWidth: number; clientHeight: num
   return container.clientWidth < NARROW_WIDTH ? container.clientHeight * 0.3 : container.clientHeight;
 }
 
+/**
+ * The page to show in the toolbar. After a jump the requested page wins until the user scrolls: near the
+ * end of a document the scroller can't bring that page to the reading line, so position alone would
+ * name the previous page while the highlight is on the requested one.
+ */
+export function displayedPage(fromPosition: number, requested: number | null): number {
+  return requested ?? fromPosition;
+}
+
 /** Scroll position that shows the top of a page. */
 export function pageScrollTop(pageTop: number): number {
   return Math.max(0, pageTop - PAGE_GAP);
@@ -39,6 +48,7 @@ export function usePdfScroller(containerRef: RefObject<HTMLDivElement | null>, s
   const [box, setBox] = useState({ width: 0, height: 0 });
   const [zoom, setZoom] = useState<Zoom>('fit');
   const [scrollTop, setScrollTop] = useState(0);
+  const [requestedPage, setRequestedPage] = useState<number | null>(null);
   const frame = useRef(0);
   // The scroll container only mounts once page sizes are known.
   const hasPages = sizes !== null;
@@ -108,7 +118,7 @@ export function usePdfScroller(containerRef: RefObject<HTMLDivElement | null>, s
   );
 
   // The current page is the one crossing the upper third of the viewport.
-  const currentPage = pageAt(scrollTop + revealHeight({ clientWidth: box.width, clientHeight: box.height }) / 3);
+  const currentPage = displayedPage(pageAt(scrollTop + revealHeight({ clientWidth: box.width, clientHeight: box.height }) / 3), requestedPage);
   const first = Math.max(1, pageAt(scrollTop) - OVERSCAN);
   const last = Math.min(offsets.length, pageAt(scrollTop + box.height) + OVERSCAN);
 
@@ -123,7 +133,9 @@ export function usePdfScroller(containerRef: RefObject<HTMLDivElement | null>, s
   const goToPage = useCallback(
     (page: number, smooth = false) => {
       const offset = offsets[page - 1];
-      if (offset !== undefined) scrollTo(pageScrollTop(offset), smooth);
+      if (offset === undefined) return;
+      setRequestedPage(page);
+      scrollTo(pageScrollTop(offset), smooth);
     },
     [offsets, scrollTo],
   );
@@ -135,6 +147,7 @@ export function usePdfScroller(containerRef: RefObject<HTMLDivElement | null>, s
       const size = sizes?.[page - 1];
       const container = containerRef.current;
       if (!container || offset === undefined || !size) return;
+      setRequestedPage(page);
       scrollTo(spotScrollTop(offset, size.height * scale, fraction, revealHeight(container)), smooth);
     },
     [containerRef, offsets, scale, scrollTo, sizes],
@@ -159,6 +172,8 @@ export function usePdfScroller(containerRef: RefObject<HTMLDivElement | null>, s
     onScroll,
     goToPage,
     goToSpot,
+    /** The user took over scrolling, so the page number follows the position again. */
+    releasePage: () => setRequestedPage(null),
     scrollBy: (delta: number, smooth: boolean) => containerRef.current?.scrollBy({ top: delta, behavior: smooth && !prefersReducedMotion() ? 'smooth' : 'auto' }),
     currentPage,
     isRendered: (page: number) => page >= first && page <= last,

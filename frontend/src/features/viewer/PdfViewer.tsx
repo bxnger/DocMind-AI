@@ -208,6 +208,10 @@ export function PdfViewer({ pdf, text, jump, citedPages, quoteNotice = true, ann
         <div
           ref={containerRef}
           onScroll={scroller.onScroll}
+          onWheel={scroller.releasePage}
+          onTouchMove={scroller.releasePage}
+          onPointerDown={scroller.releasePage}
+          onKeyDown={scroller.releasePage}
           tabIndex={0}
           role="region"
           aria-label={t('viewer.document')}

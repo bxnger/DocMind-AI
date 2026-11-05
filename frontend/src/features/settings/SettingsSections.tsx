@@ -30,8 +30,8 @@ function Section({ title, description, children }: { title: string; description?
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-4 border-b border-line py-2 last:border-b-0">
-      <dt className="text-sm text-muted">{label}</dt>
-      <dd className="tabular min-w-0 text-right text-sm break-words">{children}</dd>
+      <dt className="min-w-0 flex-1 text-sm break-words text-muted">{label}</dt>
+      <dd className="tabular max-w-[60%] shrink-0 text-right text-sm break-words">{children}</dd>
     </div>
   );
 }
