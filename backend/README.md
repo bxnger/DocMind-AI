@@ -19,7 +19,7 @@ FastAPI backend for DOCMIND AI. Contract: `/api/v1`, camelCase JSON.
 
 Also: `GET /documents/{id}/text` (extracted text by page or, for DOCX, by heading/paragraph, for a text reader), `paragraph` on DOCX sources, `highlights` on PDF sources, `POST /api/v1/comparisons` (sentence diff, no model), rate limits (30 uploads and 30 chat messages per minute), DOCX tables. Full contract: [docs/api-contract.md](docs/api-contract.md).
 
-OCR: scanned PDFs are read with Tesseract through PyMuPDF when Tesseract and its `kaz`/`rus`/`eng` data are installed (set `TESSDATA_PREFIX` if needed). Otherwise they fail with `NO_TEXT_FOUND`. Tesseract is not installed on the dev machine, so the OCR call itself has never been run, only the pipeline around it.
+OCR: scanned PDFs are read with Tesseract through PyMuPDF when the `kaz`/`rus`/`eng` data (`*.traineddata` from github.com/tesseract-ocr/tessdata) is found: put the files in a folder and set `TESSDATA_PREFIX` to it before starting the backend. Otherwise a scan fails with `NO_TEXT_FOUND`. Measured on synthetic scans (`python eval/ocr_eval.py`): clean scans 100% of the words in all three languages, about 1 s a page; poor scans much worse (see `docs/EVAL.md`). A scan has no highlight rectangles and its quote is checked against the recognized text, not the image.
 
 ## Not implemented yet
 
