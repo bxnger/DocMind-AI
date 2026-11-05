@@ -87,6 +87,19 @@ class ClaudeAnswerer:
         # A bounded wait so a stuck request ends as LLM_TIMEOUT instead of hanging the chat.
         self.client = anthropic.AsyncAnthropic(timeout=REQUEST_TIMEOUT_SECONDS, max_retries=1)
 
+    async def translate_query(self, question: str, target_languages: list[str]) -> str | None:
+        """The question translated into each target language, one per line, for cross-language search."""
+        from app.translate import translation_prompt
+
+        prompt = translation_prompt(question, target_languages)
+        try:
+            response = await self.client.messages.create(
+                model=self.model, max_tokens=256, messages=[{"role": "user", "content": prompt}], timeout=8.0
+            )
+        except anthropic.APIError:
+            return None
+        return "".join(block.text for block in response.content if getattr(block, "type", "") == "text").strip() or None
+
     async def stream(
         self, question: str, excerpts: list[Excerpt], language: str | None, history: History
     ) -> AsyncIterator[str]:

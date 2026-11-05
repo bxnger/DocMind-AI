@@ -4,6 +4,7 @@ from fastapi.responses import FileResponse, Response
 from app.config import MAX_FILE_SIZE_BYTES, SUPPORTED_EXTENSIONS
 from app.deps import get_store
 from app.errors import AppError
+from app.extraction import ExtractionError, docx_blocks
 from app.facts import extract_facts, suggested_questions
 from app.highlights import quote_highlights
 from app.pipeline import process_document
@@ -91,6 +92,31 @@ def get_document_page(doc_id: str, page: int, store: Store = Depends(get_store))
     if text is None:
         raise AppError(404, "PAGE_NOT_FOUND", "Page not found")
     return {"documentId": doc_id, "page": page, "text": text}
+
+
+@router.get("/{doc_id}/text")
+def get_document_text(doc_id: str, store: Store = Depends(get_store)) -> dict:
+    """The extracted text, for a reader that shows it without the original layout.
+
+    PDF: one block per page. DOCX: one block per heading, paragraph or table row, each with the heading it sits
+    under. Word has no stable pages, so there are none; use `index` and `section`.
+    """
+    doc = store.get(doc_id)
+    if doc["status"] != "ready":
+        raise AppError(409, "DOCUMENT_NOT_READY", "Document is still being processed")
+    if doc["kind"] == "docx":
+        try:
+            blocks = docx_blocks(store.file_path(doc_id, "docx"))
+        except (ExtractionError, OSError):
+            raise AppError(500, "INTERNAL_ERROR", "The document text could not be read") from None
+        for block in blocks:
+            block["page"] = None
+    else:
+        blocks = [
+            {"index": number, "kind": "page", "section": None, "page": segment["page"], "text": segment["text"]}
+            for number, segment in enumerate(store.segments_for_document(doc_id))
+        ]
+    return {"documentId": doc_id, "kind": doc["kind"], "language": doc.get("language"), "blocks": blocks}
 
 
 @router.get("/{doc_id}/facts")

@@ -15,16 +15,20 @@ from app.citations import is_verbatim, unsupported_numbers
 from app.config import MAX_MESSAGE_CHARS
 from app.deps import get_answerer, get_store
 from app.errors import AppError
+from app.extraction import ExtractionError, docx_blocks, find_block
 from app.highlights import quote_highlights
 from app.ratelimit import limit_chat
 from app.llm import Answerer, Excerpt, History, LlmAuthFailed, LlmMisconfigured, LlmRateLimited, LlmTimeout, LlmUnavailable
 from app.retrieval import is_overview_question, overview_chunks, rank, tokenize
 from app.schemas import CreateConversation, SendMessage
 from app.store import Store
+from app.translate import search_translation
 
 router = APIRouter(prefix="/conversations", tags=["conversations"])
 
 EXCERPTS_PER_ANSWER = 5
+# A summary question gets a wider, evenly spread sample of the document (bounded: 12 chunks of at most 500 characters).
+OVERVIEW_EXCERPTS = 12
 # A document this small fits in one prompt. If search finds nothing (a synonym, a paraphrase), the model reads it all
 # and decides, instead of the question being refused without anyone reading the document.
 SMALL_DOCUMENT_CHUNKS = 12
@@ -110,7 +114,16 @@ async def send_message(
     prep_started = time.monotonic()
     history = build_history(store.list_messages(conversation_id))
     chunks = store.chunks_for_documents(conversation["documentIds"])
-    picked, overview = select_chunks(question, history, chunks)
+    translated = ""
+    if not is_overview_question(question):
+        # A question in another language than the documents is also searched in their language.
+        document_languages = [store.get(document_id)["language"] for document_id in conversation["documentIds"]]
+        translated, targets, translate_ms = await search_translation(
+            answerer, retrieval_query(question, history), document_languages
+        )
+        if targets:
+            logger.info("chat translate targets=%s ok=%s ms=%.0f", ",".join(targets), bool(translated), translate_ms)
+    picked, overview = select_chunks(question, history, chunks, translated)
 
     store.add_message(conversation_id, "user", question)
     prep_ms = (time.monotonic() - prep_started) * 1000
@@ -123,11 +136,12 @@ async def send_message(
     )
 
 
-def select_chunks(question: str, history: History, chunks: list[dict]) -> tuple[list[dict], bool]:
+def select_chunks(question: str, history: History, chunks: list[dict], translated: str = "") -> tuple[list[dict], bool]:
     """The chunks to show the model, and whether they are an overview sample rather than search results."""
     if is_overview_question(question):
-        return overview_chunks(chunks, EXCERPTS_PER_ANSWER), True
-    hits = rank(retrieval_query(question, history), [chunk["text"] for chunk in chunks], EXCERPTS_PER_ANSWER)
+        return overview_chunks(chunks, OVERVIEW_EXCERPTS), True
+    query = f"{retrieval_query(question, history)} {translated}".strip()
+    hits = rank(query, [chunk["text"] for chunk in chunks], EXCERPTS_PER_ANSWER)
     if not hits and 0 < len(chunks) <= SMALL_DOCUMENT_CHUNKS:
         return list(chunks), False
     return [chunks[index] for index, _score in hits], False
@@ -203,7 +217,7 @@ async def answer_stream(
     if not picked:
         # Nothing relevant in the documents: no model call, an honest not_found.
         store.add_message(conversation_id, "assistant", "", "not_found", [], message_id=assistant_id)
-        yield sse("done", {"messageId": assistant_id, "answerStatus": "not_found"})
+        yield sse("done", {"messageId": assistant_id, "answerStatus": "not_found", "reason": "no_matching_excerpt"})
         log("not_found", reason="no_matching_excerpt")
         return
 
@@ -249,6 +263,7 @@ async def answer_stream(
 
     # The answer is checked before any of it is shown: a sentence the sources do not support never reaches the reader.
     refused = answer.strip().startswith(NOT_FOUND_MARKER)
+    reason = ""
     final_text, sources = ("", []) if refused else verify_answer(answer, excerpts, store, question)
     status = "answered" if sources else "not_found"
     if status == "answered":
@@ -264,7 +279,10 @@ async def answer_stream(
         log("not_found", reason=reason, excerpts=len(excerpts), cited=len(cited), answer_chars=len(answer))
     if sources:
         yield sse("sources", {"sources": sources})
-    yield sse("done", {"messageId": assistant_id, "answerStatus": status})
+    done = {"messageId": assistant_id, "answerStatus": status}
+    if status == "not_found":
+        done["reason"] = reason  # model_refused, no_citation, citations_failed_verification, empty_answer
+    yield sse("done", done)
     if status == "answered":
         ANSWER_CACHE.put(key, final_text, sources)
     store.add_message(
@@ -341,8 +359,23 @@ def verify_answer(answer: str, excerpts: list[Excerpt], store: Store, question: 
             highlights = quote_highlights(store.file_path(excerpt.document_id, "pdf"), excerpt.page, quote)
             if highlights:
                 source["highlights"] = highlights
+        else:
+            paragraph = paragraph_of(store, excerpt.document_id, quote)
+            if paragraph is not None:
+                source["paragraph"] = paragraph  # the block index in GET /documents/{id}/text
         sources.append(source)
     return (text if sources else ""), sources
+
+
+def paragraph_of(store: Store, document_id: str, quote: str) -> int | None:
+    """Index of the DOCX block holding `quote`, or None (a PDF, or a file that cannot be read again)."""
+    path = store.file_path(document_id, "docx")
+    if not path.exists():
+        return None
+    try:
+        return find_block(docx_blocks(path), quote)
+    except (ExtractionError, OSError):
+        return None
 
 
 def verified_sources(answer: str, excerpts: list[Excerpt], store: Store, question: str = "") -> list[dict]:

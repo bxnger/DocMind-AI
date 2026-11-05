@@ -8,6 +8,7 @@ import httpx
 from google import genai
 from google.genai import errors, types
 
+from app.translate import translation_prompt
 from app.llm import (
     REQUEST_TIMEOUT_SECONDS,
     SYSTEM_PROMPT,
@@ -31,6 +32,7 @@ GATEWAY_TIMEOUT = 504
 THINKING_LEVELS = ("minimal", "low", "medium", "high")
 # With a backup model the main one gets less time, so a stalled request moves on early.
 PRIMARY_BUDGET_SECONDS = 25.0
+TRANSLATE_TIMEOUT_SECONDS = 8.0  # a search aid must never hold the answer up for long
 MAX_ATTEMPTS = 3
 RETRY_DELAY_SECONDS = 0.7
 TRANSIENT_NETWORK_ERRORS = (httpx.ConnectError, httpx.ConnectTimeout, httpx.RemoteProtocolError, httpx.ReadError)
@@ -173,6 +175,32 @@ class GeminiAnswerer:
             )
             self._clients[loop] = client
         return client
+
+    async def translate_query(self, question: str, target_languages: list[str]) -> str | None:
+        """The question translated into each target language, one per line, for cross-language search.
+
+        Short and bounded: one request, no streaming, TRANSLATE_TIMEOUT_SECONDS at most. Returns None when
+        nothing usable came back. The backup model is tried once when this one is rate limited or too slow.
+        """
+        prompt = translation_prompt(question, target_languages)
+        config = types.GenerateContentConfig(max_output_tokens=512, temperature=0)
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + TRANSLATE_TIMEOUT_SECONDS  # one budget for both models, so a slow answer start is bounded
+        for answerer in (self, self.fallback):
+            remaining = deadline - loop.time()
+            if answerer is None or remaining <= 0:
+                continue
+            try:
+                async with asyncio.timeout(remaining):
+                    response = await answerer.client.aio.models.generate_content(
+                        model=answerer.model, contents=prompt, config=config
+                    )
+                text = (response.text or "").strip()
+                if text:
+                    return text
+            except (TimeoutError, errors.APIError, httpx.HTTPError) as exc:
+                logger.warning("query translation failed on %s (%s %s)", answerer.model, type(exc).__name__, getattr(exc, "code", ""))
+        return None
 
     async def stream(
         self, question: str, excerpts: list[Excerpt], language: str | None, history: History

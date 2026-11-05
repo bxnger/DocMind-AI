@@ -100,6 +100,50 @@ def extract_docx(path: Path) -> list[Segment]:
     ]
 
 
+def docx_blocks(path: Path) -> list[dict]:
+    """The DOCX as a flat list of blocks for a text reader: headings, paragraphs and table rows.
+
+    Word has no stable page numbers, so each block gets its position (`index`) and the heading it sits under
+    (`section`). Block text is normalized exactly like the indexed text, so a cited quote is a substring of the
+    block that contains it.
+    """
+    try:
+        document = DocxDocument(path)
+        content = list(document.iter_inner_content())
+    except Exception as exc:
+        raise ExtractionError("PARSE_FAILED", "The DOCX could not be read") from exc
+
+    blocks: list[dict] = []
+    section: str | None = None
+
+    def add(kind: str, text: str) -> None:
+        blocks.append({"index": len(blocks), "kind": kind, "section": section, "text": text})
+
+    for block in content:
+        if isinstance(block, Paragraph):
+            text = normalize(block.text)
+            if not text:
+                continue
+            style = block.style.name.lower() if block.style is not None else ""
+            if style.startswith(("heading", "title")):
+                section = text
+                add("heading", text)
+            else:
+                add("paragraph", text)
+        elif isinstance(block, Table):
+            for line in _table_lines(block):
+                add("table_row", line)
+    return blocks
+
+
+def find_block(blocks: list[dict], quote: str) -> int | None:
+    """Index of the block that contains `quote`, or None."""
+    needle = normalize(quote)
+    if not needle:
+        return None
+    return next((block["index"] for block in blocks if needle in block["text"]), None)
+
+
 def _table_lines(table: Table) -> list[str]:
     lines = []
     for row in table.rows:
