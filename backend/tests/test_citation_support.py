@@ -155,3 +155,11 @@ def test_an_uncited_sentence_without_figures_is_kept(client, answerer):
 def test_nothing_is_shown_when_every_claim_fails(client, answerer):
     text, saved, status = shown(client, answerer, "Registration closes on 6 November 2026 [{reg}].")
     assert status == "not_found" and text == "" and saved == ""
+
+
+def test_every_kind_of_thousands_space_is_the_same_separator():
+    """Found with a real model: it wrote "450 000" with U+202F, which was rejected as the numbers 450 and 000."""
+    for space in (" ", "\u00a0", "\u2007", "\u2009", "\u202f"):
+        assert numbers_in(f"Rent is 450{space}000 tenge") == {"450000"}, repr(space)
+    assert unsupported_numbers("Rent is 450\u202f000 tenge [1].", "Арендная плата 450 000 тенге.") == []
+    assert unsupported_numbers("Rent is 450\u202f001 tenge [1].", "Арендная плата 450 000 тенге.") == ["450001"]

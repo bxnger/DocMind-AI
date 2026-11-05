@@ -1,4 +1,4 @@
-import os
+﻿import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -26,6 +26,8 @@ class Settings:
         os.environ.get("GEMINI_MODEL", "").strip().strip("\"'").removeprefix("models/") or "gemini-3.5-flash-lite"
     )
     # Asked when the main model is rate limited or slow. Empty: the other of flash / flash-lite. "off" disables it.
+    # Optional independent backup used when Gemini is rate limited or down (needs GROQ_API_KEY).
+    groq_model: str = os.environ.get("GROQ_MODEL", "").strip().strip("\"'") or "qwen/qwen3.8-27b"
     gemini_fallback_model: str = os.environ.get("GEMINI_FALLBACK_MODEL", "").strip().strip("\"'").removeprefix("models/")
     # Empty means the model's own default. For gemini-3.5-flash-lite that is "minimal" according to the docs.
     gemini_thinking_level: str = os.environ.get("GEMINI_THINKING_LEVEL", "").strip().lower()

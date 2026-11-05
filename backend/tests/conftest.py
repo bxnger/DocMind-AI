@@ -34,6 +34,14 @@ def no_retry_delay(monkeypatch):
     monkeypatch.setattr("app.llm_gemini.RETRY_DELAY_SECONDS", 0)
 
 
+@pytest.fixture(autouse=True)
+def fresh_translation_cache():
+    """Translated questions are cached per process; every test starts without them."""
+    from app.translate import TRANSLATIONS
+
+    TRANSLATIONS._items.clear()
+
+
 @pytest.fixture
 def store(tmp_path) -> Store:
     return Store(tmp_path)

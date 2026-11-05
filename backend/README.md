@@ -1,4 +1,4 @@
-# Document Assistant — backend
+﻿# Document Assistant — backend
 
 FastAPI backend for DOCMIND AI. Contract: `/api/v1`, camelCase JSON.
 
@@ -14,16 +14,17 @@ FastAPI backend for DOCMIND AI. Contract: `/api/v1`, camelCase JSON.
   - BM25 retrieval over chunks, top 5 excerpts go to Claude
   - Only `[n]` markers that point at a real excerpt become sources, and each quote is checked to be verbatim in its page or section
   - Follow-up questions: the last 3 answered turns go to the model, and a very short question borrows the previous one for search
-  - No usable citation means `not_found`. With no relevant excerpt the model is not called at all
+  - No usable citation means `not_found`, and the `done` event says why (`reason`). With no relevant excerpt in a large document the model is not called at all; a small document (up to 12 chunks) is sent whole instead
+  - Cross-language questions: when the question is in another language than the documents (Russian, Kazakh, English), the search query is also translated into the document language with one short model call (cached, 8 s limit). Only the query is translated; excerpts and quotes stay original. If the translation fails the search uses the question as asked
 
-Also: `highlights` on PDF sources, `POST /api/v1/comparisons` (sentence diff, no model), rate limits (30 uploads and 30 chat messages per minute), DOCX tables. Full contract: [docs/api-contract.md](docs/api-contract.md).
+Also: `GET /documents/{id}/text` (extracted text by page or, for DOCX, by heading/paragraph, for a text reader), `paragraph` on DOCX sources, `highlights` on PDF sources, `POST /api/v1/comparisons` (sentence diff, no model), rate limits (30 uploads and 30 chat messages per minute), DOCX tables. Full contract: [docs/api-contract.md](docs/api-contract.md).
 
 OCR: scanned PDFs are read with Tesseract through PyMuPDF when Tesseract and its `kaz`/`rus`/`eng` data are installed (set `TESSDATA_PREFIX` if needed). Otherwise they fail with `NO_TEXT_FOUND`. Tesseract is not installed on the dev machine, so the OCR call itself has never been run, only the pipeline around it.
 
 ## Not implemented yet
 
-- DOCX preview (`docxPreview: "none"`)
-- Embeddings: retrieval is keyword-only (BM25 with a crude 5-letter stemmer and Russian prefix stripping), so synonyms are not matched
+- DOCX preview in the original layout (`docxPreview: "none"`): Word has no stable pages. Use `GET /documents/{id}/text` for an honest text reader
+- Embeddings: retrieval is keyword-only (BM25 with a crude 5-letter stemmer and Russian prefix stripping), so synonyms inside one language are not matched. Across languages the question is translated first (see above)
 - Model-based comparison (meaning, conflicts)
 
 ## Run
@@ -46,9 +47,11 @@ fastapi dev app/main.py --port 8011
 
 Environment variables:
 
-- `LLM_PROVIDER` — `anthropic` (default) or `gemini`
+- `LLM_PROVIDER` — `anthropic` (default), `gemini` or `groq`
 - `ANTHROPIC_API_KEY` — required for chat with `anthropic`
 - `GEMINI_API_KEY` — required for chat with `gemini`
+- `GROQ_API_KEY` — with `gemini` it enables Groq as an independent backup: when every Gemini model is rate limited, down or too slow before any text is sent, the question goes to Groq (the question translation for cross-language search too). With `LLM_PROVIDER=groq` it is the main provider. Run `python eval/groq_diagnose.py` to check the key and pick a model
+- `GROQ_MODEL` — default `qwen/qwen3.8-27b`; model names change, copy a working one from `groq_diagnose.py`
 - `GEMINI_MODEL` — default `gemini-3.5-flash-lite`
 - `GEMINI_THINKING_LEVEL` — `minimal`, `low`, `medium` or `high`. Empty (default) keeps the model's own default. Set it only after `eval/gemini_latency.py` shows thinking is the slow part
 - `CLAUDE_MODEL` — default `claude-opus-5-5`

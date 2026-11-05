@@ -33,23 +33,32 @@ def build_answerer(settings: Settings, env: Mapping[str, str]) -> Answerer | Non
         api_key = env.get("GEMINI_API_KEY")
         if not api_key:
             return None
-        from app.llm_gemini import PRIMARY_BUDGET_SECONDS, THINKING_LEVELS, GeminiAnswerer
+        from app.llm_gemini import BACKUP_BUDGET_SECONDS, PRIMARY_BUDGET_SECONDS, THINKING_LEVELS, GeminiAnswerer
 
         level = settings.gemini_thinking_level
         if level and level not in THINKING_LEVELS:
             logger.error("Unknown GEMINI_THINKING_LEVEL %r: expected one of %s. Using the model default", level, THINKING_LEVELS)
             level = ""
+        external = groq_backup(settings, env)
         fallback = fallback_model(settings)
-        if not fallback:
-            return GeminiAnswerer(model=settings.gemini_model, api_key=api_key, thinking_level=level or None)
+        backup_gemini = (
+            GeminiAnswerer(fallback, api_key, thinking_level=level or None, timeout_seconds=BACKUP_BUDGET_SECONDS if external else None)
+            if fallback
+            else None
+        )
         return GeminiAnswerer(
             settings.gemini_model,
             api_key,
             thinking_level=level or None,
-            timeout_seconds=PRIMARY_BUDGET_SECONDS,
-            fallback=GeminiAnswerer(fallback, api_key, thinking_level=level or None),
+            timeout_seconds=PRIMARY_BUDGET_SECONDS if (backup_gemini or external) else None,
+            fallback=backup_gemini,
+            external=external,
         )
-    logger.error("Unknown LLM_PROVIDER %r: expected anthropic or gemini", settings.llm_provider)
+    if settings.llm_provider == "groq":
+        from app.llm_groq import GroqAnswerer
+
+        return GroqAnswerer(settings.groq_model, env["GROQ_API_KEY"]) if env.get("GROQ_API_KEY") else None
+    logger.error("Unknown LLM_PROVIDER %r: expected anthropic, gemini or groq", settings.llm_provider)
     return None
 
 
@@ -66,3 +75,12 @@ def fallback_model(settings: Settings) -> str:
         return chosen if chosen != settings.gemini_model else ""
     model = settings.gemini_model
     return model.removesuffix("-lite") if model.endswith("-lite") else f"{model}-lite"
+
+
+def groq_backup(settings: Settings, env: Mapping[str, str]):
+    """The Groq backup when GROQ_API_KEY is set, else None."""
+    if not env.get("GROQ_API_KEY"):
+        return None
+    from app.llm_groq import GroqAnswerer
+
+    return GroqAnswerer(settings.groq_model, env["GROQ_API_KEY"])

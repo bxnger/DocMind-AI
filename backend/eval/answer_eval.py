@@ -15,6 +15,7 @@ import json
 import statistics
 import sys
 import tempfile
+import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -29,6 +30,9 @@ from app.main import create_app  # noqa: E402
 from app.store import Store  # noqa: E402
 
 
+PAUSE_SECONDS = float(os.environ.get("EVAL_PAUSE", "0"))
+
+
 @dataclass
 class Result:
     question: str
@@ -39,11 +43,14 @@ class Result:
     seconds: float = 0.0
     error_code: str | None = None  # a provider failure: not an answer and not a refusal
     expected_pages: list[int] | None = None  # for a question that needs several pages
+    pages_checked: bool = True  # False for DOCX: Word has no stable pages, only answered / refused is scored
 
     @property
     def correct(self) -> bool:
         if self.error_code:
             return False
+        if not self.pages_checked and (self.expected_pages or self.expected_page is not None):
+            return self.answered
         if self.expected_pages:
             return self.answered and all(page in self.cited_pages for page in self.expected_pages)
         if self.expected_page is None:
@@ -78,6 +85,8 @@ def evaluate(pdf_path: Path, questions: list[dict], answerer, data_dir: Path) ->
     for item in questions:
         # A fresh conversation per question keeps earlier answers out of the context.
         conversation = client.post("/api/v1/conversations", json={"documentIds": [document["id"]]}).json()
+        if results and PAUSE_SECONDS:
+            time.sleep(PAUSE_SECONDS)  # respect a per-minute quota
         started = time.perf_counter()
         response = client.post(f"/api/v1/conversations/{conversation['id']}/messages", json={"content": item["q"]})
         seconds = time.perf_counter() - started
@@ -97,6 +106,7 @@ def evaluate(pdf_path: Path, questions: list[dict], answerer, data_dir: Path) ->
                 question=item["q"],
                 expected_page=item.get("page"),
                 expected_pages=item.get("pages"),
+                pages_checked=document["kind"] == "pdf",
                 seconds=seconds,
                 answered=status == "answered",
                 cited_pages=sorted({s["page"] for s in sources if s["page"] is not None}),

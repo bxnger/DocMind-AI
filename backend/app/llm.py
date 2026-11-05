@@ -60,6 +60,9 @@ class Answerer(Protocol):
     ) -> AsyncIterator[str]: ...
 
 
+ANSWER_LANGUAGES = {"en": "English", "ru": "Russian", "kk": "Kazakh"}
+
+
 def build_user_message(question: str, excerpts: list[Excerpt], language: str | None) -> str:
     lines = ["<excerpts>"]
     for excerpt in excerpts:
@@ -75,7 +78,8 @@ def build_user_message(question: str, excerpts: list[Excerpt], language: str | N
             " across its length, not search results. Say what the excerpts cover, and cite them."
         )
     if language:
-        lines.append(f"Answer language: {language}")
+        name = ANSWER_LANGUAGES.get(language, language)
+        lines.append(f"Answer language: {name} (write the answer in {name} even when the excerpts are in another language)")
     lines.append(f"Question: {question}")
     return "\n".join(lines)
 
@@ -86,6 +90,19 @@ class ClaudeAnswerer:
         # Reads ANTHROPIC_API_KEY from the environment.
         # A bounded wait so a stuck request ends as LLM_TIMEOUT instead of hanging the chat.
         self.client = anthropic.AsyncAnthropic(timeout=REQUEST_TIMEOUT_SECONDS, max_retries=1)
+
+    async def translate_query(self, question: str, target_languages: list[str]) -> str | None:
+        """The question translated into each target language, one per line, for cross-language search."""
+        from app.translate import translation_prompt
+
+        prompt = translation_prompt(question, target_languages)
+        try:
+            response = await self.client.messages.create(
+                model=self.model, max_tokens=256, messages=[{"role": "user", "content": prompt}], timeout=8.0
+            )
+        except anthropic.APIError:
+            return None
+        return "".join(block.text for block in response.content if getattr(block, "type", "") == "text").strip() or None
 
     async def stream(
         self, question: str, excerpts: list[Excerpt], language: str | None, history: History
