@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
-import { placePreview, type Placement } from '@/features/evidence/placement';
+import { PREVIEW_MAX_HEIGHT, placePreview, type Placement } from '@/features/evidence/placement';
 import { SourcePreview } from '@/features/evidence/SourcePreview';
 import { cn } from '@/lib/cn';
 import type { EvidenceSource } from '@/types/chat';
@@ -16,6 +16,11 @@ interface Props {
   onOpen: () => void;
 }
 
+/** placePreview measures from `bottom`, but a preview opening upward is positioned from the window's edge. */
+function anchorToWindow(rect: DOMRect, bottom: number): Partial<Placement> {
+  return rect.bottom + PREVIEW_MAX_HEIGHT + 16 > bottom ? { top: undefined, bottom: window.innerHeight - rect.top + 8 } : {};
+}
+
 /** A short pause, so moving the pointer across a paragraph of markers does not flash previews. */
 const PREVIEW_DELAY_MS = 220;
 
@@ -28,7 +33,9 @@ export function CitationMarker({ source, active, selected, onActivate, onOpen }:
 
   const showPreview = () => {
     const rect = buttonRef.current?.getBoundingClientRect();
-    if (rect) setPlacement(placePreview(rect, { width: window.innerWidth, height: window.innerHeight }));
+    // The composer counts as the bottom edge, so the preview never opens over what the user is typing.
+    const bottom = document.querySelector('[data-composer]')?.getBoundingClientRect().top ?? window.innerHeight;
+    if (rect) setPlacement({ ...placePreview(rect, { width: window.innerWidth, height: bottom }), ...anchorToWindow(rect, bottom) });
   };
   const hidePreview = () => {
     window.clearTimeout(timer.current);

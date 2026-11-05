@@ -290,7 +290,7 @@
     "languageBody": "Осы браузердегі интерфейс тілі.",
     "appearance": "Безендіру",
     "appearanceBody": "Интерфейстің көрінісі мен қозғалысы.",
-    "theme": "Тақырып",
+    "theme": "Түс режимі",
     "motion": "Анимация",
     "motionSystem": "Жүйедегідей",
     "motionReduced": "Азайтылған",
@@ -318,7 +318,9 @@
     "notAvailable": "Қолжетімсіз",
     "capabilitiesError": "Сервер мүмкіндіктерін алу мүмкін болмады.",
     "themeLight": "Жарық",
-    "themeDarkSoon": "Қараңғы (қолжетімсіз)"
+    "themeDark": "Қараңғы",
+    "themeSystem": "Жүйелік",
+    "themeToggle": "Түс режимі: {{current}}. Ауыстыру: {{next}}"
   },
   "notFound": {
     "title": "Бет табылмады",

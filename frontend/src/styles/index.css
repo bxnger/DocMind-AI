@@ -32,6 +32,9 @@
   --color-danger-tint: rgb(164 52 44 / 0.1);
   --color-plum: #7a4e8c;
   --color-slate: #3f6f9f;
+  --color-scrim: rgb(32 41 37 / 0.45);
+  --color-skeleton: #e9e7df;
+  --color-skeleton-shine: rgb(255 255 255 / 0.65);
 
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
   --font-quote: 'Source Serif 4 Variable', ui-serif, Georgia, serif;
@@ -66,6 +69,40 @@
   --dur-base: 200ms;
   --dur-slow: 320ms;
   color-scheme: light;
+}
+
+/* Dark: deep graphite, slightly lighter work surfaces, muted teal. PDF pages stay white in both themes. */
+html[data-theme='dark'] {
+  --color-bg: #151a19;
+  --color-sidebar: #1a201f;
+  --color-card: #212927;
+  --color-card-raised: #29322f;
+  --color-line: #36403d;
+  --color-line-strong: #4e5b57;
+  --color-accent: #6dbdaa;
+  --color-accent-strong: #8ad0bd;
+  --color-fg: #e9ece9;
+  --color-muted: #a7b2ad;
+  --color-on-accent: #0d211c;
+  --color-hover: rgb(255 255 255 / 0.06);
+  --color-accent-tint: rgb(109 189 170 / 0.16);
+  --color-accent-line: rgb(109 189 170 / 0.45);
+  --color-accent-2: #e8cf7a;
+  --color-accent-2-tint: #4d3f12;
+  --color-accent-2-line: #b9973a;
+  --color-success: #7fd0a4;
+  --color-success-tint: rgb(127 208 164 / 0.14);
+  --color-warning: #e3bc73;
+  --color-warning-tint: rgb(227 188 115 / 0.14);
+  --color-danger: #efa09a;
+  --color-danger-tint: rgb(239 160 154 / 0.14);
+  --color-plum: #b99ac7;
+  --color-slate: #8db4da;
+  --color-scrim: rgb(0 0 0 / 0.6);
+  --color-skeleton: #29322f;
+  --color-skeleton-shine: rgb(255 255 255 / 0.07);
+  --shadow-float: 0 12px 36px rgb(0 0 0 / 0.5), 0 1px 3px rgb(0 0 0 / 0.4);
+  color-scheme: dark;
 }
 
 /* The navigation stays dark for hierarchy: the same tokens, scoped to it. */
@@ -170,7 +207,7 @@ label[for] {
 .skeleton {
   position: relative;
   overflow: hidden;
-  background: #e9e7df;
+  background: var(--color-skeleton);
   border-radius: 8px;
 }
 .skeleton::after {
@@ -178,7 +215,7 @@ label[for] {
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.65), transparent);
+  background: linear-gradient(90deg, transparent, var(--color-skeleton-shine), transparent);
   animation: shimmer 1.4s linear infinite;
 }
 @keyframes shimmer {
@@ -253,7 +290,7 @@ label[for] {
 }
 .textLayer mark.hl-active {
   background: #9fd8c9;
-  box-shadow: 0 0 0 1px var(--color-accent);
+  box-shadow: 0 0 0 1px #145a4d;
 }
 .textLayer mark.hl-added {
   background: #bfe6cd;
@@ -281,7 +318,8 @@ label[for] {
   content: '';
   position: absolute;
   inset: -5px;
-  border: 2px solid var(--color-accent);
+  /* Fixed: it sits on the white PDF page in both themes. */
+  border: 2px solid #145a4d;
   border-radius: 7px;
   opacity: 0;
   animation: rect-ring 1.6s var(--ease-out) 1;

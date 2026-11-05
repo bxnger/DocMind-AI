@@ -6,6 +6,7 @@ import { IconButton } from '@/components/ui/IconButton';
 import { Logo } from '@/components/ui/Logo';
 import { useDocuments } from '@/features/documents/useDocuments';
 import { LanguageSwitch } from '@/features/settings/LanguageSwitch';
+import { ThemeToggle } from '@/features/settings/ThemeToggle';
 import { useBackendHealth, useCapabilities } from '@/features/system/useSystem';
 import { useUpload } from '@/features/upload/UploadProvider';
 import { cn } from '@/lib/cn';
@@ -172,8 +173,9 @@ export function Sidebar({ collapsed, drawer = false, canToggle, onToggle, onClos
 
       {collapsed ? <div className="flex-1" /> : <SidebarDocuments onNavigate={onClose} />}
 
-      <div className={cn('mt-3 flex items-center gap-2 border-t border-line pt-3', collapsed ? 'justify-center' : 'justify-between pl-2')}>
-        <ConnectionLine compact={collapsed} />
+      <div className={cn('mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3', collapsed ? 'flex-col justify-center' : 'justify-between pl-2')}>
+        <span className={collapsed ? undefined : 'min-w-0 basis-full'}><ConnectionLine compact={collapsed} /></span>
+        <ThemeToggle />
         {!collapsed && <LanguageSwitch />}
       </div>
     </aside>

@@ -321,7 +321,9 @@
     "notAvailable": "Not available",
     "capabilitiesError": "The server's capabilities couldn't be loaded.",
     "themeLight": "Light",
-    "themeDarkSoon": "Dark (not available)"
+    "themeDark": "Dark",
+    "themeSystem": "System",
+    "themeToggle": "Theme: {{current}}. Switch to {{next}}"
   },
   "notFound": {
     "title": "Page not found",

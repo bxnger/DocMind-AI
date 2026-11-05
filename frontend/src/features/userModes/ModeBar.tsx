@@ -56,7 +56,7 @@ export function ModeBar({ state, hasMessages, composer, documentLanguage }: Prop
                   <button
                     type="button"
                     data-action={action}
-                    title={t('userModes.insertHint')}
+                    aria-description={t('userModes.insertHint')}
                     onClick={() => {
                       const result = composer.current?.insert(t(`userModes.actions.${action}.prompt`, { lng: promptLanguage }));
                       setFeedback(result === 'too-long' ? t('userModes.tooLong') : null);
