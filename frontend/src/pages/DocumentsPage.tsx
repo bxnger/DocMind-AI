@@ -9,13 +9,13 @@ import { DocumentRow, DocumentRowSkeleton } from '@/features/documents/DocumentR
 import { useDocuments } from '@/features/documents/useDocuments';
 import { useErrorMessage } from '@/features/system/useErrorMessage';
 import { useUpload } from '@/features/upload/UploadProvider';
-import { SAMPLE_DOCUMENT } from '@/services/sampleDocument';
+import { sampleDocument } from '@/services/sampleDocument';
 import type { DocumentModel, DocumentStatus } from '@/types/document';
 
 const GROUPS: DocumentStatus[] = ['processing', 'ready', 'failed'];
 
 export function DocumentsPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const errorMessage = useErrorMessage();
   const { openPicker } = useUpload();
   const documents = useDocuments();
@@ -108,7 +108,7 @@ export function DocumentsPage() {
       <section className="mt-6">
         <h2 className="micro-label mb-2">{t('documents.sampleHeading')}</h2>
         <ul className="overflow-hidden rounded-panel border border-line bg-sidebar">
-          <DocumentRow doc={SAMPLE_DOCUMENT} tag={t('documents.sampleTag')} meta={t('documents.sampleMeta')} />
+          <DocumentRow doc={sampleDocument(i18n.language)} tag={t('documents.sampleTag')} meta={t('documents.sampleMeta')} />
         </ul>
       </section>
 
