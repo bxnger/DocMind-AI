@@ -84,6 +84,7 @@ def main() -> None:
         app.dependency_overrides[get_store] = lambda: store
         app.dependency_overrides[get_answerer] = lambda: Scripted()
         with TestClient(app) as client:
+            client.headers["Authorization"] = "Bearer " + client.post("/api/v1/sessions").json()["token"]
             for path in files:
                 timed_run(client, path, "What penalty applies to the supplier?")
 

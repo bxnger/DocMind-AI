@@ -15,9 +15,9 @@ from app.citations import is_verbatim, unsupported_numbers
 from app.config import MAX_MESSAGE_CHARS
 from app.deps import get_answerer, get_store
 from app.errors import AppError
-from app.extraction import ExtractionError, docx_blocks, find_block
+from app.extraction import ExtractionError, find_block, stored_blocks
 from app.highlights import quote_highlights
-from app.ratelimit import limit_chat
+from app.auth import Session, limited
 from app.llm import Answerer, Excerpt, History, LlmAuthFailed, LlmMisconfigured, LlmRateLimited, LlmTimeout, LlmUnavailable
 from app.retrieval import is_overview_question, overview_chunks, rank, tokenize
 from app.schemas import CreateConversation, SendMessage
@@ -56,47 +56,52 @@ def sse(event: str, data: dict) -> str:
 
 
 @router.post("", status_code=201)
-def create_conversation(body: CreateConversation, store: Store = Depends(get_store)) -> dict:
+def create_conversation(
+    body: CreateConversation, request: Request, store: Store = Depends(get_store), session: Session = Depends(limited("read"))
+) -> dict:
     if len(set(body.document_ids)) != len(body.document_ids):
         raise AppError(422, "VALIDATION_ERROR", "documentIds must not repeat")
     names = []
     for document_id in body.document_ids:
-        doc = store.get(document_id)
+        doc = store.get(document_id, session.owner_id)
         if doc["status"] != "ready":
             raise AppError(409, "DOCUMENT_NOT_READY", "Document is still being processed")
         names.append(doc["name"])
     title = body.title or names[0]
-    return store.create_conversation(title, body.document_ids)
+    return store.create_conversation(title, body.document_ids, session.owner_id, request.app.state.settings.session_max_conversations)
 
 
 @router.get("")
-def list_conversations(store: Store = Depends(get_store)) -> dict:
-    return {"items": store.list_conversations()}
+def list_conversations(store: Store = Depends(get_store), session: Session = Depends(limited("read"))) -> dict:
+    return {"items": store.list_conversations(session.owner_id)}
 
 
 @router.get("/{conversation_id}")
-def get_conversation(conversation_id: str, store: Store = Depends(get_store)) -> dict:
-    return store.get_conversation(conversation_id)
+def get_conversation(conversation_id: str, store: Store = Depends(get_store), session: Session = Depends(limited("read"))) -> dict:
+    return store.get_conversation(conversation_id, session.owner_id)
 
 
 @router.delete("/{conversation_id}", status_code=204)
-def delete_conversation(conversation_id: str, store: Store = Depends(get_store)) -> Response:
+def delete_conversation(conversation_id: str, store: Store = Depends(get_store), session: Session = Depends(limited("read"))) -> Response:
+    store.get_conversation(conversation_id, session.owner_id)
     store.delete_conversation(conversation_id)
     return Response(status_code=204)
 
 
 @router.get("/{conversation_id}/messages")
-def list_messages(conversation_id: str, store: Store = Depends(get_store)) -> dict:
+def list_messages(conversation_id: str, store: Store = Depends(get_store), session: Session = Depends(limited("read"))) -> dict:
+    store.get_conversation(conversation_id, session.owner_id)
     return {"items": store.list_messages(conversation_id)}
 
 
-@router.post("/{conversation_id}/messages", dependencies=[Depends(limit_chat)])
+@router.post("/{conversation_id}/messages")
 async def send_message(
     conversation_id: str,
     body: SendMessage,
     request: Request,
     store: Store = Depends(get_store),
     answerer: Answerer | None = Depends(get_answerer),
+    session: Session = Depends(limited("chat")),
 ) -> StreamingResponse:
     question = body.content.strip()
     if not question:
@@ -104,7 +109,7 @@ async def send_message(
     if len(question) > MAX_MESSAGE_CHARS:
         raise AppError(422, "MESSAGE_TOO_LONG", f"Message is longer than {MAX_MESSAGE_CHARS} characters")
 
-    conversation = store.get_conversation(conversation_id)
+    conversation = store.get_conversation(conversation_id, session.owner_id)
     for document_id in conversation["documentIds"]:
         if store.get(document_id)["status"] != "ready":
             raise AppError(409, "DOCUMENT_NOT_READY", "A document in this conversation is not ready")
@@ -127,6 +132,14 @@ async def send_message(
     picked: list[dict] = []
     overview = False
     if cached is None:
+        # Counted before the first model call (the translation). A remembered answer costs nothing.
+        settings = request.app.state.settings
+        if settings.ai_emergency_stop:
+            raise AppError(429, "AI_BUDGET_EXCEEDED", "AI answers are switched off for now")
+        store.reserve_ai_request(
+            session.owner_id, session.client_key, settings.ai_session_daily_limit,
+            settings.ai_client_daily_limit, settings.ai_global_daily_limit,
+        )
         chunks = store.chunks_for_documents(conversation["documentIds"])
         translated = ""
         if not is_overview_question(question):
@@ -387,7 +400,7 @@ def paragraph_of(store: Store, document_id: str, quote: str) -> int | None:
     if not path.exists():
         return None
     try:
-        return find_block(docx_blocks(path), quote)
+        return find_block(stored_blocks(path), quote)
     except (ExtractionError, OSError):
         return None
 

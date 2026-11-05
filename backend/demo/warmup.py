@@ -96,6 +96,8 @@ def main() -> int:
     args = parser.parse_args()
     base = args.url.rstrip("/") + "/api/v1"
     with httpx.Client(timeout=120) as client:
+        # Answers are remembered per document, so this warms visitors' questions only on demo documents (python -m app.demo_docs).
+        client.headers["Authorization"] = "Bearer " + client.post(f"{base}/sessions").raise_for_status().json()["token"]
         try:
             client.get(f"{base}/health").raise_for_status()
         except httpx.HTTPError:

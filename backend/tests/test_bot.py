@@ -18,6 +18,12 @@ from bot.texts import TEXTS, language_of, t
 from tests.conftest import make_docx, make_pdf
 from tests.test_chat import BIG_DOCUMENT, RULES_PAGE_1, RULES_PAGE_2
 
+class Everyone:
+    def __contains__(self, chat_id):
+        return True
+
+
+EVERYONE = Everyone()
 ANSWER = "Registration closes on 5 November 2026 [1]."
 PNG = b"\x89PNG"
 
@@ -62,7 +68,7 @@ def telegram():
 
 @pytest.fixture
 def bot(client, telegram):
-    return Bot(telegram, BackendClient(client), per_minute=100)
+    return Bot(telegram, BackendClient(client), allowed_chats=EVERYONE, per_minute=100)
 
 
 def text_update(text, chat=1, code="ru", kind="private"):
@@ -231,7 +237,7 @@ def test_compare_reports_the_differences_and_says_it_is_text_not_meaning(bot, te
 
 def test_rate_limit_per_chat(client, telegram):
     now = [0.0]
-    bot = Bot(telegram, BackendClient(client), per_minute=3, clock=lambda: now[0])
+    bot = Bot(telegram, BackendClient(client), allowed_chats=EVERYONE, per_minute=3, clock=lambda: now[0])
     for _ in range(3):
         bot.handle_update(text_update("/help"))
     bot.handle_update(text_update("/help"))
@@ -253,9 +259,9 @@ def test_allowed_chats_and_private_only(client, telegram):
 
 def test_the_state_survives_a_restart(client, telegram, tmp_path):
     path = tmp_path / "bot_state.json"
-    first = Bot(telegram, BackendClient(client), state_path=path, per_minute=100)
+    first = Bot(telegram, BackendClient(client), state_path=path, allowed_chats=EVERYONE, per_minute=100)
     upload_rules(first, telegram)
-    second = Bot(telegram, BackendClient(client), state_path=path, per_minute=100)
+    second = Bot(telegram, BackendClient(client), state_path=path, allowed_chats=EVERYONE, per_minute=100)
     second.handle_update(text_update("/docs"))
     assert "rules.pdf" in telegram.last
 
@@ -264,7 +270,7 @@ def test_an_unreachable_backend_is_a_polite_message(telegram):
     def down(request):
         raise httpx.ConnectError("down", request=request)
 
-    bot = Bot(telegram, BackendClient(httpx.Client(transport=httpx.MockTransport(down), base_url="http://x")), per_minute=100)
+    bot = Bot(telegram, BackendClient(httpx.Client(transport=httpx.MockTransport(down), base_url="http://x")), allowed_chats=EVERYONE, per_minute=100)
     bot.state["1"] = {"docs": [{"id": "d", "name": "x.pdf", "kind": "pdf", "ocr": False}], "current": "d", "conversations": {"d": "c"}, "sources": [], "suggestions": []}
     bot.handle_update(text_update("a question"))
     assert telegram.last == t("ru", "backend_down")

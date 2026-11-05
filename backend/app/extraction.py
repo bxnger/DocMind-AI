@@ -1,3 +1,4 @@
+import json
 import re
 import zipfile
 from dataclasses import dataclass
@@ -195,6 +196,64 @@ def extract_docx(path: Path) -> list[Segment]:
         else:
             sections[-1][1].append(text)
     return [Segment(page=None, location=heading, text=" ".join(lines)) for heading, lines in sections if lines]
+
+
+def inspect_docx(path: Path, max_entries: int, max_unpacked: int, max_xml: int) -> None:
+    """Checks the archive's directory, without unpacking anything. Python's reader never returns more than an
+    entry declares, so a false size in the directory cannot get past these limits."""
+    try:
+        with zipfile.ZipFile(path) as archive:
+            entries = archive.infolist()
+    except (zipfile.BadZipFile, OSError) as exc:
+        raise ExtractionError("UNSUPPORTED_TYPE", "The file is not a valid DOCX") from exc
+    if "word/document.xml" not in {entry.filename for entry in entries}:
+        raise ExtractionError("UNSUPPORTED_TYPE", "The file is not a valid DOCX")
+    xml = sum(entry.file_size for entry in entries if entry.filename.endswith((".xml", ".rels")))
+    if len(entries) > max_entries or sum(entry.file_size for entry in entries) > max_unpacked or xml > max_xml:
+        raise ExtractionError("DOCX_TOO_LARGE", "The DOCX is too large once unpacked")
+
+
+def pdf_page_count(path: Path) -> int | None:
+    try:
+        with fitz.open(path) as doc:
+            return None if doc.needs_pass else doc.page_count
+    except Exception:
+        return None  # extract_pdf reports what is wrong
+
+
+def read_document(path, kind, max_pages, max_ocr_pages, extract_pdf_fn=None, ocr_languages_fn=None, on_ocr=None):
+    """(segments, ocr_used) for a file. Runs inside the worker process, so it must not import app.config."""
+    read_pdf, languages_of = extract_pdf_fn or extract_pdf, ocr_languages_fn or ocr_languages
+    if kind != "pdf":
+        segments, ocr_used = extract_docx(path), False
+    else:
+        pages = pdf_page_count(path)
+        if pages is not None and pages > max_pages:
+            raise ExtractionError("PARSE_FAILED", f"The document has more than {max_pages} pages")
+        segments, ocr_used = read_pdf(path), False
+        if len(segments) > max_pages:
+            raise ExtractionError("PARSE_FAILED", f"The document has more than {max_pages} pages")
+        if not any(segment.text for segment in segments):
+            languages = languages_of()
+            if languages is None:
+                raise ExtractionError("NO_TEXT_FOUND", "No text found. Scanned documents need OCR, which is not set up on this server")
+            if len(segments) > max_ocr_pages:
+                raise ExtractionError("OCR_FAILED", f"Scans of more than {max_ocr_pages} pages cannot be read")
+            if on_ocr:
+                on_ocr()
+            segments, ocr_used = read_pdf(path, languages), True
+    if not any(segment.text for segment in segments):
+        raise ExtractionError("NO_TEXT_FOUND", "No text found in the document")
+    return segments, ocr_used
+
+
+def stored_blocks(path: Path) -> list[dict]:
+    """The blocks the worker saved, so that reading a document never parses an uploaded file in the API process."""
+    saved = path.with_suffix(".blocks.json")
+    try:
+        return json.loads(saved.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return docx_blocks(path)
 
 
 def docx_blocks(path: Path) -> list[dict]:
