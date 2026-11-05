@@ -9,7 +9,7 @@ import { DocumentRow, DocumentRowSkeleton } from '@/features/documents/DocumentR
 import { useDocuments } from '@/features/documents/useDocuments';
 import { formatRelative } from '@/lib/format';
 import { clearRecents, useRecents } from '@/services/recents';
-import { SAMPLE_DOCUMENT, isSampleDocument } from '@/services/sampleDocument';
+import { isSampleDocument, sampleDocument } from '@/services/sampleDocument';
 
 export function RecentPage() {
   const { t, i18n } = useTranslation();
@@ -20,11 +20,11 @@ export function RecentPage() {
     () =>
       recents.flatMap((entry) => {
         const doc = isSampleDocument(entry.id)
-          ? SAMPLE_DOCUMENT
+          ? sampleDocument(i18n.language)
           : documents.data?.find((candidate) => candidate.id === entry.id);
         return doc ? [{ doc, openedAt: entry.openedAt }] : [];
       }),
-    [documents.data, recents],
+    [documents.data, i18n.language, recents],
   );
 
   return (

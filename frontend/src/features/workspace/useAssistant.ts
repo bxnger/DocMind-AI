@@ -10,22 +10,9 @@ import {
   hasSearchableText,
 } from '@/services/chat';
 import { SAMPLE_QUESTION_KEYS, isSampleDocument } from '@/services/sampleDocument';
-import i18n, { LANGUAGES } from '@/i18n';
 import type { ChatMode } from '@/types/chat';
 import type { DocumentModel } from '@/types/document';
 import type { DocumentSource } from './useDocumentSource';
-
-/**
- * The sample is in English and demo search matches words, so the app's own translated questions
- * search with their English original. Anything the user types is searched as written.
- */
-function sampleAliases(): Map<string, string> {
-  return new Map(
-    SAMPLE_QUESTION_KEYS.flatMap((key) =>
-      LANGUAGES.map((language): [string, string] => [i18n.t(`home.sample.${key}`, { lng: language.code }), i18n.t(`home.sample.${key}`, { lng: 'en' })]),
-    ),
-  );
-}
 
 /** Chooses the adapter: real AI through the backend, or the separate demo search. */
 export function useAssistant(doc: DocumentModel, source: DocumentSource, pdf: PdfState, requestedMode: ChatMode) {
@@ -41,7 +28,7 @@ export function useAssistant(doc: DocumentModel, source: DocumentSource, pdf: Pd
   // Real answers do not depend on the PDF's text, so finishing to read it must not touch them.
   const liveAdapter = useMemo(() => (liveReady ? createLiveChatAdapter(doc.id, doc.name) : null), [doc.id, doc.name, liveReady]);
   const demoAdapter = useMemo(
-    () => (mode === 'demo' && text && hasSearchableText(text) ? createDemoChatAdapter(doc.id, text, isSampleDocument(doc.id) ? sampleAliases() : undefined) : null),
+    () => (mode === 'demo' && text && hasSearchableText(text) ? createDemoChatAdapter(doc.id, text, undefined) : null),
     [doc.id, mode, text],
   );
   const adapter = mode === 'live' ? liveAdapter : demoAdapter;
