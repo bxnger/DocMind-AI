@@ -9,7 +9,11 @@ import {
   getJson,
   isRecord,
   networkError,
+  timeoutError,
 } from './client';
+
+/** 20 MB on a slow connection still fits. */
+const UPLOAD_TIMEOUT_MS = 5 * 60_000;
 
 function badResponse(): AppError {
   return new AppError({ code: ERROR_BAD_RESPONSE, message: 'Unexpected response from the backend' });
@@ -97,6 +101,8 @@ export function uploadDocument(file: File, { onProgress, signal }: UploadCallbac
 
     xhr.open('POST', apiUrl('/documents'));
     xhr.responseType = 'text';
+    xhr.timeout = UPLOAD_TIMEOUT_MS;
+    xhr.ontimeout = () => reject(timeoutError());
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress(event.loaded / event.total);
     };

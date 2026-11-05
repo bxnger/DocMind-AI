@@ -71,7 +71,8 @@
       "OCR_FAILED": "Text recognition (OCR) failed for this file.",
       "INDEXING_FAILED": "The document couldn't be indexed.",
       "INTERNAL_ERROR": "The server had an internal problem. Start again.",
-      "STREAM_INTERRUPTED": "The connection dropped before the answer finished. Try again."
+      "STREAM_INTERRUPTED": "The connection dropped before the answer finished. Try again.",
+      "REQUEST_TIMEOUT": "The server took too long to respond. Try again in a moment."
     },
     "noTextWithOcr": "No text could be read from this file, even with text recognition (OCR)."
   },

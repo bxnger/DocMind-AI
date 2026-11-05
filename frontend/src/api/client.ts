@@ -24,9 +24,18 @@ export class AppError extends Error {
 export const ERROR_NETWORK = 'NETWORK_ERROR';
 export const ERROR_BAD_RESPONSE = 'BAD_RESPONSE';
 
-const DEFAULT_BASE_URL = 'http://127.0.0.1:8000';
+// The fallback exists only in development. vite.config.ts stops a production build without a real address.
+const DEFAULT_BASE_URL = import.meta.env.DEV ? 'http://127.0.0.1:8000' : '';
 
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? DEFAULT_BASE_URL).replace(/\/+$/, '');
+
+export const ERROR_TIMEOUT = 'REQUEST_TIMEOUT';
+/** How long a server may take to start answering. The chat's search and translation happen before that. */
+export const RESPONSE_TIMEOUT_MS = 45_000;
+
+export function timeoutError(): AppError {
+  return new AppError({ code: ERROR_TIMEOUT, message: 'The backend took too long to respond', retryable: true });
+}
 
 export function apiUrl(path: string): string {
   return `${API_BASE_URL}/api/v1${path}`;
@@ -58,11 +67,25 @@ export function networkError(): AppError {
 
 export async function send(path: string, init?: RequestInit): Promise<Response> {
   let response: Response;
+  const controller = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, RESPONSE_TIMEOUT_MS);
+  const caller = init?.signal;
+  const forward = () => controller.abort();
+  if (caller?.aborted) controller.abort();
+  caller?.addEventListener('abort', forward, { once: true });
   try {
-    response = await fetch(apiUrl(path), init);
+    response = await fetch(apiUrl(path), { ...init, signal: controller.signal });
   } catch (cause) {
+    if (timedOut) throw timeoutError();
     if (cause instanceof DOMException && cause.name === 'AbortError') throw cause;
     throw networkError();
+  } finally {
+    // Only the wait for a response is limited: a stream may then run longer, and can still be stopped.
+    clearTimeout(timer);
   }
   if (response.ok) return response;
   const body: unknown = await response.json().catch(() => null);

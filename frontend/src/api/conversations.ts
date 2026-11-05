@@ -1,5 +1,5 @@
 import { NOT_FOUND_REASONS, type AnswerStatus, type ChatMessage, type EvidenceRect, type EvidenceSource, type NotFoundReason } from '@/types/chat';
-import { AppError, ERROR_BAD_RESPONSE, deleteResource, getJson, isRecord, networkError, postJson } from './client';
+import { AppError, ERROR_BAD_RESPONSE, deleteResource, getJson, isRecord, networkError, postJson, timeoutError } from './client';
 import { SseParser } from './sse';
 
 const bad = () => new AppError({ code: ERROR_BAD_RESPONSE, message: 'Unexpected response from the backend' });
@@ -143,6 +143,17 @@ function parseEvent(event: string, raw: string): StreamEvent | null {
   }
 }
 
+/** The backend bounds a model call to about a minute, so longer silence means the connection is stuck. */
+const STREAM_SILENCE_MS = 120_000;
+
+function readWithin<T>(read: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const silence = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(timeoutError()), ms);
+  });
+  return Promise.race([read, silence]).finally(() => clearTimeout(timer));
+}
+
 /** Reads the answer stream with fetch. Aborting the signal closes the connection and stops generation. */
 export async function* sendMessage(id: string, content: string, signal: AbortSignal): AsyncGenerator<StreamEvent> {
   const response = await postJson(`/conversations/${encodeURIComponent(id)}/messages`, { content }, signal);
@@ -154,9 +165,10 @@ export async function* sendMessage(id: string, content: string, signal: AbortSig
     while (true) {
       let chunk: ReadableStreamReadResult<string>;
       try {
-        chunk = await reader.read();
+        chunk = await readWithin(reader.read(), STREAM_SILENCE_MS);
       } catch (cause) {
         if (signal.aborted) throw cause;
+        if (cause instanceof AppError) throw cause;
         throw networkError();
       }
       if (chunk.done) break;
