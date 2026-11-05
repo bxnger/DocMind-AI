@@ -80,7 +80,10 @@
     "exampleLabel": "Example from the sample document",
     "openSample": "Open the sample document",
     "latest": "Latest documents",
-    "viewAll": "View all"
+    "viewAll": "View all",
+    "shortcuts": "Shortcuts",
+    "shortcutCompare": "Compare two documents",
+    "shortcutMap": "See the Knowledge Map on the sample"
   },
   "documents": {
     "title": "Documents",
@@ -184,7 +187,8 @@
     "invalidTitle": "This PDF can't be read",
     "invalidBody": "The file looks corrupted or isn't really a PDF.",
     "loadTitle": "The document couldn't be loaded",
-    "loadBody": "Check the backend connection and try again."
+    "loadBody": "Check the backend connection and try again.",
+    "docxReady": "The file was processed, so you can ask about it in AI mode. Its original layout can't be shown: sources give the section and quote, without pages."
   },
   "chat": {
     "title": "Assistant",
@@ -278,8 +282,6 @@
     "appearance": "Appearance",
     "appearanceBody": "How the interface looks and moves.",
     "theme": "Theme",
-    "themeDark": "Dark",
-    "themeLightSoon": "Light (not available)",
     "motion": "Motion",
     "motionSystem": "Follow system",
     "motionReduced": "Reduced",
@@ -305,7 +307,9 @@
     "capHighlights": "Server-side highlights",
     "available": "Available",
     "notAvailable": "Not available",
-    "capabilitiesError": "The backend's capabilities couldn't be loaded."
+    "capabilitiesError": "The backend's capabilities couldn't be loaded.",
+    "themeLight": "Light",
+    "themeDarkSoon": "Dark (not available)"
   },
   "notFound": {
     "title": "Page not found",

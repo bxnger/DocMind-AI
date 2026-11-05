@@ -32,6 +32,7 @@ import { ViewerPane } from '@/features/workspace/ViewerPane';
 import { SPLIT_PANE_QUERY, useMediaQuery } from '@/hooks/useMediaQuery';
 import { usePersistentState } from '@/hooks/usePersistentState';
 import { cn } from '@/lib/cn';
+import { formatBytes } from '@/lib/format';
 import { markOpened } from '@/services/recents';
 import { isSampleDocument } from '@/services/sampleDocument';
 import type { AssistantMessage, ChatMode } from '@/types/chat';
@@ -79,7 +80,7 @@ function RegionCrash({ reset }: { reset: () => void }) {
 }
 
 function WorkspaceView({ doc }: { doc: DocumentModel }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const split = useMediaQuery(SPLIT_PANE_QUERY);
   const routerLocation = useLocation();
@@ -102,7 +103,10 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
   const chat = useChat(doc.id, doc.name, adapter);
 
   // Fragments from the map go through the same Evidence Jump as answers, as a source list kept outside the chat.
-  const [view, setView] = useState<'document' | 'map'>('document');
+  const [view, setView] = useState<'document' | 'map'>(() => {
+    const state: unknown = routerLocation.state;
+    return isRecord(state) && state.view === 'map' ? 'map' : 'document';
+  });
   const [mapEvidence, setMapEvidence] = useState<AssistantMessage | null>(null);
   const evidenceMessages = useMemo(() => (mapEvidence ? [...chat.messages, mapEvidence] : chat.messages), [chat.messages, mapEvidence]);
   const evidence = useEvidence(evidenceMessages);
@@ -149,15 +153,35 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
   const isSample = isSampleDocument(doc.id);
   const stale = isStaleProcessing(doc);
 
+  const viewSwitch = (
+    <div role="group" aria-label={t('map.views')} className="inline-flex shrink-0 rounded-[10px] border border-line bg-card p-0.5">
+      {(['document', 'map'] as const).map((value) => (
+        <button
+          key={value}
+          type="button"
+          aria-pressed={view === value}
+          onClick={() => setView(value)}
+          className={cn('pressable h-7 rounded-lg px-3 text-xs font-medium', view === value ? 'bg-accent text-on-accent' : 'text-muted hover:text-fg')}
+        >
+          {t(`map.view.${value}`)}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <header className="flex min-h-12 shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-line py-1 pr-2 pl-2">
         <Link to="/documents" aria-label={t('workspace.back')} title={t('workspace.back')} className={cn(buttonClasses('ghost', 'sm'), 'w-8 px-0! pointer-coarse:size-11')}>
           <ArrowLeft size={16} aria-hidden />
         </Link>
-        <h1 className="min-w-0 flex-1 truncate text-sm font-medium" title={doc.name}>
-          {doc.name}
-        </h1>
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate font-display text-[15px] leading-5 font-semibold" title={doc.name}>{doc.name}</h1>
+          <p className="tabular truncate text-xs leading-4 text-muted">
+            {[doc.kind.toUpperCase(), doc.pageCount !== null ? t('documents.pages', { count: doc.pageCount }) : null, formatBytes(doc.sizeBytes, i18n.language)].filter(Boolean).join(' · ')}
+          </p>
+        </div>
+        {split && viewSwitch}
         {isSample && <span className="rounded-full border border-accent-line px-2 text-xs text-accent-strong">{t('documents.sampleTag')}</span>}
         {!isSample && <StatusBadge doc={doc} />}
         {origin === 'browser' && (
@@ -198,19 +222,7 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
 
       <div className="flex min-h-0 flex-1">
         <div className={cn('flex min-w-0 flex-1 flex-col', !split && pane !== 'document' && 'hidden')}>
-          <div role="group" aria-label={t('map.views')} className="flex h-9 shrink-0 items-center gap-0.5 border-b border-line bg-sidebar px-2">
-            {(['document', 'map'] as const).map((value) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={view === value}
-                onClick={() => setView(value)}
-                className={cn('pressable h-7 rounded-lg px-3 text-xs font-medium', view === value ? 'bg-accent-tint text-fg' : 'text-muted hover:text-fg')}
-              >
-                {t(`map.view.${value}`)}
-              </button>
-            ))}
-          </div>
+          {!split && <div className="flex shrink-0 items-center border-b border-line bg-sidebar px-2 py-1">{viewSwitch}</div>}
           <div className="relative min-h-0 flex-1">
           {/* Stays mounted, so coming back from a fragment keeps the topic and zoom. */}
           <div className={cn('h-full', view !== 'map' && 'hidden')}>

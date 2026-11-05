@@ -56,7 +56,7 @@ export function SourceCard({ id, source, active, selected, onActivate, onOpen }:
         className="absolute inset-0 rounded-control"
       />
       <header className="flex items-center gap-2 text-xs text-muted">
-        <span className={cn("tabular inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-md border px-1 font-medium", selected ? "border-accent bg-accent text-on-accent" : "border-accent-2-line text-accent-2")}>
+        <span className={cn("tabular inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-md border px-1 font-medium", selected ? "border-accent bg-accent text-on-accent" : "border-accent-2-line bg-accent-2-tint text-fg")}>
           {source.index}
         </span>
         <span className="min-w-0 flex-1 truncate" title={source.documentName}>

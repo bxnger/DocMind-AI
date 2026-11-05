@@ -43,13 +43,13 @@ function Side({ documentId, name, letter, evidence, type, segments, tone }: Side
   return (
     <div data-side={letter} className="min-w-0 p-3">
       <p className="mb-2 flex min-h-5 items-center gap-2 text-xs text-muted">
-        <span className="font-medium text-fg">{letter}</span>
+        <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-md bg-fg text-[11px] font-semibold text-bg" aria-label={t(letter === 'A' ? 'compare.documentA' : 'compare.documentB')}>{letter}</span>
         <span className="min-w-0 flex-1 truncate" title={name}>{name}</span>
         {evidence && <span className="tabular shrink-0 font-medium text-fg">{evidence.page !== null ? t('sources.page', { page: evidence.page }) : t('compare.noLocation')}</span>}
       </p>
       {evidence ? (
         <>
-          <p className={cn('font-quote text-[15px] leading-[23px] break-words text-fg/90', whole && (tone === 'removed' ? 'text-danger' : 'text-success'))}>
+          <p className={cn('font-quote text-[15px] leading-[23px] break-words text-fg/90', whole && (tone === 'removed' ? 'text-danger line-through decoration-danger/40' : 'text-success underline decoration-success/40 underline-offset-2'))}>
             {segments ? segments.map((segment, index) => (segment.changed ? <mark key={index} className={cn(mark, 'px-0.5')}>{segment.text}</mark> : <span key={index}>{segment.text}</span>)) : evidence.quote}
           </p>
           {evidence.page !== null && documentId && (
@@ -87,7 +87,7 @@ export function ChangeRow({ difference, number, selected, docA, docB, canShowInD
       data-testid="difference"
       data-type={type}
       data-selected={selected || undefined}
-      className={cn('overflow-hidden rounded-control border border-l-2 bg-sidebar transition-colors duration-150', TONE[type].rail, selected ? 'border-y-accent-line border-r-accent-line bg-card' : 'border-y-line border-r-line')}
+      className={cn('overflow-hidden rounded-control border border-l-[3px] bg-card transition-colors duration-150', TONE[type].rail, selected ? 'border-y-accent-line border-r-accent-line shadow-[0_0_0_1px_var(--color-accent-line)]' : 'border-y-line border-r-line')}
     >
       <div className="flex flex-wrap items-center gap-2 border-b border-line py-1 pr-1 pl-3">
         <button type="button" onClick={onSelect} aria-pressed={selected} className="flex min-h-8 min-w-0 flex-1 items-center gap-2 rounded-lg text-left">

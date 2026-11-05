@@ -10,8 +10,8 @@ import type { DocumentText } from '@/services/chat/demo/textIndex';
 import { buildTopicGraph, neighbours, searchTopics, type Fragment, type TopicNode } from './buildGraph';
 import { centerOn, fitView, layoutGraph, zoomAt, type View } from './layout';
 
-const GROUP_FILL = ['fill-accent', 'fill-accent-2', 'fill-warning', 'fill-success', 'fill-fg'];
-const GROUP_BG = ['bg-accent', 'bg-accent-2', 'bg-warning', 'bg-success', 'bg-fg'];
+const GROUP_FILL = ['fill-accent', 'fill-accent-2-line', 'fill-plum', 'fill-slate', 'fill-fg'];
+const GROUP_BG = ['bg-accent', 'bg-accent-2-line', 'bg-plum', 'bg-slate', 'bg-fg'];
 const KEY_PAN = 40;
 
 interface Props {
@@ -179,7 +179,7 @@ function MapCanvas({ text, onOpenFragment }: { text: DocumentText; onOpenFragmen
                 className={cn('group cursor-pointer outline-none transition-opacity duration-150', dim ? 'opacity-25' : 'opacity-100')}
               >
                 <circle r={r + 7} className={cn(GROUP_FILL[node.group], 'opacity-15 transition-opacity duration-150 group-hover:opacity-40 group-focus-visible:opacity-60')} />
-                {(isSelected || match) && <circle r={r + 5} fill="none" strokeWidth={2} className={match && !isSelected ? 'stroke-warning' : 'stroke-fg'} />}
+                {(isSelected || match) && <circle r={r + 5} fill="none" strokeWidth={2} className={match && !isSelected ? 'stroke-accent-2' : 'stroke-fg'} />}
                 <circle r={r} className={GROUP_FILL[node.group]} />
                 {(labelled.has(node.id) || isSelected || near || match) && (
                   <text y={-r - 9} textAnchor="middle" className={cn('pointer-events-none text-[13px] font-medium', isSelected ? 'fill-fg' : 'fill-muted')} style={{ paintOrder: 'stroke', stroke: 'var(--color-bg)', strokeWidth: 3 }}>

@@ -5,32 +5,37 @@
 
 /* Design tokens. Components use only these, through Tailwind utilities. */
 @theme {
-  --color-bg: #090b10;
-  --color-sidebar: #0d1017;
-  --color-card: #121722;
-  --color-card-raised: #181e2b;
-  --color-line: #242b38;
-  --color-line-strong: #343d4f;
-  --color-accent: #8b7cff;
-  --color-accent-strong: #a094ff;
-  --color-accent-2: #55c8e8;
-  --color-fg: #f4f5fa;
-  --color-muted: #939baa;
-  --color-on-accent: #0e0b24;
-  --color-hover: rgb(255 255 255 / 0.04);
-  --color-accent-tint: rgb(139 124 255 / 0.14);
-  --color-accent-line: rgb(139 124 255 / 0.4);
-  --color-accent-2-tint: rgb(85 200 232 / 0.12);
-  --color-accent-2-line: rgb(85 200 232 / 0.38);
-  --color-success: #72c29a;
-  --color-success-tint: rgb(114 194 154 / 0.12);
-  --color-warning: #d9ae66;
-  --color-warning-tint: rgb(217 174 102 / 0.12);
-  --color-danger: #e68a8a;
-  --color-danger-tint: rgb(230 138 138 / 0.12);
+  /* Editorial Evidence: warm canvas, white paper, deep teal for actions. */
+  --color-bg: #f4f2ec;
+  --color-sidebar: #faf9f5;
+  --color-card: #ffffff;
+  --color-card-raised: #f8f7f2;
+  --color-line: #d8ddd7;
+  --color-line-strong: #b4bdb6;
+  --color-accent: #145a4d;
+  --color-accent-strong: #0e463b;
+  --color-fg: #202925;
+  --color-muted: #59655f;
+  --color-on-accent: #ffffff;
+  --color-hover: rgb(32 41 37 / 0.05);
+  --color-accent-tint: rgb(20 90 77 / 0.1);
+  --color-accent-line: rgb(20 90 77 / 0.38);
+  /* Evidence: the same yellow on the citation, the quote rule and the highlight on the page. */
+  --color-accent-2: #6f5300;
+  --color-accent-2-tint: #f7e8ab;
+  --color-accent-2-line: #c9a93c;
+  --color-success: #1d6a43;
+  --color-success-tint: rgb(29 106 67 / 0.11);
+  --color-warning: #7f5200;
+  --color-warning-tint: rgb(190 130 20 / 0.14);
+  --color-danger: #a4342c;
+  --color-danger-tint: rgb(164 52 44 / 0.1);
+  --color-plum: #7a4e8c;
+  --color-slate: #3f6f9f;
 
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
   --font-quote: 'Source Serif 4 Variable', ui-serif, Georgia, serif;
+  --font-display: 'Source Serif 4 Variable', ui-serif, Georgia, serif;
 
   --text-xs: 12px;
   --text-xs--line-height: 16px;
@@ -50,7 +55,7 @@
   --radius-control: 12px;
   --radius-panel: 16px;
 
-  --shadow-float: 0 24px 64px rgb(0 0 0 / 0.5), inset 0 1px 0 rgb(255 255 255 / 0.04);
+  --shadow-float: 0 12px 36px rgb(32 41 37 / 0.16), 0 1px 3px rgb(32 41 37 / 0.1);
 }
 
 :root {
@@ -60,6 +65,29 @@
   --dur-fast: 140ms;
   --dur-base: 200ms;
   --dur-slow: 320ms;
+  color-scheme: light;
+}
+
+/* The navigation stays dark for hierarchy: the same tokens, scoped to it. */
+.theme-ink {
+  --color-bg: #121a17;
+  --color-sidebar: #17211d;
+  --color-card: #202c27;
+  --color-card-raised: #283630;
+  --color-line: #303e38;
+  --color-line-strong: #46564f;
+  --color-accent: #8ad0bd;
+  --color-accent-strong: #a6dfcf;
+  --color-fg: #eef1ec;
+  --color-muted: #a9b5ae;
+  --color-on-accent: #0f2a24;
+  --color-hover: rgb(255 255 255 / 0.07);
+  --color-accent-tint: rgb(138 208 189 / 0.16);
+  --color-accent-line: rgb(138 208 189 / 0.42);
+  --color-accent-2: #e8cf7a;
+  --color-success: #7fd0a4;
+  --color-warning: #e3bc73;
+  --color-danger: #efa09a;
   color-scheme: dark;
 }
 
@@ -133,7 +161,7 @@ label[for] {
 .skeleton {
   position: relative;
   overflow: hidden;
-  background: var(--color-card);
+  background: #e9e7df;
   border-radius: 8px;
 }
 .skeleton::after {
@@ -141,7 +169,7 @@ label[for] {
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.05), transparent);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.65), transparent);
   animation: shimmer 1.4s linear infinite;
 }
 @keyframes shimmer {
@@ -200,45 +228,47 @@ label[for] {
   border-radius: 2px;
   margin: -1px;
   padding: 1px;
+  mix-blend-mode: multiply;
 }
 .textLayer mark.hl-quote {
-  background: rgb(85 200 232 / 0.36);
-  box-shadow: 0 0 0 1px rgb(85 200 232 / 0.5);
+  background: #f7e8ab;
+  box-shadow: 0 0 0 1px #c9a93c;
   animation: quote-arrive 1.2s var(--ease-out);
 }
-.textLayer mark.hl-added {
-  background: rgb(114 194 154 / 0.35);
-}
-.textLayer mark.hl-removed {
-  background: rgb(230 138 138 / 0.35);
-}
-.textLayer mark.hl-changed {
-  background: rgb(139 124 255 / 0.3);
-}
 .textLayer mark.hl-search {
-  background: rgb(217 174 102 / 0.4);
+  background: #f6d6a6;
 }
 .textLayer mark.hl-active {
-  background: rgb(139 124 255 / 0.5);
+  background: #9fd8c9;
   box-shadow: 0 0 0 1px var(--color-accent);
+}
+.textLayer mark.hl-added {
+  background: #bfe6cd;
+}
+.textLayer mark.hl-removed {
+  background: #f4c4bf;
+}
+.textLayer mark.hl-changed {
+  background: #d9cfe8;
 }
 @keyframes quote-arrive {
   from {
-    background: rgb(85 200 232 / 0.8);
+    background: #f2d670;
   }
 }
 
 /* Quote from backend coordinates. It stays until the source is closed; the ring is the arrival accent. */
 .hl-rect {
-  background: rgb(85 200 232 / 0.28);
-  outline: 1px solid rgb(85 200 232 / 0.55);
+  background: #f7e8ab;
+  mix-blend-mode: multiply;
+  outline: 1px solid #c9a93c;
   border-radius: 3px;
 }
 .hl-rect::after {
   content: '';
   position: absolute;
   inset: -5px;
-  border: 2px solid var(--color-accent-2);
+  border: 2px solid var(--color-accent);
   border-radius: 7px;
   opacity: 0;
   animation: rect-ring 1.6s var(--ease-out) 1;

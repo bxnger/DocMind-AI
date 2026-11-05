@@ -119,10 +119,10 @@ export function ComparePage() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="mx-auto w-full max-w-[860px] px-4 py-6 md:px-8 md:py-10">
-        <h1 className="text-xl font-semibold tracking-[-0.01em]">{t('compare.title')}</h1>
+        <h1 className="font-display text-2xl font-medium tracking-[-0.015em]">{t('compare.title')}</h1>
         <p className="mt-1 max-w-[65ch] text-muted">{t('compare.subtitle')}</p>
         <div className="mt-3"><Notice /></div>
-        <div className="mt-6 rounded-panel border border-line bg-sidebar p-4">
+        <div className="mt-6 rounded-panel border border-line bg-card p-4">
           {documents.isPending ? (
             <Skeleton className="h-24" />
           ) : documents.isError ? (

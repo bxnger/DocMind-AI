@@ -6,6 +6,7 @@ import { IconButton } from '@/components/ui/IconButton';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { actionState } from '@/features/userModes/modes';
 import { ModeBar } from '@/features/userModes/ModeBar';
+import { ModeSelect } from '@/features/userModes/ModeSelector';
 import { useCodeMessage } from '@/features/system/useErrorMessage';
 import { cn } from '@/lib/cn';
 import { StateBlock } from '@/components/ui/StateBlock';
@@ -77,8 +78,8 @@ export function AssistantPanel({ mode, canSwitchMode, onModeChange, doc, availab
 
   return (
     <section aria-label={t('chat.title')} className="flex h-full min-h-0 flex-col bg-sidebar">
-      <header className="flex h-11 shrink-0 items-center justify-between border-b border-line pr-2 pl-4">
-        <h2 className="flex items-center gap-2 text-sm font-medium">
+      <header className="flex h-11 shrink-0 items-center gap-2 border-b border-line pr-2 pl-4">
+        <h2 className="flex shrink-0 items-center gap-2 font-display text-[15px] font-semibold">
           {t('chat.title')}
           {canSwitchMode ? (
             <span role="radiogroup" aria-label={t('chat.modeLabel')} className="inline-flex rounded-lg border border-line bg-card p-px">
@@ -90,7 +91,7 @@ export function AssistantPanel({ mode, canSwitchMode, onModeChange, doc, availab
                   aria-checked={mode === value}
                   disabled={chat.pending}
                   onClick={() => onModeChange(value)}
-                  className={cn('pressable rounded-md px-2 text-xs font-medium disabled:cursor-not-allowed', mode === value ? 'bg-accent-tint text-fg' : 'text-muted hover:text-fg')}
+                  className={cn('pressable rounded-md px-2 font-sans text-xs font-medium disabled:cursor-not-allowed', mode === value ? 'bg-accent-tint text-fg' : 'text-muted hover:text-fg')}
                 >
                   {t(value === 'live' ? 'chat.modeLive' : 'chat.demoBadge')}
                 </button>
@@ -100,6 +101,8 @@ export function AssistantPanel({ mode, canSwitchMode, onModeChange, doc, availab
             <span className="rounded-full border border-accent-line px-2 text-xs font-medium text-accent-strong">{t('chat.demoBadge')}</span>
           )}
         </h2>
+        <span className="ml-auto flex min-w-0 items-center gap-1">
+        <ModeSelect />
         <IconButton
           dense
           label={t('chat.clear')}
@@ -107,6 +110,7 @@ export function AssistantPanel({ mode, canSwitchMode, onModeChange, doc, availab
           disabled={chat.messages.length === 0}
           onClick={chat.clear}
         />
+        </span>
       </header>
       {mode === 'demo' && <DemoNotice />}
 
@@ -139,7 +143,7 @@ export function AssistantPanel({ mode, canSwitchMode, onModeChange, doc, availab
       ) : (
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
           {/* mt-auto rather than justify-end: tall content must stay reachable by scrolling. */}
-          <h3 className="mt-auto text-md font-semibold">{t('chat.emptyTitle')}</h3>
+          <h3 className="mt-auto font-display text-lg font-medium">{t('chat.emptyTitle')}</h3>
           <p className="mt-1 max-w-[60ch] text-sm text-muted">{t('chat.emptyBody')}</p>
           {availability.state === 'preparing' ? (
             <p role="status" className="mt-4 flex items-center gap-2 text-sm text-muted">

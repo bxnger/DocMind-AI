@@ -8,7 +8,7 @@ export function HomeModeStrip({ hasDocuments }: { hasDocuments: boolean }) {
   const { t } = useTranslation();
   const mode = useUserMode();
   return (
-    <section aria-label={t('userModes.selector')} data-testid="home-mode-strip" className="mt-4 rounded-panel border border-line bg-sidebar p-4">
+    <section aria-label={t('userModes.selector')} data-testid="home-mode-strip" className="mt-4 rounded-panel border border-line bg-card p-4">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <h2 className="font-semibold">{t('userModes.title')}</h2>
         <ModeSelector showAllLabels />

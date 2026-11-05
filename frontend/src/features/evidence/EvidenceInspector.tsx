@@ -45,7 +45,7 @@ function StatusLine({ status }: { status: EvidenceStatus }) {
       data-status={status}
       className={cn(
         'mt-3 flex items-start gap-2 text-xs',
-        tone === 'danger' ? 'text-danger' : tone === 'caution' ? 'text-warning' : tone === 'precise' ? 'text-accent-2' : 'text-muted',
+        tone === 'danger' ? 'text-danger' : tone === 'caution' ? 'text-warning' : tone === 'precise' ? 'text-accent' : 'text-muted',
       )}
     >
       {busy ? <Loader2 size={14} className="spin mt-px shrink-0" aria-hidden /> : tone === 'danger' ? <CircleAlert size={14} className="mt-px shrink-0" aria-hidden /> : <Crosshair size={14} className="mt-px shrink-0" aria-hidden />}
@@ -163,7 +163,7 @@ export function EvidenceInspector({ evidence, status, onSelect, onStep, onRefocu
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, transition: { duration: 0.08 } }}
                 transition={{ duration: 0.14 }}
-                className="mt-2 max-h-36 overflow-y-auto border-l-2 border-accent-2 pl-3 font-quote text-[15px] leading-[23px] break-words text-fg/90"
+                className="mt-2 max-h-36 overflow-y-auto border-l-2 border-accent-2-line pl-3 font-quote text-[15px] leading-[23px] break-words text-fg/90"
               >
                 {source.quote}
               </motion.blockquote>

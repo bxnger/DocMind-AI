@@ -6,7 +6,6 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import type { ComposerHandle } from '@/features/chat/Composer';
 import { LANGUAGES } from '@/i18n';
 import { MODE_ACTIONS, mismatchedDocumentLanguage, type ActionState } from './modes';
-import { ModeSelector } from './ModeSelector';
 import { useUserMode } from './useUserMode';
 
 interface Props {
@@ -37,8 +36,7 @@ export function ModeBar({ state, hasMessages, composer, documentLanguage }: Prop
   return (
     <div data-testid="mode-bar" className="shrink-0 border-t border-line px-3 pt-2">
       <div className="flex items-center gap-2">
-        <ModeSelector />
-        <span className="flex-1" />
+        <p className="micro-label min-w-0 flex-1 truncate">{t('userModes.actionsLabel', { mode: t(`userModes.modes.${mode}.name`) })}</p>
         <IconButton
           dense
           label={open ? t('userModes.hideActions') : t('userModes.showActions')}

@@ -26,7 +26,7 @@ export function SourcePreview({ id, source, placement }: Props) {
       className="pointer-events-none z-50 rounded-control border border-accent-2-line bg-card-raised p-3 shadow-float"
     >
       <p className="flex items-center gap-2 text-xs text-muted">
-        <span className="tabular inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-md border border-accent-2-line px-1 font-medium text-accent-2">
+        <span className="tabular inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-md border border-accent-2-line bg-accent-2-tint px-1 font-medium text-fg">
           {source.index}
         </span>
         <span className="min-w-0 flex-1 truncate">{source.documentName}</span>
