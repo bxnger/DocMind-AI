@@ -164,10 +164,35 @@ and the highlight is exact, translucent, with the text readable. The same for th
 that a question in another language may find nothing, and sends no `language`. Solid yellow bars hiding the text were seen only in
 its keyword demo mode, not with backend coordinates.
 
+## Scanned PDFs (OCR) (A, C): `python eval/ocr_eval.py`
+
+Tesseract data for kaz, rus and eng (set `TESSDATA_PREFIX`). One page of each demo document turned into an image-only PDF
+with no text layer; the recognized words are compared with the real words of the page. Synthetic scans of clean typeset
+text, one page per language, so these are small samples and an optimistic case.
+
+| Scan | Words right, clean (200 dpi) | Words right, degraded | Time per page |
+|---|---|---|---|
+| Russian lease, page 2 | 28/28 (100%) | 21/28 (75%) | 0.9 to 1.7 s |
+| Kazakh rules, page 3 | 16/16 (100%) | 6/16 (38%) | 0.6 to 0.7 s |
+| English handbook, page 4 | 23/23 (100%) | 0/23 (0%, rejected as `NO_TEXT_FOUND`) | 0.8 to 1.2 s |
+
+"Degraded" is 150 dpi, slightly crooked, blurred, speckled, strong JPEG compression: harsher than a decent office scanner.
+
+- **End to end with the real model**, on the degraded scans: the Russian scan was processed (`ocrUsed: true`, language `ru`),
+  the question was answered and the quote matched the recognized text; the Kazakh scan was processed but the question was
+  not answered (38% of the words recognized); the English scan was rejected with a clear `NO_TEXT_FOUND`.
+- **Without OCR set up** a scan fails with `NO_TEXT_FOUND` and a message that says OCR is not configured (checked).
+- A scan has **no text layer, so no highlight rectangles**: the page opens and the quote is shown, nothing is drawn.
+- **A scan quote is checked against the recognized text, not against the picture.** If OCR misread a word ("тенгевмесяц"),
+  the quote shows the same error and still passes the verbatim check. The frontend should mark `ocrUsed` documents
+  ("recognized text, may contain errors").
+- Quality decides everything: a clean scan reads at 100%, a poor one is unreliable. For a demo use a sharp scan.
+- Image preprocessing (denoise, contrast, enlarge) was started as an experiment and dropped: the first attempt was broken and
+  the second was too slow to finish; no result and no change to the code.
+
 ## Not verified
 
-- **Scanned PDFs.** Without Tesseract the backend answers `NO_TEXT_FOUND` with a clear message (checked with an image-only PDF).
-  The recognition itself needs Tesseract with kaz/rus/eng data and has never been run: NOT VERIFIED.
+- **Photographed pages, handwriting, tables in scans, scans of other languages.** Not tested.
 - **Translation through Claude** (`ClaudeAnswerer.translate_query`): no Anthropic key: NOT VERIFIED. The same prompt as Gemini and Groq.
 
 ## Citation checks (B): `tests/test_citation_support.py`, `tests/test_chat.py`
