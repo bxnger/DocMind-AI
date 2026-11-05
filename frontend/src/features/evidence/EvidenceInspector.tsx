@@ -44,7 +44,7 @@ function StatusLine({ status }: { status: EvidenceStatus }) {
       role="status"
       data-status={status}
       className={cn(
-        'mt-3 flex items-start gap-2 text-xs',
+        'mt-2 flex items-start gap-2 text-xs sm:mt-3',
         tone === 'danger' ? 'text-danger' : tone === 'caution' ? 'text-warning' : tone === 'precise' ? 'text-accent' : 'text-muted',
       )}
     >
@@ -92,12 +92,12 @@ export function EvidenceInspector({ evidence, status, onSelect, onStep, onRefocu
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 8, transition: { duration: 0.12 } }}
       transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-      className="absolute inset-x-2 bottom-2 z-20 mx-auto max-w-[560px] overflow-hidden rounded-panel border border-accent-line bg-card shadow-float sm:inset-x-4 sm:bottom-4"
+      className="absolute inset-x-0 bottom-0 z-20 mx-auto max-w-[560px] overflow-hidden rounded-t-panel border border-b-0 border-accent-line bg-card pb-[env(safe-area-inset-bottom)] shadow-float sm:inset-x-4 sm:bottom-4 sm:rounded-panel sm:border-b sm:pb-0"
     >
       <header className="flex items-center gap-1.5 px-3 pt-2.5 pb-1">
         <span className="micro-label hidden text-accent-2 min-[420px]:inline">{t('evidence.title')}</span>
         {many ? (
-          <div role="tablist" aria-label={t('evidence.sources')} onKeyDown={onTabKey} className="flex gap-0.5">
+          <div role="tablist" aria-label={t('evidence.sources')} onKeyDown={onTabKey} className="flex min-w-0 gap-0.5 overflow-x-auto">
             {sources.map((candidate) => {
               const selected = candidate.index === source.index;
               return (
@@ -113,7 +113,7 @@ export function EvidenceInspector({ evidence, status, onSelect, onStep, onRefocu
                   tabIndex={selected ? 0 : -1}
                   aria-label={t('evidence.sourceN', { index: candidate.index })}
                   onClick={() => onSelect(candidate.index)}
-                  className={cn('pressable tabular relative h-7 min-w-7 rounded-lg px-2 text-xs font-medium', selected ? 'text-fg' : 'text-muted hover:bg-hover hover:text-fg')}
+                  className={cn('pressable tabular relative h-7 min-w-7 shrink-0 rounded-lg px-2 text-xs font-medium pointer-coarse:h-9 pointer-coarse:min-w-9', selected ? 'text-fg' : 'text-muted hover:bg-hover hover:text-fg')}
                 >
                   {selected && (
                     <motion.span layoutId="evidence-tab" transition={{ duration: 0.18 }} className="absolute inset-0 rounded-lg border border-accent-line bg-accent-tint" />
@@ -128,13 +128,13 @@ export function EvidenceInspector({ evidence, status, onSelect, onStep, onRefocu
         )}
         <span className="flex-1" />
         {many && (
-          <span className="flex items-center max-sm:hidden">
+          <span className="flex shrink-0 items-center">
             <IconButton dense label={t('evidence.prev')} icon={<ChevronLeft size={16} aria-hidden />} onClick={() => onStep(-1)} />
-            <span className="tabular px-1 text-xs text-muted">{t('evidence.position', { current: position + 1, total: sources.length })}</span>
+            <span className="tabular px-1 text-xs text-muted max-sm:hidden">{t('evidence.position', { current: position + 1, total: sources.length })}</span>
             <IconButton dense label={t('evidence.next')} icon={<ChevronRight size={16} aria-hidden />} onClick={() => onStep(1)} />
           </span>
         )}
-        {onBack && <IconButton dense label={backLabel ?? t('workspace.backToAnswer')} icon={<CornerUpLeft size={16} aria-hidden />} onClick={onBack} />}
+                {onBack && collapsed && <IconButton dense label={backLabel ?? t('workspace.backToAnswer')} icon={<CornerUpLeft size={16} aria-hidden />} onClick={onBack} />}
         <IconButton
           dense
           label={collapsed ? t('evidence.expand') : t('evidence.collapse')}
@@ -163,13 +163,18 @@ export function EvidenceInspector({ evidence, status, onSelect, onStep, onRefocu
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, transition: { duration: 0.08 } }}
                 transition={{ duration: 0.14 }}
-                className="mt-2 max-h-36 overflow-y-auto border-l-2 border-accent-2-line pl-3 font-quote text-[15px] leading-[23px] break-words text-fg/90"
+                className="mt-2 max-h-36 overflow-y-auto border-l-2 max-sm:max-h-[69px] max-sm:text-[14px] max-sm:leading-[23px] border-accent-2-line pl-3 font-quote text-[15px] leading-[23px] break-words text-fg/90"
               >
                 {source.quote}
               </motion.blockquote>
             </AnimatePresence>
             <StatusLine status={status} />
-            <div className="mt-3 flex flex-wrap items-center gap-1">
+            <div className="mt-2 flex flex-wrap items-center gap-1 sm:mt-3">
+              {onBack && (
+                <Button variant="primary" size="sm" icon={<CornerUpLeft size={14} aria-hidden />} onClick={onBack}>
+                  {backLabel ?? t('workspace.backToAnswer')}
+                </Button>
+              )}
               {CAN_SHOW_ON_PAGE.has(status) && (
                 <Button size="sm" icon={<Crosshair size={14} aria-hidden />} onClick={onRefocus}>
                   {t('evidence.showOnPage')}

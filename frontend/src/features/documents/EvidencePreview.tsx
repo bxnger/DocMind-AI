@@ -14,8 +14,8 @@ export function EvidencePreview() {
   return (
     <section aria-label={t('home.exampleLabel')} className="flex flex-col rounded-panel border border-line bg-card p-4">
       <p className="micro-label mb-3">{t('home.exampleLabel')}</p>
-      <p lang="en" className="ml-auto max-w-[85%] rounded-control rounded-br-sm border border-line bg-card-raised px-3 py-2 text-sm">
-        What is the notice period for termination?
+      <p className="ml-auto max-w-[85%] rounded-control rounded-br-sm border border-line bg-card-raised px-3 py-2 text-sm">
+        {t('home.sample.notice')}
       </p>
       <div className="mt-3 rounded-control border border-line bg-card p-3">
         <header className="flex items-center gap-2 text-xs text-muted">

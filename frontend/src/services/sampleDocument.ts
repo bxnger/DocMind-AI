@@ -24,10 +24,5 @@ export const SAMPLE_DOCUMENT: DocumentModel = {
 
 export const isSampleDocument = (id: string): boolean => id === SAMPLE_DOCUMENT_ID;
 
-/** The sample is in English, so its suggestions stay in English in every UI language. */
-export const SAMPLE_QUESTIONS = [
-  'What is the notice period for termination?',
-  'How much late payment interest applies?',
-  'Is there a cap on liability?',
-  'Does the agreement cover parental leave?',
-];
+/** Keys under `home.sample`. The questions are the app's own, so they follow the interface language. */
+export const SAMPLE_QUESTION_KEYS = ['notice', 'interest', 'cap', 'leave'] as const;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PAGE_GAP, pageScrollTop, spotScrollTop } from './usePdfScroller';
+import { PAGE_GAP, pageScrollTop, revealHeight, spotScrollTop } from './usePdfScroller';
 
 describe('scroll targets', () => {
   it('puts the highlighted spot in the upper third of the viewport', () => {
@@ -14,5 +14,10 @@ describe('scroll targets', () => {
 
   it('shows the whole top of a page, with its gap', () => {
     expect(pageScrollTop(2000)).toBe(2000 - PAGE_GAP);
+  });
+
+  it('reveals higher on a phone, where the evidence sheet covers the lower part', () => {
+    expect(revealHeight({ clientWidth: 1000, clientHeight: 600 })).toBe(600);
+    expect(revealHeight({ clientWidth: 360, clientHeight: 600 })).toBeCloseTo(180);
   });
 });

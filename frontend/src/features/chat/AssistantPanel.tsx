@@ -78,9 +78,10 @@ export function AssistantPanel({ mode, canSwitchMode, onModeChange, doc, availab
 
   return (
     <section aria-label={t('chat.title')} className="flex h-full min-h-0 flex-col bg-sidebar">
-      <header className="flex h-11 shrink-0 items-center gap-2 border-b border-line pr-2 pl-4">
+      <header className="flex min-h-11 shrink-0 items-center gap-2 border-b border-line pr-2 pl-4 max-sm:pl-2">
         <h2 className="flex shrink-0 items-center gap-2 font-display text-[15px] font-semibold">
-          {t('chat.title')}
+          {/* On phones the tab above already says Assistant, and the width is needed. */}
+          <span className="max-sm:sr-only">{t('chat.title')}</span>
           {canSwitchMode ? (
             <span role="radiogroup" aria-label={t('chat.modeLabel')} className="inline-flex rounded-lg border border-line bg-card p-px">
               {(['live', 'demo'] as const).map((value) => (
@@ -91,7 +92,7 @@ export function AssistantPanel({ mode, canSwitchMode, onModeChange, doc, availab
                   aria-checked={mode === value}
                   disabled={chat.pending}
                   onClick={() => onModeChange(value)}
-                  className={cn('pressable rounded-md px-2 font-sans text-xs font-medium disabled:cursor-not-allowed', mode === value ? 'bg-accent-tint text-fg' : 'text-muted hover:text-fg')}
+                  className={cn('pressable min-h-6 rounded-md px-2 font-sans text-xs font-medium pointer-coarse:py-1.5 disabled:cursor-not-allowed', mode === value ? 'bg-accent-tint text-fg' : 'text-muted hover:text-fg')}
                 >
                   {t(value === 'live' ? 'chat.modeLive' : 'chat.demoBadge')}
                 </button>

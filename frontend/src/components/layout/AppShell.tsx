@@ -12,6 +12,8 @@ import { GlobalDropOverlay } from '@/features/upload/GlobalDropOverlay';
 import { UploadTray } from '@/features/upload/UploadTray';
 import { MOBILE_QUERY, useMediaQuery } from '@/hooks/useMediaQuery';
 import { usePersistentState } from '@/hooks/usePersistentState';
+import { useViewportHeight } from '@/hooks/useViewportHeight';
+import { trapTarget } from '@/lib/focusTrap';
 import { BackendBanner } from './BackendBanner';
 import { Sidebar } from './Sidebar';
 
@@ -34,9 +36,11 @@ export function AppShell() {
   const tablet = useMediaQuery('(max-width: 1023px)');
   const [collapsedPreference, setCollapsedPreference] = usePersistentState('docmind.sidebar.collapsed', false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
 
   useRefetchOnReconnect();
+  useViewportHeight();
 
   // The workspace and tablets get the rail, so the document has the room it needs.
   const forcedRail = isWorkspace || isCompare || tablet;
@@ -55,11 +59,23 @@ export function AppShell() {
 
   useEffect(() => {
     if (!drawerOpen) return;
+    const trigger = document.activeElement;
+    drawerRef.current?.querySelector<HTMLElement>('button, a[href]')?.focus();
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setDrawerOpen(false);
+      if (event.key !== 'Tab' || !drawerRef.current) return;
+      const focusable = [...drawerRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), a[href]')];
+      const target = trapTarget(focusable, document.activeElement instanceof HTMLElement ? document.activeElement : null, event.shiftKey);
+      if (target) {
+        event.preventDefault();
+        target.focus();
+      }
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      if (trigger instanceof HTMLElement && trigger.isConnected) trigger.focus();
+    };
   }, [drawerOpen]);
 
   const openSearch = () => {
@@ -68,7 +84,7 @@ export function AppShell() {
   };
 
   return (
-    <div className="flex h-dvh overflow-hidden">
+    <div className="flex h-[var(--app-height,100dvh)] overflow-hidden">
       {!mobile && (
         <Sidebar
           collapsed={collapsed}
@@ -92,6 +108,10 @@ export function AppShell() {
             />
             <motion.div
               key="drawer"
+              ref={drawerRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label={t('nav.sidebar')}
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
@@ -112,7 +132,8 @@ export function AppShell() {
       </AnimatePresence>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {mobile && (
+        {/* The workspace needs the height, and its back button leads to a page with this menu. */}
+        {mobile && !isWorkspace && (
           <header className="flex h-12 shrink-0 items-center gap-2 border-b border-line bg-sidebar px-2">
             <IconButton label={t('nav.openMenu')} aria-expanded={drawerOpen} icon={<Menu size={18} aria-hidden />} onClick={() => setDrawerOpen(true)} />
             <div className="flex-1">

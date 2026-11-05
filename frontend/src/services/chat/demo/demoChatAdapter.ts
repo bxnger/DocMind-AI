@@ -10,14 +10,14 @@ import type { DocumentText } from './textIndex';
  * AI model. Quotes and page numbers are read from the PDF in the browser, so they are real, but the
  * answer is a keyword match. Kept for trying the interface without an API key.
  */
-export function createDemoChatAdapter(documentId: string, pages: DocumentText): ChatAdapter {
+export function createDemoChatAdapter(documentId: string, pages: DocumentText, searchAliases?: ReadonlyMap<string, string>): ChatAdapter {
   return {
     mode: 'demo',
     history: async () => loadConversation(documentId),
     persist: (messages) => saveConversation(documentId, messages),
     clear: async () => clearConversation(documentId),
     async *stream(request: ChatRequest, signal: AbortSignal): AsyncIterable<ChatEvent> {
-      const passages = retrievePassages(pages, request.question);
+      const passages = retrievePassages(pages, searchAliases?.get(request.question) ?? request.question);
       if (signal.aborted) return;
 
       if (passages.length === 0) {

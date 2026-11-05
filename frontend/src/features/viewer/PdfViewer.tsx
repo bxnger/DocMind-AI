@@ -14,7 +14,7 @@ import { PdfPageView } from './PdfPageView';
 import { ThumbnailRail } from './ThumbnailRail';
 import { useDocumentSearch, type SearchHit } from './useDocumentSearch';
 import { usePageSizes } from './usePageSizes';
-import { PAGE_GAP, usePdfScroller } from './usePdfScroller';
+import { PAGE_GAP, revealHeight, usePdfScroller } from './usePdfScroller';
 import { ViewerSearchBar } from './ViewerSearchBar';
 import { ViewerToolbar } from './ViewerToolbar';
 
@@ -84,7 +84,7 @@ export function PdfViewer({ pdf, text, jump, citedPages, quoteNotice = true, ann
     const container = containerRef.current;
     if (!container) return;
     const box = container.getBoundingClientRect();
-    scrollBy(element.getBoundingClientRect().top - box.top - box.height / 3, true);
+    scrollBy(element.getBoundingClientRect().top - box.top - revealHeight(container) / 3, true);
   }, [scrollBy]);
 
   const onTextReady = useCallback(

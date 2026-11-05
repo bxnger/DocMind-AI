@@ -28,7 +28,7 @@ function RecentDocuments() {
       <div className="mb-2 flex items-center justify-between">
         <h2 className="font-display text-lg font-medium">{t('home.latest')}</h2>
         {(documents.data?.length ?? 0) > 0 && (
-          <Link to="/documents" className="text-sm text-muted hover:text-fg">
+          <Link to="/documents" className="inline-flex min-h-6 items-center text-sm text-muted hover:text-fg pointer-coarse:min-h-10">
             {t('home.viewAll')}
           </Link>
         )}
@@ -80,19 +80,19 @@ export function HomePage() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="mx-auto w-full max-w-[1040px] px-4 py-6 md:px-8 md:py-10">
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start">
           <div className="min-w-0">
-            <h1 className="font-display text-[32px] leading-[38px] font-medium tracking-[-0.02em] md:text-[40px] md:leading-[46px]">{t('home.title')}</h1>
-            <p className="mt-3 max-w-[58ch] text-md text-muted">{t('home.subtitle')}</p>
+            <h1 className="font-display text-[26px] leading-[32px] font-medium sm:text-[32px] sm:leading-[38px] tracking-[-0.02em] md:text-[40px] md:leading-[46px]">{t('home.title')}</h1>
+            <p className="mt-3 max-w-[58ch] text-base text-muted sm:text-md">{t('home.subtitle')}</p>
             <Dropzone className="mt-6" />
             <nav aria-label={t('home.shortcuts')} className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
               {capabilities.data?.comparison && (
-                <Link to="/compare" className="inline-flex min-h-6 items-center gap-1.5 text-muted hover:text-accent">
+                <Link to="/compare" className="inline-flex min-h-6 items-center gap-1.5 text-muted hover:text-accent pointer-coarse:min-h-10">
                   <GitCompareArrows size={14} aria-hidden />
                   {t('home.shortcutCompare')}
                 </Link>
               )}
-              <Link to={`/documents/${SAMPLE_DOCUMENT_ID}`} state={{ view: 'map' }} className="inline-flex min-h-6 items-center gap-1.5 text-muted hover:text-accent">
+              <Link to={`/documents/${SAMPLE_DOCUMENT_ID}`} state={{ view: 'map' }} className="inline-flex min-h-6 items-center gap-1.5 text-muted hover:text-accent pointer-coarse:min-h-10">
                 <Network size={14} aria-hidden />
                 {t('home.shortcutMap')}
               </Link>

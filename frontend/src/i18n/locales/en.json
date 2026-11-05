@@ -26,10 +26,10 @@
     "compare": "Compare"
   },
   "system": {
-    "online": "Backend online",
-    "offline": "Backend offline",
-    "checking": "Checking backend",
-    "offlineBanner": "The backend can't be reached, so uploads and your documents are unavailable. The sample document still works."
+    "online": "Server online",
+    "offline": "Server offline",
+    "checking": "Checking server",
+    "offlineBanner": "The server can't be reached, so uploads and your documents are unavailable. The sample document still works."
   },
   "status": {
     "processing": "Processing",
@@ -43,18 +43,18 @@
     }
   },
   "errors": {
-    "network": "The backend could not be reached. Check that it is running, then try again.",
+    "network": "The server could not be reached. Check that it is running, then try again.",
     "unsupportedType": "This file isn't a valid PDF or DOCX. Only those two formats are supported.",
     "emptyFile": "This file is empty.",
     "tooLarge": "This file is larger than the {{limit}} limit.",
     "tooLargeGeneric": "This file is larger than the upload limit.",
-    "invalidFile": "The backend rejected this file as invalid.",
+    "invalidFile": "The server rejected this file as invalid.",
     "documentNotFound": "This document no longer exists.",
-    "server": "The backend had a problem handling this request. Try again in a moment.",
+    "server": "The server had a problem handling this request. Try again in a moment.",
     "unexpected": "Something unexpected happened. Try again.",
     "codes": {
       "RATE_LIMITED": "Too many requests. Wait a moment and try again.",
-      "LLM_UNAVAILABLE": "The AI model isn't available: the backend has no API key, or the model service can't be reached.",
+      "LLM_UNAVAILABLE": "The AI model isn't available: the server has no API key, or the model service can't be reached.",
       "LLM_TIMEOUT": "The AI model took too long to respond. Try again.",
       "EMPTY_MESSAGE": "The question is empty.",
       "MESSAGE_TOO_LONG": "The question is longer than 2000 characters.",
@@ -67,10 +67,10 @@
       "PAGE_NOT_FOUND": "This page doesn't exist in the document.",
       "PARSE_FAILED": "The file couldn't be read. It may be damaged.",
       "PASSWORD_PROTECTED": "The file is password-protected. Remove the password and upload it again.",
-      "NO_TEXT_FOUND": "No text was found. It looks like a scan, and OCR isn't available on the backend.",
+      "NO_TEXT_FOUND": "No text was found. It looks like a scan, and OCR isn't available on the server.",
       "OCR_FAILED": "Text recognition (OCR) failed for this file.",
       "INDEXING_FAILED": "The document couldn't be indexed.",
-      "INTERNAL_ERROR": "The backend had an internal problem. Start again.",
+      "INTERNAL_ERROR": "The server had an internal problem. Start again.",
       "STREAM_INTERRUPTED": "The connection dropped before the answer finished. Try again."
     }
   },
@@ -83,7 +83,13 @@
     "viewAll": "View all",
     "shortcuts": "Shortcuts",
     "shortcutCompare": "Compare two documents",
-    "shortcutMap": "See the Knowledge Map on the sample"
+    "shortcutMap": "See the Knowledge Map on the sample",
+    "sample": {
+      "notice": "What is the notice period for termination?",
+      "interest": "How much late payment interest applies?",
+      "cap": "Is there a cap on liability?",
+      "leave": "Does the agreement cover parental leave?"
+    }
   },
   "documents": {
     "title": "Documents",
@@ -127,9 +133,10 @@
     "clearFinished": "Clear finished",
     "queued": "Waiting · {{size}}",
     "uploading": "Uploading {{percent}}% · {{size}}",
-    "finishing": "Sent. Waiting for the backend to respond…",
+    "finishing": "Sent. Waiting for the server to respond…",
     "success": "Uploaded",
-    "noLocalCopy": "“{{name}}” was uploaded, but this browser couldn't keep a copy for preview."
+    "noLocalCopy": "“{{name}}” was uploaded, but this browser couldn't keep a copy for preview.",
+    "tapTitle": "Choose a PDF or DOCX"
   },
   "workspace": {
     "back": "Back to documents",
@@ -141,13 +148,18 @@
     "resize": "Resize the assistant panel",
     "backToAnswer": "Back to the answer",
     "browserCopy": "Browser copy",
-    "browserCopyHint": "The backend is still processing this file, so you're viewing the copy saved in this browser.",
-    "staleHint": "The backend hasn't finished processing this file, and its pipeline may not be running. You're viewing the copy saved in this browser.",
+    "browserCopyHint": "The server is still processing this file, so you're viewing the copy saved in this browser.",
+    "staleHint": "The server hasn't finished processing this file, and its pipeline may not be running. You're viewing the copy saved in this browser.",
     "notFoundTitle": "Document not found",
     "notFoundBody": "It may have been deleted, or the link may be wrong.",
     "loadErrorTitle": "This document couldn't be loaded",
     "crashTitle": "This panel stopped working",
-    "crashBody": "The rest of the workspace is unaffected. Try reloading the panel."
+    "crashBody": "The rest of the workspace is unaffected. Try reloading the panel.",
+    "segments": {
+      "document": "Document",
+      "map": "Map",
+      "assistant": "Assistant"
+    }
   },
   "viewer": {
     "toolbar": "Document controls",
@@ -177,17 +189,17 @@
     "loading": "Loading document…",
     "loadingPercent": "Loading document… {{percent}}%",
     "docxTitle": "No preview for DOCX yet",
-    "docxBody": "The file is stored on the backend, but the backend doesn't produce DOCX previews yet.",
+    "docxBody": "The file is stored on the server, but the server doesn't produce DOCX previews yet.",
     "failedTitle": "Processing failed",
-    "failedBody": "The backend couldn't process this document.",
+    "failedBody": "The server couldn't process this document.",
     "notReadyTitle": "Not ready to preview",
-    "notReadyBody": "The backend is still processing this file and no browser copy exists on this device. It will open here once the backend marks it ready.",
+    "notReadyBody": "The server is still processing this file and no browser copy exists on this device. It will open here once the server marks it ready.",
     "passwordTitle": "This PDF is password-protected",
     "passwordBody": "Remove the password and upload it again.",
     "invalidTitle": "This PDF can't be read",
     "invalidBody": "The file looks corrupted or isn't really a PDF.",
     "loadTitle": "The document couldn't be loaded",
-    "loadBody": "Check the backend connection and try again.",
+    "loadBody": "Check the server connection and try again.",
     "docxReady": "The file was processed, so you can ask about it in AI mode. Its original layout can't be shown: sources give the section and quote, without pages."
   },
   "chat": {
@@ -225,7 +237,7 @@
       },
       "no-text": {
         "title": "This PDF has no readable text",
-        "body": "It looks like a scan. Reading scans needs OCR, which the backend doesn't offer yet."
+        "body": "It looks like a scan. Reading scans needs OCR, which the server doesn't offer yet."
       },
       "no-file": {
         "title": "Nothing to search yet",
@@ -237,7 +249,7 @@
       },
       "failed": {
         "title": "Processing failed",
-        "body": "The backend couldn't process this document."
+        "body": "The server couldn't process this document."
       }
     },
     "modeLabel": "Answer source",
@@ -246,7 +258,7 @@
     "stoppedUnverified": "Stopped. This partial text has no checked sources, so don't rely on it.",
     "useDemo": "Try demo search",
     "historyError": "The conversation couldn't be loaded",
-    "waitingProcessing": "Available when the backend finishes processing",
+    "waitingProcessing": "Available when the server finishes processing",
     "suggestAbout": "What is this document about?",
     "suggestDates": "What are the key dates and deadlines?",
     "suggestRequirements": "What are the main requirements?"
@@ -286,19 +298,19 @@
     "motionSystem": "Follow system",
     "motionReduced": "Reduced",
     "account": "Account",
-    "accountBody": "Accounts aren't part of this version. There is no sign-in, and everything uploaded is visible to anyone using this backend.",
+    "accountBody": "Accounts aren't part of this version. There is no sign-in, and everything uploaded is visible to anyone using this server.",
     "localData": "Data in this browser",
-    "localDataBody": "PDFs you upload are also saved in this browser, so they can be previewed while the backend processes them.",
+    "localDataBody": "PDFs you upload are also saved in this browser, so they can be previewed while the server processes them.",
     "localClear": "Remove browser copies",
     "localCleared": "Browser copies removed",
     "localClearFailed": "Browser copies couldn't be removed.",
     "about": "About",
-    "aboutBody": "These values come from the running backend, not from this app.",
+    "aboutBody": "These values come from the running server, not from this app.",
     "appVersion": "App version",
-    "apiUrl": "Backend URL",
-    "backendStatus": "Backend status",
-    "reportedByBackend": "Reported by the backend",
-    "backendVersion": "Backend version",
+    "apiUrl": "Server URL",
+    "backendStatus": "Server status",
+    "reportedByBackend": "Reported by the server",
+    "backendVersion": "Server version",
     "maxFile": "Maximum file size",
     "maxPages": "Maximum pages",
     "capOcr": "OCR for scanned documents",
@@ -307,7 +319,7 @@
     "capHighlights": "Server-side highlights",
     "available": "Available",
     "notAvailable": "Not available",
-    "capabilitiesError": "The backend's capabilities couldn't be loaded.",
+    "capabilitiesError": "The server's capabilities couldn't be loaded.",
     "themeLight": "Light",
     "themeDarkSoon": "Dark (not available)"
   },
@@ -364,7 +376,8 @@
     "filterEmpty": "No changes of this type",
     "newComparison": "New comparison",
     "versus": "compared with",
-    "needTwoWaiting": "Wait until your documents finish processing. Only ready documents can be compared."
+    "needTwoWaiting": "Wait until your documents finish processing. Only ready documents can be compared.",
+    "noticeMore": "How it works"
   },
   "evidence": {
     "title": "Evidence",
@@ -384,8 +397,8 @@
     "keys": "← → switch · Esc closes",
     "previewHint": "Click to open in the document",
     "status": {
-      "coordinates": "Exact passage highlighted from the backend's coordinates.",
-      "text": "No coordinates from the backend. The passage was found in the page's text and highlighted.",
+      "coordinates": "Exact passage highlighted from the server's coordinates.",
+      "text": "No coordinates from the server. The passage was found in the page's text and highlighted.",
       "page": "Page opened. The exact passage couldn't be located, so nothing is highlighted.",
       "unknown": "Locating the passage on the page…",
       "section": "A DOCX source: it has a section and no pages, so there is no page to open.",
@@ -424,7 +437,8 @@
     "emptyBody": "No term repeats in this document, or its pages have no text layer, such as a scan.",
     "unavailableTitle": "No map for this document",
     "unavailableDocx": "The map reads text in the browser, which works only for PDF for now.",
-    "unavailableOther": "The document's text isn't available on this device."
+    "unavailableOther": "The document's text isn't available on this device.",
+    "noticeShort": "Word statistics, not AI"
   },
   "userModes": {
     "title": "Mode",

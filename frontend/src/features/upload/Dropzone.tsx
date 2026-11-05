@@ -41,7 +41,11 @@ export function Dropzone({ className }: { className?: string }) {
         <Upload size={18} aria-hidden />
       </span>
       <div className="min-w-0 flex-1 basis-48">
-      <p className="font-medium">{t('upload.dropTitle')}</p>
+      <p className="font-medium">
+        {/* Touch screens have nothing to drop. */}
+        <span className="pointer-coarse:hidden">{t('upload.dropTitle')}</span>
+        <span className="hidden pointer-coarse:inline">{t('upload.tapTitle')}</span>
+      </p>
       <p className="tabular text-sm text-muted">
         {t('upload.limits', { size: formatBytes(maxBytes, i18n.language) })}
       </p>

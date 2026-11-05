@@ -21,6 +21,14 @@ export function spotScrollTop(pageTop: number, pageHeight: number, fraction: num
   return Math.max(0, pageTop + pageHeight * fraction - viewportHeight / 3);
 }
 
+/**
+ * Height to use with spotScrollTop. On a phone the evidence sheet covers the lower part of the
+ * document, so the spot goes near the top instead of a third of the way down.
+ */
+export function revealHeight(container: { clientWidth: number; clientHeight: number }): number {
+  return container.clientWidth < NARROW_WIDTH ? container.clientHeight * 0.3 : container.clientHeight;
+}
+
 /** Scroll position that shows the top of a page. */
 export function pageScrollTop(pageTop: number): number {
   return Math.max(0, pageTop - PAGE_GAP);
@@ -100,7 +108,7 @@ export function usePdfScroller(containerRef: RefObject<HTMLDivElement | null>, s
   );
 
   // The current page is the one crossing the upper third of the viewport.
-  const currentPage = pageAt(scrollTop + box.height / 3);
+  const currentPage = pageAt(scrollTop + revealHeight({ clientWidth: box.width, clientHeight: box.height }) / 3);
   const first = Math.max(1, pageAt(scrollTop) - OVERSCAN);
   const last = Math.min(offsets.length, pageAt(scrollTop + box.height) + OVERSCAN);
 
@@ -127,7 +135,7 @@ export function usePdfScroller(containerRef: RefObject<HTMLDivElement | null>, s
       const size = sizes?.[page - 1];
       const container = containerRef.current;
       if (!container || offset === undefined || !size) return;
-      scrollTo(spotScrollTop(offset, size.height * scale, fraction, container.clientHeight), smooth);
+      scrollTo(spotScrollTop(offset, size.height * scale, fraction, revealHeight(container)), smooth);
     },
     [containerRef, offsets, scale, scrollTo, sizes],
   );

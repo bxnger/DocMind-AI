@@ -29,6 +29,7 @@ import { ResizeHandle } from '@/features/workspace/ResizeHandle';
 import { useAssistant } from '@/features/workspace/useAssistant';
 import { useDocumentSource } from '@/features/workspace/useDocumentSource';
 import { ViewerPane } from '@/features/workspace/ViewerPane';
+import { HIDDEN_PANE, SEGMENTS, applySegment, segmentOf, type Pane } from '@/features/workspace/workspaceView';
 import { SPLIT_PANE_QUERY, useMediaQuery } from '@/hooks/useMediaQuery';
 import { usePersistentState } from '@/hooks/usePersistentState';
 import { cn } from '@/lib/cn';
@@ -41,8 +42,6 @@ import type { DocumentModel } from '@/types/document';
 const DEFAULT_CHAT_WIDTH = 420;
 const MIN_CHAT_WIDTH = 340;
 const MAX_CHAT_WIDTH = 640;
-
-type Pane = 'document' | 'assistant';
 
 /** A topic's fragments in the shape Evidence Jump reads. It has no answer text and never enters the chat. */
 function fragmentMessage(node: TopicNode, doc: DocumentModel): AssistantMessage {
@@ -183,7 +182,7 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
         </div>
         {split && viewSwitch}
         {isSample && <span className="rounded-full border border-accent-line px-2 text-xs text-accent-strong">{t('documents.sampleTag')}</span>}
-        {!isSample && <StatusBadge doc={doc} />}
+        {!isSample && <StatusBadge doc={doc} compact={!split} />}
         {origin === 'browser' && (
           <span
             title={t('workspace.browserCopyHint')}
@@ -193,24 +192,28 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
             {t('workspace.browserCopy')}
           </span>
         )}
+        {!isSample && (
+          <IconButton label={t('common.delete')} icon={<Trash2 size={16} aria-hidden />} onClick={() => setDeleting(true)} />
+        )}
         {!split && (
-          <div role="tablist" aria-label={t('workspace.panes')} className="order-last flex w-full rounded-[10px] border border-line bg-card p-0.5 [@media(max-height:500px)]:order-none [@media(max-height:500px)]:w-56">
-            {(['document', 'assistant'] as const).map((value) => (
+          <div role="tablist" aria-label={t('workspace.panes')} className="order-last flex w-full rounded-[10px] border border-line bg-card p-0.5 [@media(max-height:500px)]:order-none [@media(max-height:500px)]:w-64">
+            {SEGMENTS.map((value) => (
               <button
                 key={value}
                 role="tab"
                 type="button"
-                aria-selected={pane === value}
-                onClick={() => setPane(value)}
-                className={cn('pressable h-9 flex-1 rounded-lg text-sm font-medium', pane === value ? 'bg-accent-tint text-fg' : 'text-muted')}
+                aria-selected={segmentOf(pane, view) === value}
+                onClick={() => {
+                  const next = applySegment(value, view);
+                  setPane(next.pane);
+                  setView(next.view);
+                }}
+                className={cn('pressable h-9 min-w-0 flex-1 truncate rounded-lg px-1 text-sm font-medium', segmentOf(pane, view) === value ? 'bg-accent text-on-accent' : 'text-muted')}
               >
-                {t(`workspace.pane.${value}`)}
+                {t(`workspace.segments.${value}`)}
               </button>
             ))}
           </div>
-        )}
-        {!isSample && (
-          <IconButton label={t('common.delete')} icon={<Trash2 size={16} aria-hidden />} onClick={() => setDeleting(true)} />
         )}
       </header>
 
@@ -220,12 +223,11 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
         </p>
       )}
 
-      <div className="flex min-h-0 flex-1">
-        <div className={cn('flex min-w-0 flex-1 flex-col', !split && pane !== 'document' && 'hidden')}>
-          {!split && <div className="flex shrink-0 items-center border-b border-line bg-sidebar px-2 py-1">{viewSwitch}</div>}
+      <div className="relative flex min-h-0 flex-1">
+        <div className={cn('flex min-w-0 flex-1 flex-col', !split && pane !== 'document' && HIDDEN_PANE)}>
           <div className="relative min-h-0 flex-1">
           {/* Stays mounted, so coming back from a fragment keeps the topic and zoom. */}
-          <div className={cn('h-full', view !== 'map' && 'hidden')}>
+          <div className={cn('h-full', view !== 'map' && HIDDEN_PANE)}>
             <ErrorBoundary fallback={(reset) => <RegionCrash reset={reset} />}>
               <KnowledgeMap
                 text={text}
@@ -234,7 +236,7 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
               />
             </ErrorBoundary>
           </div>
-          <div className={cn('h-full', view !== 'document' && 'hidden')}>
+          <div className={cn('h-full', view !== 'document' && HIDDEN_PANE)}>
           <ErrorBoundary fallback={(reset) => <RegionCrash reset={reset} />}>
             <ViewerPane
               doc={doc}
@@ -275,7 +277,7 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
           />
         )}
         <div
-          className={cn('min-w-0', split ? 'shrink-0' : 'flex-1', !split && pane !== 'assistant' && 'hidden')}
+          className={cn('min-w-0', split ? 'shrink-0' : 'flex-1', !split && pane !== 'assistant' && HIDDEN_PANE)}
           style={split ? { width: chatWidth } : undefined}
         >
           <ErrorBoundary fallback={(reset) => <RegionCrash reset={reset} />}>
