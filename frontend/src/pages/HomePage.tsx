@@ -10,6 +10,7 @@ import { EvidencePreview } from '@/features/documents/EvidencePreview';
 import { useDocuments } from '@/features/documents/useDocuments';
 import { useErrorMessage } from '@/features/system/useErrorMessage';
 import { Dropzone } from '@/features/upload/Dropzone';
+import { HomeModeStrip } from '@/features/userModes/HomeModeStrip';
 import type { DocumentModel } from '@/types/document';
 
 const HOME_DOCS = 5;
@@ -69,6 +70,7 @@ function RecentDocuments() {
 
 export function HomePage() {
   const { t } = useTranslation();
+  const documents = useDocuments();
   return (
     <div className="h-full overflow-y-auto">
       <div className="mx-auto w-full max-w-[1040px] px-4 py-6 md:px-8 md:py-10">
@@ -80,6 +82,7 @@ export function HomePage() {
           <Dropzone className="min-h-64" />
           <EvidencePreview />
         </div>
+        <HomeModeStrip hasDocuments={(documents.data?.length ?? 0) > 0} />
         <RecentDocuments />
       </div>
     </div>

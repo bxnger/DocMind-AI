@@ -421,5 +421,150 @@
     "unavailableTitle": "No map for this document",
     "unavailableDocx": "The map reads text in the browser, which works only for PDF for now.",
     "unavailableOther": "The document's text isn't available on this device."
+  },
+  "userModes": {
+    "title": "Mode",
+    "selector": "Work mode",
+    "actionsLabel": "Suggested actions for {{mode}}",
+    "insertHint": "Adds the prompt to your message so you can edit it. Nothing is sent yet.",
+    "showActions": "Show suggested actions",
+    "hideActions": "Hide suggested actions",
+    "tooLong": "Your message is too long to add this prompt. Your text was kept.",
+    "demoNote": "Suggested actions need AI answers. Demo search only matches keywords, so switch to AI to use them.",
+    "waitingNote": "Suggested actions appear when the document is ready.",
+    "unavailableNote": "Suggested actions aren't available for this document.",
+    "legalNote": "Not legal advice. Answers only explain what the document says, for review by a qualified person.",
+    "uploadFirst": "Upload a document first. Actions become available next to it once it's ready.",
+    "openDocumentFirst": "Open a document to use these actions.",
+    "modes": {
+      "general": {
+        "name": "General",
+        "description": "Everyday questions about any document."
+      },
+      "student": {
+        "name": "Student",
+        "description": "Understand and revise study material."
+      },
+      "teacher": {
+        "name": "Teacher",
+        "description": "Prepare lessons from educational material."
+      },
+      "legal": {
+        "name": "Legal",
+        "description": "Review clauses, obligations and deadlines."
+      },
+      "business": {
+        "name": "Business",
+        "description": "Pull out figures, decisions and risks."
+      }
+    },
+    "actions": {
+      "general": {
+        "summary": {
+          "label": "Summarize key points",
+          "prompt": "Summarize the main topics and key points of this document in a short list. Cite the supporting passages."
+        },
+        "dates": {
+          "label": "Find dates and deadlines",
+          "prompt": "List the dates, deadlines and time periods stated in this document and what each one refers to. Cite the supporting passages."
+        },
+        "requirements": {
+          "label": "Find main requirements",
+          "prompt": "List the main requirements, conditions and rules stated in this document. Cite the supporting passages."
+        }
+      },
+      "student": {
+        "explain": {
+          "label": "Explain key concepts",
+          "prompt": "Explain the most important concepts and terms in this document in clear language. Use examples only when the document supports them. Cite the supporting passages."
+        },
+        "summary": {
+          "label": "Summarize for revision",
+          "prompt": "Summarize the main ideas, topics and conclusions of this document so I can revise them. Cite the supporting passages."
+        },
+        "guide": {
+          "label": "Create a study guide",
+          "prompt": "Create a study guide from this document: main topics, key concepts and definitions, and what to remember for each. Cite the supporting passages."
+        },
+        "questions": {
+          "label": "Practice questions",
+          "prompt": "Create practice questions with answers on the main topics and concepts of this document. Use only facts it states. Cite the supporting passages."
+        },
+        "definitions": {
+          "label": "Find definitions",
+          "prompt": "Find the important terms and definitions given in this document and quote how each one is defined. Cite the supporting passages."
+        }
+      },
+      "teacher": {
+        "outline": {
+          "label": "Lesson outline",
+          "prompt": "Create a lesson outline from this educational material: topics, order, and key concepts for each part. Use only what the material states. Cite the supporting passages."
+        },
+        "discussion": {
+          "label": "Discussion questions",
+          "prompt": "Create discussion questions on the topics of this educational material. For each question, name the topic. Do not introduce unsupported facts. Cite the supporting passages."
+        },
+        "objectives": {
+          "label": "Learning objectives",
+          "prompt": "Identify the learning objectives, skills and knowledge that this educational material covers. Cite the supporting passages."
+        },
+        "summary": {
+          "label": "Summarize the material",
+          "prompt": "Summarize the main topics and concepts of this educational material for preparing a class. Cite the supporting passages."
+        },
+        "activities": {
+          "label": "Classroom activities",
+          "prompt": "Suggest classroom activities and exercises based on the topics and tasks in this educational material. Say which activities are your suggestion and which come from the material. Cite the supporting passages."
+        }
+      },
+      "legal": {
+        "clauses": {
+          "label": "Key clauses",
+          "prompt": "Identify the important clauses of this contract, including term, payment, liability and termination, and explain what each one says. Cite the supporting passages."
+        },
+        "obligations": {
+          "label": "Obligations and deadlines",
+          "prompt": "List the obligations of each party and the deadlines and time periods for them, as stated in this contract. Cite the supporting passages."
+        },
+        "terms": {
+          "label": "Compare terms by party",
+          "prompt": "Compare the rights, obligations and conditions this contract sets for each party, side by side. Cite the supporting passages."
+        },
+        "risks": {
+          "label": "Flag risks for review",
+          "prompt": "Identify clauses that may need legal review, including penalties, liability, termination and ambiguous wording. Explain the text only. Do not give legal conclusions. Cite the supporting passages."
+        },
+        "definitions": {
+          "label": "Definitions and duties",
+          "prompt": "Extract the defined terms and the responsibilities of each party from this contract, as written. Cite the supporting passages."
+        }
+      },
+      "business": {
+        "insights": {
+          "label": "Key insights",
+          "prompt": "Identify the main business findings of this document: results, decisions and risks. Clearly separate documented facts from interpretation. Cite the supporting passages."
+        },
+        "figures": {
+          "label": "Financial figures",
+          "prompt": "Extract the financial figures in this document, such as revenue, costs, fees, budgets and percentages, and what each one refers to. Cite the supporting passages."
+        },
+        "summary": {
+          "label": "Summarize the report",
+          "prompt": "Summarize this report for a manager: main results, figures, conclusions and recommendations. Cite the supporting passages."
+        },
+        "terms": {
+          "label": "Compare options and terms",
+          "prompt": "Compare the options, offers, prices or conditions this document describes, side by side. Use only what it states. Cite the supporting passages."
+        },
+        "actions": {
+          "label": "Risks and action items",
+          "prompt": "List the risks, decisions, action items and responsible parties stated in this document. Cite the supporting passages."
+        }
+      }
+    },
+    "languageWarning": "This document is in {{language}}. Search matches the words of your question, so a prompt in another language may find nothing.",
+    "languageSwitch": "Use {{language}} prompts",
+    "languageUsing": "Prompts are added in {{language}}, the document's language, so the answer may be too.",
+    "languageBack": "Use interface language"
   }
 }

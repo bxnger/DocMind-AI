@@ -42,6 +42,12 @@ Changes view: aligned passages with word marks computed from the two real quotes
 sides, marking changes only where the text is found on the page, with an optional proportional scroll lock.
 DOCX has no preview, and the API gives it no location, so its changes appear as text only.
 
+## User modes
+
+General, Student, Teacher, Legal and Business change which suggested actions appear above the chat input. The mode is a
+display preference kept in this browser (`docmind.userMode`). It isn't sent to the backend and doesn't change the model.
+An action only fills the input for review: sending stays the user's step. Prompts live in the locale files.
+
 ## Scripts
 
 | Command | What it does |

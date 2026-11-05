@@ -2,11 +2,14 @@ import { forwardRef, useImperativeHandle, useLayoutEffect, useRef, useState } fr
 import { ArrowUp, FileText, Square } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { IconButton } from '@/components/ui/IconButton';
+import { insertPrompt, type InsertResult } from '@/features/userModes/modes';
 import { cn } from '@/lib/cn';
 
 export interface ComposerHandle {
   focus: () => void;
   setText: (text: string) => void;
+  /** Adds a prompt for the user to review. It never sends and never drops text already typed. */
+  insert: (prompt: string) => InsertResult['status'];
 }
 
 interface Props {
@@ -30,6 +33,7 @@ export const Composer = forwardRef<ComposerHandle, Props>(function Composer(
   const { t } = useTranslation();
   const [text, setText] = useState('');
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const caretToEnd = useRef(false);
   const disabled = disabledReason !== null;
 
   useImperativeHandle(ref, () => ({
@@ -38,11 +42,23 @@ export const Composer = forwardRef<ComposerHandle, Props>(function Composer(
       setText(value);
       inputRef.current?.focus();
     },
+    insert: (prompt) => {
+      const result = insertPrompt(text, prompt, MAX_CHARS);
+      setText(result.text);
+      inputRef.current?.focus();
+      caretToEnd.current = true;
+      return result.status;
+    },
   }));
 
   useLayoutEffect(() => {
     const element = inputRef.current;
     if (!element) return;
+    // In the same commit as the new value, so typing right after an insert lands at the end.
+    if (caretToEnd.current) {
+      caretToEnd.current = false;
+      element.setSelectionRange(text.length, text.length);
+    }
     element.style.height = 'auto';
     element.style.height = `${Math.min(element.scrollHeight, MAX_HEIGHT)}px`;
   }, [text]);
@@ -61,7 +77,7 @@ export const Composer = forwardRef<ComposerHandle, Props>(function Composer(
   };
 
   return (
-    <div className="shrink-0 border-t border-line p-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
+    <div className="shrink-0 p-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
       <form
         onSubmit={(event) => {
           event.preventDefault();
