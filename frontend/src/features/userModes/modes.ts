@@ -59,12 +59,3 @@ export function actionState(availability: 'ready' | 'preparing' | 'unavailable',
   if (availability === 'preparing') return 'waiting';
   return chatMode === 'demo' ? 'demo' : 'ready';
 }
-
-/**
- * Backend search matches the words of the question, so a prompt in another language than the document
- * usually finds nothing. Returns the document's language when that risk exists, otherwise null.
- */
-export function mismatchedDocumentLanguage(interfaceLanguage: string, documentLanguage: string | null): 'en' | 'ru' | 'kk' | null {
-  if (documentLanguage !== 'en' && documentLanguage !== 'ru' && documentLanguage !== 'kk') return null;
-  return documentLanguage === interfaceLanguage ? null : documentLanguage;
-}

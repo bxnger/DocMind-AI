@@ -20,10 +20,14 @@ export interface EvidenceSource {
   quote: string;
   /** Absent when the quote could not be located on the page. */
   highlights?: EvidenceRect[];
+  /** Block index in GET /documents/{id}/text. DOCX only, absent when the quote could not be found. */
+  paragraph?: number;
 }
 
 export type ChatMode = 'demo' | 'live';
 export type AnswerStatus = 'answered' | 'not_found';
+export const NOT_FOUND_REASONS = ['no_matching_excerpt', 'model_refused', 'no_citation', 'citations_failed_verification', 'empty_answer'] as const;
+export type NotFoundReason = (typeof NOT_FOUND_REASONS)[number];
 
 export interface UserMessage {
   id: string;
@@ -40,6 +44,8 @@ export interface AssistantMessage {
   sources: EvidenceSource[];
   status: 'pending' | 'done' | 'stopped' | 'error';
   answerStatus: AnswerStatus | null;
+  /** Why an answer became not_found. Only the live stream says; saved history does not. */
+  notFoundReason?: NotFoundReason;
   errorMessage?: string;
   errorCode?: string;
   retryable?: boolean;

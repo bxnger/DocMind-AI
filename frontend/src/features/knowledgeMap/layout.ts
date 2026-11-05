@@ -89,3 +89,64 @@ export function zoomAt(view: View, factor: number, cx: number, cy: number): View
 export function centerOn(view: View, point: Point, width: number, height: number): View {
   return { k: view.k, x: width / 2 - point.x * view.k, y: height / 2 - point.y * view.k };
 }
+
+export interface LabelInput {
+  id: string;
+  label: string;
+  x: number;
+  y: number;
+  /** Radius of the node in world units, already scaled. */
+  r: number;
+  /** Selected and search-matched labels always show; the others only where there is room. */
+  forced: boolean;
+  priority: number;
+}
+
+export interface LabelPlacement {
+  dx: number;
+  dy: number;
+  anchor: 'middle' | 'start' | 'end';
+}
+
+const CHAR_WIDTH = 7.4;
+const LABEL_HEIGHT = 16;
+const LABEL_GAP = 8;
+
+type Box = { left: number; right: number; top: number; bottom: number };
+
+/**
+ * Picks a free side for each label: above, below, right or left of its node, avoiding other labels and
+ * other nodes. Only the drawing changes: the document's analysis and the node positions stay the same.
+ * Offsets are in world units; `scale` is how much a node and its label are enlarged on screen.
+ */
+export function placeLabels(items: readonly LabelInput[], scale = 1): Map<string, LabelPlacement> {
+  const placed: Box[] = [];
+  const result = new Map<string, LabelPlacement>();
+  const hitsNode = (box: Box, own: string) =>
+    items.some((node) => {
+      if (node.id === own) return false;
+      const nearestX = Math.max(box.left, Math.min(node.x, box.right));
+      const nearestY = Math.max(box.top, Math.min(node.y, box.bottom));
+      return (nearestX - node.x) ** 2 + (nearestY - node.y) ** 2 < node.r ** 2;
+    });
+  const hitsLabel = (box: Box) => placed.some((other) => box.left < other.right && box.right > other.left && box.top < other.bottom && box.bottom > other.top);
+
+  const order = [...items].sort((a, b) => Number(b.forced) - Number(a.forced) || b.priority - a.priority);
+  for (const item of order) {
+    const width = item.label.length * CHAR_WIDTH * scale;
+    const height = LABEL_HEIGHT * scale;
+    const gap = item.r + LABEL_GAP * scale;
+    const sides: (LabelPlacement & { box: Box })[] = [
+      { dx: 0, dy: -gap, anchor: 'middle', box: { left: item.x - width / 2, right: item.x + width / 2, top: item.y - gap - height, bottom: item.y - gap } },
+      { dx: 0, dy: gap + height * 0.8, anchor: 'middle', box: { left: item.x - width / 2, right: item.x + width / 2, top: item.y + gap, bottom: item.y + gap + height } },
+      { dx: gap, dy: height * 0.3, anchor: 'start', box: { left: item.x + gap, right: item.x + gap + width, top: item.y - height / 2, bottom: item.y + height / 2 } },
+      { dx: -gap, dy: height * 0.3, anchor: 'end', box: { left: item.x - gap - width, right: item.x - gap, top: item.y - height / 2, bottom: item.y + height / 2 } },
+    ];
+    const free = sides.find((side) => !hitsLabel(side.box) && !hitsNode(side.box, item.id));
+    const chosen = free ?? (item.forced ? sides[0] : undefined);
+    if (!chosen) continue;
+    placed.push(chosen.box);
+    result.set(item.id, { dx: chosen.dx, dy: chosen.dy, anchor: chosen.anchor });
+  }
+  return result;
+}

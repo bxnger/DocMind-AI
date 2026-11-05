@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { StateBlock } from '@/components/ui/StateBlock';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { useCodeMessage } from '@/features/system/useErrorMessage';
+import { DocxReader, type DocxTarget } from '@/features/docx/DocxReader';
+import { useDocumentFailure } from '@/features/system/useErrorMessage';
 import { PdfViewer, type Annotation, type JumpRequest } from '@/features/viewer/PdfViewer';
 import type { PdfState } from '@/features/viewer/usePdfDocument';
 import type { DocumentText } from '@/services/chat';
@@ -17,6 +18,7 @@ interface Props {
   pdf: PdfState;
   text: DocumentText | undefined;
   jump: JumpRequest | null;
+  docxTarget?: DocxTarget | null;
   citedPages: ReadonlySet<number>;
   quoteNotice: boolean;
   annotations?: Annotation[];
@@ -41,17 +43,18 @@ function Loading({ progress }: { progress: number | null }) {
   );
 }
 
-export function ViewerPane({ doc, source, pdf, text, jump, citedPages, quoteNotice, annotations, compact, roomForInspector, onRetry }: Props) {
+export function ViewerPane({ doc, source, pdf, text, jump, docxTarget, citedPages, quoteNotice, annotations, compact, roomForInspector, onRetry }: Props) {
   const { t } = useTranslation();
-  const codeMessage = useCodeMessage();
+  const failure = useDocumentFailure();
 
   if (source.kind === 'checking') return <Loading progress={null} />;
 
   if (source.kind === 'unavailable') {
     if (source.reason === 'docx') {
+      if (doc.status === 'ready') return <DocxReader doc={doc} target={docxTarget ?? null} roomForInspector={roomForInspector ?? false} />;
       return (
         <Centered>
-          <StateBlock icon={<FileWarning size={18} aria-hidden />} title={t('viewer.docxTitle')} description={doc.status === 'ready' ? t('viewer.docxReady') : t('viewer.docxBody')} />
+          <StateBlock icon={<FileWarning size={18} aria-hidden />} title={t('viewer.notReadyTitle')} description={t('viewer.docxBody')} />
         </Centered>
       );
     }
@@ -62,7 +65,7 @@ export function ViewerPane({ doc, source, pdf, text, jump, citedPages, quoteNoti
             tone="danger"
             icon={<CircleAlert size={18} aria-hidden />}
             title={t('viewer.failedTitle')}
-            description={doc.error ? codeMessage(doc.error.code) : t('viewer.failedBody')}
+            description={doc.error ? failure(doc) : t('viewer.failedBody')}
           />
         </Centered>
       );

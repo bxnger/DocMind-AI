@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AppError, ERROR_NETWORK } from '@/api/client';
+import type { DocumentModel } from '@/types/document';
+import { useCapabilities } from './useSystem';
 
 /** Every code in docs/api-contract.md that has its own explanation. */
 const KNOWN_CODES = [
@@ -35,6 +37,17 @@ export function useCodeMessage(): (code: string | null | undefined) => string {
       }
     },
     [t],
+  );
+}
+
+/** Why a document failed. "No text" reads differently when the server does have OCR. */
+export function useDocumentFailure(): (doc: DocumentModel) => string {
+  const { t } = useTranslation();
+  const forCode = useCodeMessage();
+  const capabilities = useCapabilities();
+  return useCallback(
+    (doc) => (doc.error?.code === 'NO_TEXT_FOUND' && capabilities.data?.ocr ? t('errors.noTextWithOcr') : forCode(doc.error?.code)),
+    [capabilities.data?.ocr, forCode, t],
   );
 }
 

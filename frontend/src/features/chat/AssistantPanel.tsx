@@ -1,5 +1,5 @@
-import { useRef } from 'react';
-import { CircleAlert, CornerDownRight, FlaskConical, FileQuestion, FileX2, Loader2, ScanLine, Trash2 } from 'lucide-react';
+import type { RefObject } from 'react';
+import { CircleAlert, CornerDownLeft, CornerDownRight, FlaskConical, FileQuestion, FileX2, Loader2, ScanLine, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { actionState } from '@/features/userModes/modes';
 import { ModeBar } from '@/features/userModes/ModeBar';
 import { ModeSelect } from '@/features/userModes/ModeSelector';
-import { useCodeMessage } from '@/features/system/useErrorMessage';
+import { useDocumentFailure } from '@/features/system/useErrorMessage';
 import { cn } from '@/lib/cn';
 import { StateBlock } from '@/components/ui/StateBlock';
 import type { DocumentModel } from '@/types/document';
@@ -31,6 +31,9 @@ interface Props {
   availability: AssistantAvailability;
   chat: ChatController;
   autoFocus: boolean;
+  composerRef: RefObject<ComposerHandle | null>;
+  /** From the backend, in the document's language. */
+  suggestedQuestions: string[];
 }
 
 function DemoNotice() {
@@ -47,7 +50,7 @@ function DemoNotice() {
 
 function Unavailable({ reason, doc }: { reason: UnavailableReason; doc: DocumentModel }) {
   const { t } = useTranslation();
-  const codeMessage = useCodeMessage();
+  const failure = useDocumentFailure()(doc);
   const icons = {
     docx: <FileQuestion size={18} aria-hidden />,
     'no-text': <ScanLine size={18} aria-hidden />,
@@ -59,15 +62,14 @@ function Unavailable({ reason, doc }: { reason: UnavailableReason; doc: Document
     <StateBlock
       icon={icons[reason]}
       title={t(`chat.unavailable.${reason}.title`)}
-      description={reason === 'failed' ? codeMessage(doc.error?.code) : t(`chat.unavailable.${reason}.body`)}
+      description={reason === 'failed' ? failure : t(`chat.unavailable.${reason}.body`)}
       className="my-auto"
     />
   );
 }
 
-export function AssistantPanel({ mode, canSwitchMode, onModeChange, doc, availability, chat, autoFocus }: Props) {
+export function AssistantPanel({ mode, canSwitchMode, onModeChange, doc, availability, chat, autoFocus, composerRef: composer, suggestedQuestions }: Props) {
   const { t } = useTranslation();
-  const composer = useRef<ComposerHandle>(null);
 
   const disabledReason =
     availability.state === 'preparing'
@@ -152,7 +154,27 @@ export function AssistantPanel({ mode, canSwitchMode, onModeChange, doc, availab
               {t(availability.reason === 'processing' ? 'chat.waitingProcessing' : 'chat.preparing')}
             </p>
           ) : (
-            mode === 'demo' && availability.suggestions.length > 0 && (
+            mode === 'live' ? (
+              suggestedQuestions.length > 0 && (
+                <div data-testid="suggested-questions" className="mt-4">
+                  <h4 className="micro-label mb-1.5">{t('facts.suggested')}</h4>
+                  <ul className="space-y-1" lang={doc.language && doc.language !== 'mixed' ? doc.language : undefined}>
+                    {suggestedQuestions.map((question) => (
+                      <li key={question}>
+                        <button
+                          type="button"
+                          onClick={() => composer.current?.insert(question)}
+                          className="pressable flex min-h-10 w-full items-start gap-2 rounded-control border border-line bg-card px-3 py-2 text-left text-sm hover:border-line-strong hover:bg-card-raised"
+                        >
+                          <CornerDownLeft size={14} className="mt-[3px] shrink-0 text-muted" aria-hidden />
+                          {question}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )
+            ) : availability.suggestions.length > 0 && (
               <ul className="mt-4 space-y-1" lang={availability.suggestionLang}>
                 {availability.suggestions.map((question) => (
                   <li key={question}>
@@ -172,7 +194,7 @@ export function AssistantPanel({ mode, canSwitchMode, onModeChange, doc, availab
         </div>
       )}
 
-      <ModeBar state={actionState(availability.state, mode)} hasMessages={chat.messages.length > 0} composer={composer} documentLanguage={doc.language} />
+      <ModeBar state={actionState(availability.state, mode)} hasMessages={chat.messages.length > 0} composer={composer} />
       <Composer
         ref={composer}
         documentName={doc.name}

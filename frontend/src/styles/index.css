@@ -274,6 +274,16 @@ label[for] {
 .textLayer {
   mix-blend-mode: multiply;
 }
+/* The cited passage in the DOCX reader. Text on a tint of the page, so nothing is covered. */
+.docx-quote {
+  background: var(--color-accent-2-tint);
+  color: var(--color-fg);
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px var(--color-accent-2-line);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
 .textLayer mark {
   color: transparent;
   border-radius: 2px;

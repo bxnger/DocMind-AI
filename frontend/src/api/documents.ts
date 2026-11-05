@@ -1,3 +1,4 @@
+import type { EvidenceRect } from '@/types/chat';
 import type { DocumentModel, DocumentError } from '@/types/document';
 import {
   AppError,
@@ -25,6 +26,12 @@ function toDocumentError(value: unknown): DocumentError | null {
 
 const oneOf = <T extends string>(value: unknown, options: readonly T[]): T | null =>
   options.find((option) => option === value) ?? null;
+
+function toRect(value: unknown): EvidenceRect | null {
+  if (!isRecord(value)) return null;
+  const { x, y, w, h } = value;
+  return typeof x === 'number' && typeof y === 'number' && typeof w === 'number' && typeof h === 'number' ? { x, y, w, h } : null;
+}
 
 /** Validates the backend's Document at the boundary so the UI works with clean types. */
 export function toDocument(dto: unknown): DocumentModel {
@@ -115,4 +122,67 @@ export function uploadDocument(file: File, { onProgress, signal }: UploadCallbac
     signal.addEventListener('abort', () => xhr.abort(), { once: true });
     xhr.send(form);
   });
+}
+
+export type TextBlockKind = 'heading' | 'paragraph' | 'table_row' | 'page';
+
+export interface TextBlock {
+  index: number;
+  kind: TextBlockKind;
+  section: string | null;
+  text: string;
+}
+
+export async function getDocumentText(id: string, signal?: AbortSignal): Promise<TextBlock[]> {
+  const body = await getJson(`/documents/${encodeURIComponent(id)}/text`, signal);
+  if (!isRecord(body) || !Array.isArray(body.blocks)) throw badResponse();
+  return body.blocks.map((block: unknown): TextBlock => {
+    if (!isRecord(block) || typeof block.index !== 'number' || typeof block.text !== 'string') throw badResponse();
+    return {
+      index: block.index,
+      kind: oneOf(block.kind, ['heading', 'paragraph', 'table_row', 'page'] as const) ?? 'paragraph',
+      section: typeof block.section === 'string' ? block.section : null,
+      text: block.text,
+    };
+  });
+}
+
+export const FACT_KINDS = ['deadline', 'date', 'duration', 'amount', 'percent'] as const;
+export type FactKind = (typeof FACT_KINDS)[number];
+
+export interface DocumentFact {
+  kind: FactKind;
+  value: string;
+  quote: string;
+  page: number | null;
+  location: string | null;
+  highlights: EvidenceRect[];
+}
+
+export interface DocumentFacts {
+  facts: DocumentFact[];
+  suggestedQuestions: string[];
+}
+
+export async function getDocumentFacts(id: string, signal?: AbortSignal): Promise<DocumentFacts> {
+  const body = await getJson(`/documents/${encodeURIComponent(id)}/facts`, signal);
+  if (!isRecord(body) || !Array.isArray(body.facts)) throw badResponse();
+  const facts = body.facts.flatMap((fact: unknown): DocumentFact[] => {
+    const kind = isRecord(fact) ? oneOf(fact.kind, FACT_KINDS) : null;
+    // A kind added later is skipped, not shown under a wrong heading.
+    if (!isRecord(fact) || !kind || typeof fact.value !== 'string' || typeof fact.quote !== 'string') return [];
+    return [{
+      kind,
+      value: fact.value,
+      quote: fact.quote,
+      page: typeof fact.page === 'number' ? fact.page : null,
+      location: typeof fact.location === 'string' ? fact.location : null,
+      highlights: Array.isArray(fact.highlights) ? fact.highlights.flatMap((rect: unknown) => {
+        const parsed = toRect(rect);
+        return parsed ? [parsed] : [];
+      }) : [],
+    }];
+  });
+  const questions: unknown[] = Array.isArray(body.suggestedQuestions) ? body.suggestedQuestions : [];
+  return { facts, suggestedQuestions: questions.filter((question): question is string => typeof question === 'string') };
 }

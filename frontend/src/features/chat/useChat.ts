@@ -89,7 +89,7 @@ export function useChat(documentId: string, documentName: string, adapter: ChatA
             patch(id, { sources: event.sources });
           } else if (event.answerStatus === 'not_found') {
             // Tokens may already have arrived. Without a verified citation they must not stay visible.
-            patch(id, { status: 'done', answerStatus: 'not_found', text: '', sources: [] });
+            patch(id, { status: 'done', answerStatus: 'not_found', notFoundReason: event.reason, text: '', sources: [] });
           } else {
             patch(id, { status: 'done', answerStatus: 'answered' });
           }
@@ -138,7 +138,7 @@ export function useChat(documentId: string, documentName: string, adapter: ChatA
       if (pending) return;
       const message = messages.find((candidate) => candidate.id === assistantId);
       if (message?.role !== 'assistant') return;
-      patch(assistantId, { status: 'pending', text: '', sources: [], answerStatus: null, errorMessage: undefined, errorCode: undefined });
+      patch(assistantId, { status: 'pending', text: '', sources: [], answerStatus: null, notFoundReason: undefined, errorMessage: undefined, errorCode: undefined, retryable: undefined });
       void run(assistantId, message.question);
     },
     [messages, patch, pending, run],

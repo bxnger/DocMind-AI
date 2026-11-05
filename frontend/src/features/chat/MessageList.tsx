@@ -43,7 +43,7 @@ export function MessageList({ messages, onRetry, onRephrase, onUseDemo }: Props)
   }, [lastUserMessage]);
 
   return (
-    <div className="relative min-h-0 flex-1">
+    <div className="flex min-h-0 flex-1 flex-col">
       <div
         ref={scrollRef}
         role="log"
@@ -54,7 +54,7 @@ export function MessageList({ messages, onRetry, onRephrase, onUseDemo }: Props)
           const element = event.currentTarget;
           setAtBottom(element.scrollHeight - element.scrollTop - element.clientHeight < BOTTOM_TOLERANCE);
         }}
-        className="h-full space-y-6 overflow-y-auto p-4 outline-offset-[-2px]"
+        className="min-h-0 flex-1 space-y-6 overflow-y-auto p-4 outline-offset-[-2px]"
       >
         {messages.map((message) =>
           message.role === 'user' ? (
@@ -76,14 +76,12 @@ export function MessageList({ messages, onRetry, onRephrase, onUseDemo }: Props)
         )}
       </div>
       {!atBottom && (
-        <Button
-          size="sm"
-          icon={<ArrowDown size={14} aria-hidden />}
-          onClick={toBottom}
-          className="absolute bottom-3 left-1/2 -translate-x-1/2 shadow-float"
-        >
-          {t('chat.jumpLatest')}
-        </Button>
+        // A row of its own: floating over the list, it covered the buttons of the cards below it.
+        <div className="flex shrink-0 justify-center border-t border-line py-1.5">
+          <Button size="sm" icon={<ArrowDown size={14} aria-hidden />} onClick={toBottom}>
+            {t('chat.jumpLatest')}
+          </Button>
+        </div>
       )}
     </div>
   );

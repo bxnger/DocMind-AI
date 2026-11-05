@@ -1,10 +1,12 @@
 export type Pane = 'document' | 'assistant';
-export type LeftView = 'document' | 'map';
-export type Segment = 'document' | 'map' | 'assistant';
+export type LeftView = 'document' | 'map' | 'facts';
+export type Segment = LeftView | 'assistant';
 
-export const SEGMENTS: readonly Segment[] = ['document', 'map', 'assistant'];
+export const SEGMENTS: readonly Segment[] = ['document', 'map', 'facts', 'assistant'];
+/** The sample is not on the backend, so it has no facts to read. */
+export const LEFT_VIEWS = (isSample: boolean): readonly LeftView[] => (isSample ? ['document', 'map'] : ['document', 'map', 'facts']);
 
-/** On narrow screens Document, Map and Assistant are one choice. Internally they stay two independent settings. */
+/** On narrow screens Document, Map, Facts and Assistant are one choice. Internally they stay two independent settings. */
 export function segmentOf(pane: Pane, view: LeftView): Segment {
   return pane === 'assistant' ? 'assistant' : view;
 }

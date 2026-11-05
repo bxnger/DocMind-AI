@@ -21,11 +21,13 @@ interface Props {
   /** Only on narrow screens, where the answer is on another tab. */
   onBack: (() => void) | null;
   backLabel?: string;
+  ocrUsed?: boolean;
 }
 
 const TONE: Record<EvidenceStatus, 'precise' | 'caution' | 'danger' | 'quiet'> = {
   coordinates: 'precise',
   text: 'precise',
+  block: 'precise',
   page: 'caution',
   unknown: 'quiet',
   section: 'quiet',
@@ -35,7 +37,7 @@ const TONE: Record<EvidenceStatus, 'precise' | 'caution' | 'danger' | 'quiet'> =
   otherDocument: 'caution',
 };
 
-function StatusLine({ status }: { status: EvidenceStatus }) {
+function StatusLine({ status, ocrUsed }: { status: EvidenceStatus; ocrUsed: boolean }) {
   const { t } = useTranslation();
   const tone = TONE[status];
   const busy = status === 'viewerLoading' || status === 'unknown';
@@ -49,13 +51,13 @@ function StatusLine({ status }: { status: EvidenceStatus }) {
       )}
     >
       {busy ? <Loader2 size={14} className="spin mt-px shrink-0" aria-hidden /> : tone === 'danger' ? <CircleAlert size={14} className="mt-px shrink-0" aria-hidden /> : <Crosshair size={14} className="mt-px shrink-0" aria-hidden />}
-      <span>{t(`evidence.status.${status}`)}</span>
+      <span>{t(status === 'page' && ocrUsed ? 'evidence.status.pageOcr' : `evidence.status.${status}`)}</span>
     </p>
   );
 }
 
 /** Floating panel over the document: which source is shown, what it says, and how precisely it was found. */
-export function EvidenceInspector({ evidence, status, onSelect, onStep, onRefocus, onClose, onBack, backLabel }: Props) {
+export function EvidenceInspector({ evidence, status, onSelect, onStep, onRefocus, onClose, onBack, backLabel, ocrUsed = false }: Props) {
   const { t } = useTranslation();
   const { source, sources, position } = evidence;
   const [collapsed, setCollapsed] = useState(false);
@@ -168,7 +170,7 @@ export function EvidenceInspector({ evidence, status, onSelect, onStep, onRefocu
                 {source.quote}
               </motion.blockquote>
             </AnimatePresence>
-            <StatusLine status={status} />
+            <StatusLine status={status} ocrUsed={ocrUsed} />
             <div className="mt-2 flex flex-wrap items-center gap-1 sm:mt-3">
               {onBack && (
                 <Button variant="primary" size="sm" icon={<CornerUpLeft size={14} aria-hidden />} onClick={onBack}>
@@ -177,7 +179,7 @@ export function EvidenceInspector({ evidence, status, onSelect, onStep, onRefocu
               )}
               {CAN_SHOW_ON_PAGE.has(status) && (
                 <Button size="sm" icon={<Crosshair size={14} aria-hidden />} onClick={onRefocus}>
-                  {t('evidence.showOnPage')}
+                  {t(status === 'block' ? 'evidence.showInText' : 'evidence.showOnPage')}
                 </Button>
               )}
               <Button variant="ghost" size="sm" icon={copied ? <Check size={14} className="text-success" aria-hidden /> : <Copy size={14} aria-hidden />} onClick={() => void copy()}>
