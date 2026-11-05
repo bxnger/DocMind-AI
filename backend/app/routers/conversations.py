@@ -113,28 +113,39 @@ async def send_message(
 
     prep_started = time.monotonic()
     history = build_history(store.list_messages(conversation_id))
-    chunks = store.chunks_for_documents(conversation["documentIds"])
-    translated = ""
-    if not is_overview_question(question):
-        # A question in another language than the documents is also searched in their language.
-        document_languages = [store.get(document_id)["language"] for document_id in conversation["documentIds"]]
-        translated, targets, translate_ms = await search_translation(
-            answerer, retrieval_query(question, history), document_languages
-        )
-        if targets:
-            logger.info("chat translate targets=%s ok=%s ms=%.0f", ",".join(targets), bool(translated), translate_ms)
-    picked, overview = select_chunks(question, history, chunks, translated)
+    # The requested language wins. Without one the answer follows the question, not the document:
+    # an English question about a Russian contract is answered in English.
+    language = body.language or query_language(question)
+    # A self-contained question has the same answer whatever was asked before, so the history is part of the key
+    # only for a short follow-up ("and when?"), which means something different after each earlier answer.
+    # Without this a warm-up in a fresh conversation never matched the real one, which has a history.
+    key_history = history if len(tokenize(question)) <= SHORT_QUESTION_TOKENS else []
+    key = cache_key(conversation["documentIds"], question, language, key_history)
+    # Looked up before the search and the translation: a remembered answer needs neither.
+    cached = ANSWER_CACHE.get(key)
+    chunks: list[dict] = []
+    picked: list[dict] = []
+    overview = False
+    if cached is None:
+        chunks = store.chunks_for_documents(conversation["documentIds"])
+        translated = ""
+        if not is_overview_question(question):
+            # A question in another language than the documents is also searched in their language.
+            document_languages = [store.get(document_id)["language"] for document_id in conversation["documentIds"]]
+            translated, targets, translate_ms = await search_translation(
+                answerer, retrieval_query(question, history), document_languages
+            )
+            if targets:
+                logger.info("chat translate targets=%s ok=%s ms=%.0f", ",".join(targets), bool(translated), translate_ms)
+        picked, overview = select_chunks(question, history, chunks, translated)
 
     store.add_message(conversation_id, "user", question)
     prep_ms = (time.monotonic() - prep_started) * 1000
     assistant_id = uuid.uuid4().hex
     return StreamingResponse(
         answer_stream(
-            request, store, answerer, conversation_id, assistant_id, question,
-            # The requested language wins. Without one the answer follows the question, not the document:
-            # an English question about a Russian contract is answered in English.
-            body.language or query_language(question),
-            picked, history, overview, prep_ms, len(chunks)
+            request, store, answerer, conversation_id, assistant_id, question, language,
+            picked, history, overview, prep_ms, len(chunks), key=key, cached=cached,
         ),
         media_type="text/event-stream",
     )
@@ -199,6 +210,8 @@ async def answer_stream(
     overview: bool = False,
     prep_ms: float = 0.0,
     chunk_count: int = 0,
+    key: tuple | None = None,
+    cached=None,
 ) -> AsyncIterator[str]:
     started = time.monotonic()
     first_token_ms: list[float] = []
@@ -218,17 +231,6 @@ async def answer_stream(
 
     yield sse("start", {"messageId": assistant_id})
 
-    if not picked:
-        # Nothing relevant in the documents: no model call, an honest not_found.
-        store.add_message(conversation_id, "assistant", "", "not_found", [], message_id=assistant_id)
-        yield sse("done", {"messageId": assistant_id, "answerStatus": "not_found", "reason": "no_matching_excerpt"})
-        log("not_found", reason="no_matching_excerpt")
-        return
-
-    excerpts = to_excerpts(picked, overview)
-
-    key = cache_key(store.get_conversation(conversation_id)["documentIds"], question, language, history)
-    cached = ANSWER_CACHE.get(key)
     if cached is not None:
         # The same question on the same documents was answered and verified before: replay it without the model.
         for piece in cached.pieces():
@@ -238,6 +240,15 @@ async def answer_stream(
         store.add_message(conversation_id, "assistant", cached.text, "answered", cached.sources, message_id=assistant_id)
         log("answered", cache="hit", sources=len(cached.sources))
         return
+
+    if not picked:
+        # Nothing relevant in the documents: no model call, an honest not_found.
+        store.add_message(conversation_id, "assistant", "", "not_found", [], message_id=assistant_id)
+        yield sse("done", {"messageId": assistant_id, "answerStatus": "not_found", "reason": "no_matching_excerpt"})
+        log("not_found", reason="no_matching_excerpt")
+        return
+
+    excerpts = to_excerpts(picked, overview)
 
     answer = ""
     try:
