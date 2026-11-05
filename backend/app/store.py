@@ -100,6 +100,10 @@ class Store:
         with self._db() as conn:
             for statement in SCHEMA:
                 conn.execute(statement)
+            # Databases made before not_found reasons were saved get the column; their old rows keep NULL.
+            columns = {row[1] for row in conn.execute("PRAGMA table_info(messages)")}
+            if "reason" not in columns:
+                conn.execute("ALTER TABLE messages ADD COLUMN reason TEXT")
 
     @contextmanager
     def _db(self) -> Iterator[sqlite3.Connection]:
@@ -317,13 +321,14 @@ class Store:
         answer_status: str | None = None,
         sources: list[dict] | None = None,
         message_id: str | None = None,
+        reason: str | None = None,
     ) -> dict:
         message_id = message_id or self.new_id()
         now = _now()
         with self._db() as conn:
             conn.execute(
-                "INSERT INTO messages (id, conversation_id, role, content, answer_status, sources_json, created_at)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO messages (id, conversation_id, role, content, answer_status, sources_json, created_at, reason)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     message_id,
                     conversation_id,
@@ -332,6 +337,7 @@ class Store:
                     answer_status,
                     json.dumps(sources, ensure_ascii=False) if sources is not None else None,
                     now,
+                    reason,
                 ),
             )
             conn.execute("UPDATE conversations SET updated_at = ? WHERE id = ?", (now, conversation_id))
@@ -342,6 +348,7 @@ class Store:
             "createdAt": now,
             "answerStatus": answer_status,
             "sources": sources,
+            "reason": reason,
         }
 
     def list_messages(self, conversation_id: str) -> list[dict]:
@@ -358,6 +365,7 @@ class Store:
                 "createdAt": row["created_at"],
                 "answerStatus": row["answer_status"],
                 "sources": json.loads(row["sources_json"]) if row["sources_json"] else None,
+                "reason": row["reason"],  # why a not_found happened, the same values as the done event
             }
             for row in rows
         ]
