@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import en from '@/i18n/locales/en.json';
 import kk from '@/i18n/locales/kk.json';
 import ru from '@/i18n/locales/ru.json';
-import { DEFAULT_USER_MODE, MODE_ACTIONS, mismatchedDocumentLanguage, USER_MODES, actionState, insertPrompt, isUserMode, loadUserMode, saveUserMode } from './modes';
+import { DEFAULT_USER_MODE, MODE_ACTIONS, USER_MODES, actionState, insertPrompt, isUserMode, loadUserMode, saveUserMode } from './modes';
 
 const MAX = 2000;
 const locales = { en, ru, kk } as const;
@@ -130,12 +130,3 @@ describe('persistence', () => {
   });
 });
 
-describe('mismatchedDocumentLanguage', () => {
-  it('warns only for a known document language that differs', () => {
-    expect(mismatchedDocumentLanguage('ru', 'en')).toBe('en');
-    expect(mismatchedDocumentLanguage('en', 'kk')).toBe('kk');
-    expect(mismatchedDocumentLanguage('ru', 'ru')).toBeNull();
-    expect(mismatchedDocumentLanguage('ru', 'mixed')).toBeNull();
-    expect(mismatchedDocumentLanguage('ru', null)).toBeNull();
-  });
-});

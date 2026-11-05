@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowLeft, FileQuestion, HardDrive, RotateCcw, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { AlertTriangle, ArrowLeft, FileQuestion, HardDrive, RotateCcw, ScanLine, Trash2 } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence } from 'motion/react';
@@ -10,7 +10,10 @@ import { IconButton } from '@/components/ui/IconButton';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateBlock } from '@/components/ui/StateBlock';
 import { AssistantPanel } from '@/features/chat/AssistantPanel';
+import type { ComposerHandle } from '@/features/chat/Composer';
 import { useChat } from '@/features/chat/useChat';
+import { useDocumentFacts } from '@/features/documents/useDocumentContent';
+import { FactsPanel, factMessage } from '@/features/facts/FactsPanel';
 import { DeleteDocumentDialog } from '@/features/documents/DeleteDocumentDialog';
 import { StatusBadge } from '@/features/documents/StatusBadge';
 import { isStaleProcessing, useDocument } from '@/features/documents/useDocuments';
@@ -30,14 +33,14 @@ import { useAssistant } from '@/features/workspace/useAssistant';
 import { useDocumentSource } from '@/features/workspace/useDocumentSource';
 import { ThemeToggle } from '@/features/settings/ThemeToggle';
 import { ViewerPane } from '@/features/workspace/ViewerPane';
-import { HIDDEN_PANE, SEGMENTS, applySegment, segmentOf, type Pane } from '@/features/workspace/workspaceView';
+import { HIDDEN_PANE, LEFT_VIEWS, SEGMENTS, applySegment, segmentOf, type LeftView, type Pane } from '@/features/workspace/workspaceView';
 import { SPLIT_PANE_QUERY, useMediaQuery } from '@/hooks/useMediaQuery';
 import { usePersistentState } from '@/hooks/usePersistentState';
 import { cn } from '@/lib/cn';
 import { formatBytes } from '@/lib/format';
 import { markOpened } from '@/services/recents';
 import { isSampleDocument } from '@/services/sampleDocument';
-import type { AssistantMessage, ChatMode } from '@/types/chat';
+import type { AssistantMessage, ChatMode, EvidenceSource } from '@/types/chat';
 import type { DocumentModel } from '@/types/document';
 
 const DEFAULT_CHAT_WIDTH = 420;
@@ -101,9 +104,13 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
   const pdf = usePdfDocument(input, attempt);
   const { text, adapter, availability, mode: effectiveMode } = useAssistant(doc, source, pdf, mode);
   const chat = useChat(doc.id, doc.name, adapter);
+  const composer = useRef<ComposerHandle>(null);
+  const isSampleDoc = isSampleDocument(doc.id);
+  const facts = useDocumentFacts(doc.id, doc.status === 'ready' && !isSampleDoc);
+  const suggestedQuestions = facts.data?.suggestedQuestions ?? [];
 
   // Fragments from the map go through the same Evidence Jump as answers, as a source list kept outside the chat.
-  const [view, setView] = useState<'document' | 'map'>(() => {
+  const [view, setView] = useState<LeftView>(() => {
     const state: unknown = routerLocation.state;
     return isRecord(state) && state.view === 'map' ? 'map' : 'document';
   });
@@ -118,9 +125,11 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
   const evidenceJump = useMemo(() => sourceJump(picked, pickedNonce, doc.id), [picked, pickedNonce, doc.id]);
   const jump = evidenceJump ?? routeJump;
 
+  const selectedMessage = selection?.messageId ?? null;
+  const selectedIndex = selection?.source.index ?? null;
   const evidenceApi = useMemo<EvidenceApi>(
     () => ({
-      selected: selection ? { messageId: selection.messageId, sourceIndex: selection.source.index } : null,
+      selected: selectedMessage !== null && selectedIndex !== null ? { messageId: selectedMessage, sourceIndex: selectedIndex } : null,
       open: (messageId, opened) => {
         setRouteJump(null);
         openEvidence(messageId, opened);
@@ -129,7 +138,7 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
         setPane('document');
       },
     }),
-    [openEvidence, selection],
+    [openEvidence, selectedIndex, selectedMessage, setView],
   );
 
   const openFragment = (node: TopicNode, fragment: Fragment) => {
@@ -142,7 +151,28 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
     setView('document');
     setPane('document');
   };
-  const fromMap = selection?.messageId === mapEvidence?.id;
+  const fromMap = selection?.messageId === mapEvidence?.id && !mapEvidence?.id.startsWith('facts:');
+  const fromFacts = selection?.messageId === mapEvidence?.id && Boolean(mapEvidence?.id.startsWith('facts:'));
+
+  const openFact = (factSource: EvidenceSource) => {
+    const message = factMessage(factSource);
+    setMapEvidence(message);
+    setRouteJump(null);
+    openEvidence(message.id, factSource);
+    setView('document');
+    setPane('document');
+  };
+
+  // Only fills the composer, for the user to edit and send. Prompts are for the AI, so demo mode gives way to it.
+  const askSuggested = (question: string) => {
+    setMode('live');
+    setPane('assistant');
+    requestAnimationFrame(() => composer.current?.insert(question));
+  };
+
+  const docxTarget = picked && picked.page === null && picked.documentId === doc.id && picked.paragraph !== undefined
+    ? { paragraph: picked.paragraph, quote: picked.quote, nonce: pickedNonce }
+    : null;
 
   const viewer: ViewerAvailability =
     source.kind === 'unavailable' ? 'unavailable' : source.kind === 'checking' ? 'loading' : pdf.status === 'error' ? 'error' : pdf.status === 'ready' ? 'ready' : 'loading';
@@ -155,7 +185,7 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
 
   const viewSwitch = (
     <div role="group" aria-label={t('map.views')} className="inline-flex shrink-0 rounded-[10px] border border-line bg-card p-0.5">
-      {(['document', 'map'] as const).map((value) => (
+      {LEFT_VIEWS(isSampleDoc).map((value) => (
         <button
           key={value}
           type="button"
@@ -178,7 +208,7 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
         <div className="min-w-0 flex-1">
           <h1 className="truncate font-display text-[15px] leading-5 font-semibold" title={doc.name}>{doc.name}</h1>
           <p className="tabular truncate text-xs leading-4 text-muted">
-            {[doc.kind.toUpperCase(), doc.pageCount !== null ? t('documents.pages', { count: doc.pageCount }) : null, formatBytes(doc.sizeBytes, i18n.language)].filter(Boolean).join(' · ')}
+            {[doc.kind.toUpperCase(), doc.pageCount !== null ? t('documents.pages', { count: doc.pageCount }) : null, formatBytes(doc.sizeBytes, i18n.language), doc.ocrUsed ? 'OCR' : null].filter(Boolean).join(' · ')}
           </p>
         </div>
         {split && viewSwitch}
@@ -199,7 +229,7 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
         )}
         {!split && (
           <div role="tablist" aria-label={t('workspace.panes')} className="order-last flex w-full rounded-[10px] border border-line bg-card p-0.5 [@media(max-height:500px)]:order-none [@media(max-height:500px)]:w-64">
-            {SEGMENTS.map((value) => (
+            {SEGMENTS.filter((value) => value === 'assistant' || LEFT_VIEWS(isSampleDoc).includes(value)).map((value) => (
               <button
                 key={value}
                 role="tab"
@@ -210,7 +240,7 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
                   setPane(next.pane);
                   setView(next.view);
                 }}
-                className={cn('pressable h-9 min-w-0 flex-1 truncate rounded-lg px-1 text-sm font-medium', segmentOf(pane, view) === value ? 'bg-accent text-on-accent' : 'text-muted')}
+                className={cn('pressable h-9 min-w-0 flex-1 truncate rounded-lg px-0.5 text-sm font-medium max-[400px]:text-xs', segmentOf(pane, view) === value ? 'bg-accent text-on-accent' : 'text-muted')}
               >
                 {t(`workspace.segments.${value}`)}
               </button>
@@ -222,6 +252,13 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
       {origin === 'browser' && (
         <p className="shrink-0 border-b border-line bg-sidebar px-4 py-1 text-xs text-muted [@media(max-height:500px)]:hidden">
           {stale ? t('workspace.staleHint') : t('workspace.browserCopyHint')}
+        </p>
+      )}
+
+      {doc.ocrUsed && (
+        <p data-testid="ocr-notice" className="flex shrink-0 items-start gap-2 border-b border-line bg-warning-tint px-4 py-1.5 text-xs text-warning [@media(max-height:500px)]:hidden">
+          <ScanLine size={14} className="mt-px shrink-0" aria-hidden />
+          {t('workspace.ocrNotice')}
         </p>
       )}
 
@@ -246,6 +283,7 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
               pdf={pdf}
               text={text}
               jump={jump}
+              docxTarget={docxTarget}
               citedPages={chat.citedPages}
               quoteNotice={selection === null}
               roomForInspector={selection !== null}
@@ -253,6 +291,13 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
             />
           </ErrorBoundary>
           </div>
+          {view === 'facts' && (
+            <div className="absolute inset-0 bg-bg">
+              <ErrorBoundary fallback={(reset) => <RegionCrash reset={reset} />}>
+                <FactsPanel doc={doc} query={facts} onOpen={openFact} onAsk={askSuggested} />
+              </ErrorBoundary>
+            </div>
+          )}
           <AnimatePresence>
             {view === 'document' && selection && status && (
               <EvidenceInspector
@@ -263,8 +308,9 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
                 onStep={evidence.step}
                 onRefocus={evidence.refocus}
                 onClose={evidence.close}
-                onBack={fromMap ? () => setView('map') : split ? null : () => setPane('assistant')}
-                backLabel={fromMap ? t('map.back') : undefined}
+                onBack={fromMap ? () => setView('map') : fromFacts ? () => setView('facts') : split ? null : () => setPane('assistant')}
+                backLabel={fromMap ? t('map.back') : fromFacts ? t('facts.back') : undefined}
+                ocrUsed={doc.ocrUsed === true}
               />
             )}
           </AnimatePresence>
@@ -285,7 +331,7 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
         >
           <ErrorBoundary fallback={(reset) => <RegionCrash reset={reset} />}>
             <EvidenceProvider value={evidenceApi}>
-            <AssistantPanel mode={effectiveMode} canSwitchMode={!isSample} onModeChange={setMode} doc={doc} availability={availability} chat={chat} autoFocus={split} />
+            <AssistantPanel mode={effectiveMode} canSwitchMode={!isSample} onModeChange={setMode} doc={doc} availability={availability} chat={chat} autoFocus={split} composerRef={composer} suggestedQuestions={suggestedQuestions} />
             </EvidenceProvider>
           </ErrorBoundary>
         </div>

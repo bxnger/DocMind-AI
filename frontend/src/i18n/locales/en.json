@@ -72,7 +72,8 @@
       "INDEXING_FAILED": "The document couldn't be indexed.",
       "INTERNAL_ERROR": "The server had an internal problem. Start again.",
       "STREAM_INTERRUPTED": "The connection dropped before the answer finished. Try again."
-    }
+    },
+    "noTextWithOcr": "No text could be read from this file, even with text recognition (OCR)."
   },
   "home": {
     "title": "Documents you can question",
@@ -158,8 +159,10 @@
     "segments": {
       "document": "Document",
       "map": "Map",
-      "assistant": "Assistant"
-    }
+      "assistant": "Assistant",
+      "facts": "Facts"
+    },
+    "ocrNotice": "This document was read with text recognition (OCR). Quotes may contain recognition errors, and passages may not be highlighted exactly: check them against the page."
   },
   "viewer": {
     "toolbar": "Document controls",
@@ -188,8 +191,7 @@
     "quoteNotLocated": "This is the cited page, but the exact passage could not be highlighted.",
     "loading": "Loading document…",
     "loadingPercent": "Loading document… {{percent}}%",
-    "docxTitle": "No preview for DOCX yet",
-    "docxBody": "The file is stored on the server, but the server doesn't produce DOCX previews yet.",
+    "docxBody": "The text reader opens when the server finishes processing.",
     "failedTitle": "Processing failed",
     "failedBody": "The server couldn't process this document.",
     "notReadyTitle": "Not ready to preview",
@@ -199,8 +201,7 @@
     "invalidTitle": "This PDF can't be read",
     "invalidBody": "The file looks corrupted or isn't really a PDF.",
     "loadTitle": "The document couldn't be loaded",
-    "loadBody": "Check the server connection and try again.",
-    "docxReady": "The file was processed, so you can ask about it in AI mode. Its original layout can't be shown: sources give the section and quote, without pages."
+    "loadBody": "Check the server connection and try again."
   },
   "chat": {
     "title": "Assistant",
@@ -237,7 +238,7 @@
       },
       "no-text": {
         "title": "This PDF has no readable text",
-        "body": "It looks like a scan. Reading scans needs OCR, which the server doesn't offer yet."
+        "body": "It looks like a scan. Demo search only reads a PDF's text layer."
       },
       "no-file": {
         "title": "Nothing to search yet",
@@ -261,7 +262,16 @@
     "waitingProcessing": "Available when the server finishes processing",
     "suggestAbout": "What is this document about?",
     "suggestDates": "What are the key dates and deadlines?",
-    "suggestRequirements": "What are the main requirements?"
+    "suggestRequirements": "What are the main requirements?",
+    "workingLive": "Searching the document and waiting for the AI model…",
+    "notVerifiedTitle": "No answer that could be verified",
+    "notFoundReason": {
+      "no_matching_excerpt": "No passage in the document matches your question, so the AI wasn't asked. Try other words.",
+      "model_refused": "The AI read the closest passages and found no answer to this in them.",
+      "no_citation": "The AI's reply cited no passage of the document, so it was removed. Try asking more specifically.",
+      "citations_failed_verification": "The AI's citations didn't match the document's text, so the reply was removed. Try asking more specifically.",
+      "empty_answer": "The AI returned an empty reply. Try again or rephrase the question."
+    }
   },
   "sources": {
     "heading": "From the document",
@@ -403,18 +413,22 @@
       "text": "No coordinates from the server. The passage was found in the page's text and highlighted.",
       "page": "Page opened. The exact passage couldn't be located, so nothing is highlighted.",
       "unknown": "Locating the passage on the page…",
-      "section": "A DOCX source: it has a section and no pages, so there is no page to open.",
+      "section": "This source has a section but no known position in the text, so only the quote is shown.",
       "viewerLoading": "Opening the document…",
       "viewerError": "The document couldn't be displayed. The quote is still shown here.",
       "viewerUnavailable": "The document preview isn't available, so the page can't be shown. The quote is still here.",
-      "otherDocument": "This source belongs to another document, so it can't be shown here."
+      "otherDocument": "This source belongs to another document, so it can't be shown here.",
+      "block": "The cited passage is marked in the document's text. DOCX has no stable pages, so none is given.",
+      "pageOcr": "This is the cited page. It was read with OCR, so the exact passage can't be highlighted."
     },
-    "cardLabel": "Inspect source {{index}}"
+    "cardLabel": "Inspect source {{index}}",
+    "showInText": "Show in text"
   },
   "map": {
     "view": {
       "document": "Document",
-      "map": "Map"
+      "map": "Map",
+      "facts": "Facts"
     },
     "views": "Document or map",
     "canvas": "Map of the document's topics. Use the arrow keys to move, plus and minus to zoom.",
@@ -581,10 +595,35 @@
           "prompt": "List the risks, decisions, action items and responsible parties stated in this document. Cite the supporting passages."
         }
       }
-    },
-    "languageWarning": "This document is in {{language}}. Search matches the words of your question, so a prompt in another language may find nothing.",
-    "languageSwitch": "Use {{language}} prompts",
-    "languageUsing": "Prompts are added in {{language}}, the document's language, so the answer may be too.",
-    "languageBack": "Use interface language"
+    }
+  },
+  "facts": {
+    "title": "Facts",
+    "note": "Found by text patterns, not by AI. Every item shows the sentence it came from.",
+    "loading": "Reading the facts…",
+    "emptyTitle": "No facts found",
+    "emptyBody": "No dates, deadlines, amounts or percentages were recognized in this document.",
+    "errorTitle": "The facts couldn't be loaded",
+    "notReady": "Facts appear when the server finishes processing.",
+    "failed": "This document couldn't be processed, so it has no facts.",
+    "show": "Show in document",
+    "noJump": "The sentence couldn't be located in the text, so there is nothing to open.",
+    "suggested": "Questions to try",
+    "suggestedHint": "Fills in the question for you to edit. Nothing is sent until you send it.",
+    "back": "Back to facts",
+    "kinds": {
+      "deadline": "Deadlines",
+      "date": "Dates",
+      "duration": "Durations",
+      "amount": "Amounts",
+      "percent": "Percentages"
+    }
+  },
+  "docx": {
+    "label": "Text of the document",
+    "note": "Extracted text: the original layout isn't shown, and Word has no stable pages.",
+    "loading": "Loading the text…",
+    "emptyTitle": "This document has no text to show",
+    "errorTitle": "The text couldn't be loaded"
   }
 }

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { useEvidenceApi } from '@/features/evidence/EvidenceContext';
 import { AnswerMarkdown } from '@/features/sources/AnswerMarkdown';
 import { SourceCard } from '@/features/sources/SourceCard';
-import type { AssistantMessage, EvidenceSource } from '@/types/chat';
+import type { AssistantMessage, EvidenceSource, NotFoundReason } from '@/types/chat';
 
 interface Props {
   message: AssistantMessage;
@@ -16,7 +16,7 @@ interface Props {
   onUseDemo: (() => void) | null;
 }
 
-function Working() {
+function Working({ live }: { live: boolean }) {
   const { t } = useTranslation();
   return (
     <div role="status" className="flex items-center gap-2 text-sm text-muted">
@@ -25,20 +25,22 @@ function Working() {
           <span key={dot} className="pulse-dot size-1.5 rounded-full bg-muted" style={{ animationDelay: `${dot * 160}ms` }} />
         ))}
       </span>
-      {t('chat.working')}
+      {t(live ? 'chat.workingLive' : 'chat.working')}
     </div>
   );
 }
 
-function NotFound({ onRephrase }: { onRephrase: () => void }) {
+function NotFound({ reason, onRephrase }: { reason: NotFoundReason | undefined; onRephrase: () => void }) {
   const { t } = useTranslation();
+  // Saved history has no reason, and a rejected answer is a different thing from a document that lacks it.
+  const rejected = reason === 'no_citation' || reason === 'citations_failed_verification' || reason === 'empty_answer';
   return (
-    <div data-testid="not-found" className="rounded-control border border-line bg-card p-3">
+    <div data-testid="not-found" data-reason={reason} className="rounded-control border border-line bg-card p-3">
       <p className="flex items-center gap-2 font-medium">
         <SearchX size={16} className="shrink-0 text-warning" aria-hidden />
-        {t('chat.notFoundTitle')}
+        {t(rejected ? 'chat.notVerifiedTitle' : 'chat.notFoundTitle')}
       </p>
-      <p className="mt-1 text-sm text-muted">{t('chat.notFoundBody')}</p>
+      <p className="mt-1 text-sm text-muted">{t(reason ? `chat.notFoundReason.${reason}` : 'chat.notFoundBody')}</p>
       <Button size="sm" className="mt-3" onClick={onRephrase}>
         {t('chat.rephrase')}
       </Button>
@@ -66,10 +68,11 @@ export function AnswerMessage({ message, animate, onRetry, onRephrase, onUseDemo
       transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
       className="space-y-3"
     >
-      <p className="micro-label">{label}</p>
+      {/* An error is not an answer, so it doesn't sit under the answer's label. */}
+      {message.status !== 'error' && <p className="micro-label">{label}</p>}
 
-      {message.status === 'pending' && !message.text && <Working />}
-      {notFound && <NotFound onRephrase={onRephrase} />}
+      {message.status === 'pending' && !message.text && <Working live={message.mode === 'live'} />}
+      {notFound && <NotFound reason={message.notFoundReason} onRephrase={onRephrase} />}
       {message.text && !notFound && (
         <AnswerMarkdown
           text={message.text}
@@ -117,7 +120,7 @@ export function AnswerMessage({ message, animate, onRetry, onRephrase, onUseDemo
             </p>
           )}
           <div className="flex flex-wrap gap-2">
-            {(message.status === 'stopped' || message.retryable !== false) && (
+            {(message.status === 'stopped' || message.retryable === true) && (
               <Button size="sm" icon={<RotateCcw size={14} aria-hidden />} onClick={() => onRetry(message.id)}>
                 {t('common.retry')}
               </Button>

@@ -8,7 +8,7 @@ import { StateBlock } from '@/components/ui/StateBlock';
 import { cn } from '@/lib/cn';
 import type { DocumentText } from '@/services/chat/demo/textIndex';
 import { buildTopicGraph, neighbours, searchTopics, type Fragment, type TopicNode } from './buildGraph';
-import { centerOn, fitView, layoutGraph, zoomAt, type View } from './layout';
+import { centerOn, fitView, layoutGraph, zoomAt, type View, placeLabels } from './layout';
 
 const GROUP_FILL = ['fill-accent', 'fill-accent-2-line', 'fill-plum', 'fill-slate', 'fill-fg'];
 const GROUP_BG = ['bg-accent', 'bg-accent-2-line', 'bg-plum', 'bg-slate', 'bg-fg'];
@@ -92,6 +92,17 @@ function MapCanvas({ text, onOpenFragment }: { text: DocumentText; onOpenFragmen
   const nodeScale = view.k < MIN_NODE_ZOOM ? MIN_NODE_ZOOM / view.k : 1;
   const hitRadius = (node: TopicNode) => Math.max(radius(node) + 7, TOUCH_RADIUS / (view.k * nodeScale));
 
+  const labelPlaces = placeLabels(
+    graph.nodes.flatMap((node) => {
+      const point = positions.get(node.id);
+      if (!point) return [];
+      const shown = labelled.has(node.id) || node.id === selectedId || relatedIds.has(node.id) || matchIds.has(node.id);
+      // Every node takes part, so no label lands on one. Unshown nodes just have no text to place.
+      return [{ id: node.id, label: shown ? node.label : '', x: point.x, y: point.y, r: radius(node) * nodeScale, forced: node.id === selectedId || matchIds.has(node.id), priority: node.mentions + (relatedIds.has(node.id) ? 1000 : 0) }];
+    }),
+    nodeScale,
+  );
+
   const select = (node: TopicNode) => {
     setSelectedId(node.id);
     const point = positions.get(node.id);
@@ -164,6 +175,7 @@ function MapCanvas({ text, onOpenFragment }: { text: DocumentText; onOpenFragmen
             if (!point) return null;
             const isSelected = node.id === selectedId;
             const near = relatedIds.has(node.id);
+            const place = labelPlaces.get(node.id);
             const match = matchIds.has(node.id);
             const dim = searching ? !match : Boolean(selectedId) && !isSelected && !near;
             const r = radius(node);
@@ -190,8 +202,8 @@ function MapCanvas({ text, onOpenFragment }: { text: DocumentText; onOpenFragmen
                 <circle r={r + 7} className={cn(GROUP_FILL[node.group], 'opacity-15 transition-opacity duration-150 group-hover:opacity-40 group-focus-visible:opacity-60')} />
                 {(isSelected || match) && <circle r={r + 5} fill="none" strokeWidth={2} className={match && !isSelected ? 'stroke-accent-2' : 'stroke-fg'} />}
                 <circle r={r} className={GROUP_FILL[node.group]} />
-                {(labelled.has(node.id) || isSelected || near || match) && (
-                  <text y={-r - 9} textAnchor="middle" className={cn('pointer-events-none text-[13px] font-medium', isSelected ? 'fill-fg' : 'fill-muted')} style={{ paintOrder: 'stroke', stroke: 'var(--color-bg)', strokeWidth: 3 }}>
+                {(labelled.has(node.id) || isSelected || near || match) && place && (
+                  <text x={place.dx / nodeScale} y={place.dy / nodeScale} textAnchor={place.anchor} className={cn('pointer-events-none text-[13px] font-medium', isSelected ? 'fill-fg' : 'fill-muted')} style={{ paintOrder: 'stroke', stroke: 'var(--color-bg)', strokeWidth: 3 }}>
                     {node.label}
                   </text>
                 )}

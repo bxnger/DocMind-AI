@@ -1,4 +1,4 @@
-import type { AnswerStatus, ChatMessage, EvidenceRect, EvidenceSource } from '@/types/chat';
+import { NOT_FOUND_REASONS, type AnswerStatus, type ChatMessage, type EvidenceRect, type EvidenceSource, type NotFoundReason } from '@/types/chat';
 import { AppError, ERROR_BAD_RESPONSE, deleteResource, getJson, isRecord, networkError, postJson } from './client';
 import { SseParser } from './sse';
 
@@ -33,11 +33,14 @@ export function toSource(value: unknown): EvidenceSource {
     location: typeof value.location === 'string' ? value.location : null,
     quote: value.quote,
     ...(highlights.length ? { highlights } : {}),
+    ...(typeof value.paragraph === 'number' ? { paragraph: value.paragraph } : {}),
   };
 }
 
 const toAnswerStatus = (value: unknown): AnswerStatus | null =>
   value === 'answered' || value === 'not_found' ? value : null;
+
+const toReason = (value: unknown): NotFoundReason | undefined => NOT_FOUND_REASONS.find((reason) => reason === value);
 
 export async function createConversation(documentIds: string[], title: string): Promise<string> {
   const response = await postJson('/conversations', { documentIds, title });
@@ -54,7 +57,7 @@ export async function listMessages(id: string, signal?: AbortSignal): Promise<Ch
   const body = await getJson(`/conversations/${encodeURIComponent(id)}/messages`, signal);
   if (!isRecord(body) || !Array.isArray(body.items)) throw bad();
   let question = '';
-  return body.items.map((item: unknown): ChatMessage => {
+  const items = body.items.map((item: unknown): ChatMessage => {
     if (!isRecord(item) || typeof item.id !== 'string') throw bad();
     const content = typeof item.content === 'string' ? item.content : '';
     if (item.role === 'user') {
@@ -74,13 +77,38 @@ export async function listMessages(id: string, signal?: AbortSignal): Promise<Ch
       answerStatus,
     };
   });
+  return tidyHistory(items);
+}
+
+/**
+ * The backend saves a question before answering it, and saves no reply after a provider error or a stop.
+ * So a retried question is stored twice and an unanswered one has no reply. The reader sees each question
+ * once, and one without a reply can be asked again.
+ */
+export function tidyHistory(items: ChatMessage[]): ChatMessage[] {
+  const result: ChatMessage[] = [];
+  const closeUnanswered = () => {
+    const last = result.at(-1);
+    if (last?.role !== 'user') return;
+    result.push({ id: `${last.id}:unanswered`, role: 'assistant', question: last.text, mode: 'live', text: '', sources: [], status: 'stopped', answerStatus: null });
+  };
+  for (const item of items) {
+    const last = result.at(-1);
+    if (item.role === 'user') {
+      if (last?.role === 'user' && last.text === item.text) result.pop();
+      else closeUnanswered();
+    }
+    result.push(item);
+  }
+  closeUnanswered();
+  return result;
 }
 
 export type StreamEvent =
   | { type: 'start'; messageId: string }
   | { type: 'token'; text: string }
   | { type: 'sources'; sources: EvidenceSource[] }
-  | { type: 'done'; answerStatus: AnswerStatus };
+  | { type: 'done'; answerStatus: AnswerStatus; reason?: NotFoundReason };
 
 function parseEvent(event: string, raw: string): StreamEvent | null {
   let data: unknown;
@@ -101,7 +129,7 @@ function parseEvent(event: string, raw: string): StreamEvent | null {
     case 'done': {
       const answerStatus = toAnswerStatus(data.answerStatus);
       if (!answerStatus) throw bad();
-      return { type: 'done', answerStatus };
+      return { type: 'done', answerStatus, reason: toReason(data.reason) };
     }
     case 'error':
       throw new AppError({

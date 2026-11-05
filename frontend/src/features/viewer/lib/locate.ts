@@ -8,14 +8,16 @@ import { findMatches, type TextMatch } from './textMatch';
  * - text: no rectangles, but the quote was found verbatim in the page's text layer
  * - page: only the page is known, so nothing is highlighted
  * - unknown: the page text has not been read yet, so it cannot be said yet
- * - section: a DOCX source, which has a heading and no page
+ * - block: a DOCX source whose block in the text reader is known
+ * - section: a DOCX source with only a heading: no page, and no known block
  */
-export type LocatorKind = 'coordinates' | 'text' | 'page' | 'unknown' | 'section';
+export type LocatorKind = 'coordinates' | 'text' | 'page' | 'unknown' | 'block' | 'section';
 
 export interface Locatable {
   page: number | null;
   quote: string | null;
   highlights?: EvidenceRect[];
+  paragraph?: number;
 }
 
 export interface Located {
@@ -25,7 +27,7 @@ export interface Located {
 
 /** Never invents a location: a highlight exists only if the backend sent it or the quote is really on the page. */
 export function locateEvidence(target: Locatable, pages: DocumentText | undefined): Located {
-  if (target.page === null) return { kind: 'section', match: null };
+  if (target.page === null) return { kind: target.paragraph === undefined ? 'section' : 'block', match: null };
   if (target.highlights?.length) return { kind: 'coordinates', match: null };
   if (!target.quote) return { kind: 'page', match: null };
   if (!pages) return { kind: 'unknown', match: null };

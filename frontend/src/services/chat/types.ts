@@ -1,4 +1,4 @@
-import type { AnswerStatus, ChatMessage, ChatMode, EvidenceSource } from '@/types/chat';
+import type { AnswerStatus, ChatMessage, ChatMode, EvidenceSource, NotFoundReason } from '@/types/chat';
 
 export interface ChatRequest {
   question: string;
@@ -11,7 +11,7 @@ export interface ChatRequest {
 export type ChatEvent =
   | { type: 'delta'; text: string }
   | { type: 'sources'; sources: EvidenceSource[] }
-  | { type: 'done'; answerStatus: AnswerStatus };
+  | { type: 'done'; answerStatus: AnswerStatus; reason?: NotFoundReason };
 
 export interface ChatAdapter {
   readonly mode: ChatMode;

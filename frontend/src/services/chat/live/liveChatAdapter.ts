@@ -67,7 +67,7 @@ export function createLiveChatAdapter(documentId: string, documentName: string):
         const event = first.value;
         if (event.type === 'token') yield { type: 'delta', text: event.text };
         else if (event.type === 'sources') yield { type: 'sources', sources: event.sources };
-        else if (event.type === 'done') yield { type: 'done', answerStatus: event.answerStatus };
+        else if (event.type === 'done') yield { type: 'done', answerStatus: event.answerStatus, reason: event.reason };
         first = await events.next();
       }
     },

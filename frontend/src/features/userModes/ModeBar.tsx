@@ -4,25 +4,18 @@ import { useTranslation } from 'react-i18next';
 import { IconButton } from '@/components/ui/IconButton';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import type { ComposerHandle } from '@/features/chat/Composer';
-import { LANGUAGES } from '@/i18n';
-import { MODE_ACTIONS, mismatchedDocumentLanguage, type ActionState } from './modes';
+import { MODE_ACTIONS, type ActionState } from './modes';
 import { useUserMode } from './useUserMode';
 
 interface Props {
   state: ActionState;
   hasMessages: boolean;
   composer: React.RefObject<ComposerHandle | null>;
-  documentLanguage: string | null;
 }
 
 /** Sits above the composer. Actions only fill the composer: sending stays the user's own step. */
-export function ModeBar({ state, hasMessages, composer, documentLanguage }: Props) {
-  const { t, i18n } = useTranslation();
-  const otherLanguage = mismatchedDocumentLanguage(i18n.language, documentLanguage);
-  const otherName = LANGUAGES.find((language) => language.code === otherLanguage)?.name ?? '';
-  // A choice per open document; the default follows the interface language.
-  const [useDocumentLanguage, setUseDocumentLanguage] = useState(false);
-  const promptLanguage = otherLanguage && useDocumentLanguage ? otherLanguage : i18n.language;
+export function ModeBar({ state, hasMessages, composer }: Props) {
+  const { t } = useTranslation();
   const mode = useUserMode();
   const shortScreen = useMediaQuery('(max-height: 500px)');
   // Open while there is nothing to read; once a chat has started, the answers need the room.
@@ -58,7 +51,7 @@ export function ModeBar({ state, hasMessages, composer, documentLanguage }: Prop
                     data-action={action}
                     aria-description={t('userModes.insertHint')}
                     onClick={() => {
-                      const result = composer.current?.insert(t(`userModes.actions.${action}.prompt`, { lng: promptLanguage }));
+                      const result = composer.current?.insert(t(`userModes.actions.${action}.prompt`));
                       setFeedback(result === 'too-long' ? t('userModes.tooLong') : null);
                     }}
                     className="pressable inline-flex min-h-7 items-center gap-1.5 rounded-lg border pointer-coarse:min-h-10 max-sm:whitespace-nowrap border-line bg-card px-2 text-left text-xs font-medium text-fg/90 hover:border-accent-line hover:bg-card-raised"
@@ -69,14 +62,6 @@ export function ModeBar({ state, hasMessages, composer, documentLanguage }: Prop
                 </li>
               ))}
             </ul>
-          )}
-          {!note && otherLanguage && (
-            <p data-testid="language-note" className="mt-1.5 text-xs text-warning">
-              {useDocumentLanguage ? t('userModes.languageUsing', { language: otherName }) : t('userModes.languageWarning', { language: otherName })}{' '}
-              <button type="button" aria-pressed={useDocumentLanguage} onClick={() => setUseDocumentLanguage(!useDocumentLanguage)} className="inline-flex min-h-6 items-center font-medium underline underline-offset-2">
-                {useDocumentLanguage ? t('userModes.languageBack') : t('userModes.languageSwitch', { language: otherName })}
-              </button>
-            </p>
           )}
           {!note && mode === 'legal' && <p className="mt-1.5 text-xs text-muted">{t('userModes.legalNote')}</p>}
           <p role="status" className="text-xs text-warning empty:hidden">{feedback}</p>
