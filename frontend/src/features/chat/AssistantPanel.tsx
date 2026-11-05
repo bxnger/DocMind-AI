@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { actionState } from '@/features/userModes/modes';
+import { ModeBar } from '@/features/userModes/ModeBar';
 import { useCodeMessage } from '@/features/system/useErrorMessage';
 import { cn } from '@/lib/cn';
 import { StateBlock } from '@/components/ui/StateBlock';
@@ -145,7 +147,7 @@ export function AssistantPanel({ mode, canSwitchMode, onModeChange, doc, availab
               {t(availability.reason === 'processing' ? 'chat.waitingProcessing' : 'chat.preparing')}
             </p>
           ) : (
-            availability.suggestions.length > 0 && (
+            mode === 'demo' && availability.suggestions.length > 0 && (
               <ul className="mt-4 space-y-1" lang={availability.suggestionLang}>
                 {availability.suggestions.map((question) => (
                   <li key={question}>
@@ -165,6 +167,7 @@ export function AssistantPanel({ mode, canSwitchMode, onModeChange, doc, availab
         </div>
       )}
 
+      <ModeBar state={actionState(availability.state, mode)} hasMessages={chat.messages.length > 0} composer={composer} documentLanguage={doc.language} />
       <Composer
         ref={composer}
         documentName={doc.name}
