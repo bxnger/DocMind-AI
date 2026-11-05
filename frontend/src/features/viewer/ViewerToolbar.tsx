@@ -51,7 +51,7 @@ export function ViewerToolbar(props: Props) {
         <IconButton dense label={t('viewer.nextPage')} icon={<ChevronRight size={16} aria-hidden />} disabled={page >= pageCount} onClick={() => onPage(page + 1)} />
         <span className="mx-1 h-4 w-px shrink-0 bg-line max-sm:hidden" aria-hidden />
         <IconButton dense label={t('viewer.zoomOut')} icon={<Minus size={16} aria-hidden />} onClick={() => onZoomStep(-1)} />
-        <span aria-live="polite" className="tabular w-10 text-center text-sm text-muted">
+        <span aria-live="polite" className="tabular w-10 text-center text-sm text-muted max-[359px]:sr-only">
           {Math.round(scale * 100)}%
         </span>
         <IconButton dense label={t('viewer.zoomIn')} icon={<Plus size={16} aria-hidden />} onClick={() => onZoomStep(1)} />

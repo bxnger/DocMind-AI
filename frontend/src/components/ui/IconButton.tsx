@@ -23,7 +23,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       className={cn(
         'pressable inline-flex size-8 shrink-0 items-center justify-center rounded-[10px] text-muted',
         'hover:bg-hover hover:text-fg disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent',
-        !dense && 'pointer-coarse:size-11',
+        dense ? 'pointer-coarse:min-[400px]:size-9' : 'pointer-coarse:size-11',
         active && 'bg-accent-tint text-fg',
         className,
       )}

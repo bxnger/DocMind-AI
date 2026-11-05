@@ -72,7 +72,10 @@ function Results({ id, documents, onNew }: { id: string; documents: DocumentMode
         <div className="max-w-xl max-lg:hidden"><Notice /></div>
         <Button size="sm" icon={<Plus size={14} aria-hidden />} onClick={onNew}>{t('compare.newComparison')}</Button>
       </header>
-      <div className="border-b border-line px-3 py-1.5 lg:hidden"><Notice /></div>
+      <details className="border-b border-line px-3 py-1.5 text-xs lg:hidden">
+        <summary className="flex min-h-6 cursor-pointer items-center gap-1 text-muted pointer-coarse:min-h-9"><strong className="font-medium text-fg">{t('compare.noticeTitle')}</strong> {t('compare.noticeMore')}</summary>
+        <Notice />
+      </details>
       {comparison.isPending ? (
         <div role="status" aria-label={t('compare.running')} className="space-y-2 p-4">
           <Skeleton className="h-10" />

@@ -50,9 +50,9 @@ export function ModeBar({ state, hasMessages, composer, documentLanguage }: Prop
           {note ? (
             <p data-testid="mode-note" className="text-xs text-muted">{note}</p>
           ) : (
-            <ul aria-label={t('userModes.actionsLabel', { mode: t(`userModes.modes.${mode}.name`) })} className="flex max-h-28 flex-wrap gap-1 overflow-y-auto p-px">
+            <ul aria-label={t('userModes.actionsLabel', { mode: t(`userModes.modes.${mode}.name`) })} className="flex max-h-28 flex-wrap gap-1 overflow-y-auto p-px max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:overflow-y-hidden">
               {MODE_ACTIONS[mode].map((action) => (
-                <li key={action}>
+                <li key={action} className="shrink-0">
                   <button
                     type="button"
                     data-action={action}
@@ -61,7 +61,7 @@ export function ModeBar({ state, hasMessages, composer, documentLanguage }: Prop
                       const result = composer.current?.insert(t(`userModes.actions.${action}.prompt`, { lng: promptLanguage }));
                       setFeedback(result === 'too-long' ? t('userModes.tooLong') : null);
                     }}
-                    className="pressable inline-flex min-h-7 items-center gap-1.5 rounded-lg border border-line bg-card px-2 text-left text-xs font-medium text-fg/90 hover:border-accent-line hover:bg-card-raised"
+                    className="pressable inline-flex min-h-7 items-center gap-1.5 rounded-lg border pointer-coarse:min-h-10 max-sm:whitespace-nowrap border-line bg-card px-2 text-left text-xs font-medium text-fg/90 hover:border-accent-line hover:bg-card-raised"
                   >
                     <CornerDownLeft size={12} className="shrink-0 text-muted" aria-hidden />
                     {t(`userModes.actions.${action}.label`)}

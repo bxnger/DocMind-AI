@@ -132,6 +132,15 @@ label[for] {
 }
 }
 
+/* iOS zooms the whole page when focusing a field under 16px. */
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
 .tabular {
   font-variant-numeric: tabular-nums;
 }
@@ -223,12 +232,16 @@ label[for] {
 }
 
 /* PDF text-layer marks. The glyphs stay on the canvas underneath. */
+/* The layer is its own stacking context, so it must be the thing that blends with the page below.
+   Blending on the marks alone would paint them opaque over the document's text. */
+.textLayer {
+  mix-blend-mode: multiply;
+}
 .textLayer mark {
   color: transparent;
   border-radius: 2px;
   margin: -1px;
   padding: 1px;
-  mix-blend-mode: multiply;
 }
 .textLayer mark.hl-quote {
   background: #f7e8ab;

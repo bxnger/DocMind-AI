@@ -122,7 +122,7 @@ export function CompareResults({ comparison, docA, docB }: Props) {
   return (
     <section aria-label={t('compare.results')} className="flex min-h-0 flex-1 flex-col">
       <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2 md:px-4">
-        <div role="radiogroup" aria-label={t('compare.filter')} className="inline-flex flex-wrap rounded-[10px] border border-line bg-card p-0.5">
+        <div role="radiogroup" aria-label={t('compare.filter')} className="inline-flex max-w-full overflow-x-auto rounded-[10px] border border-line bg-card p-0.5">
           {FILTERS.map((value) => (
             <button
               key={value}
@@ -133,7 +133,7 @@ export function CompareResults({ comparison, docA, docB }: Props) {
                 setFilter(value);
                 setLimit(PAGE_SIZE);
               }}
-              className={cn('pressable tabular relative h-8 rounded-lg px-2.5 text-sm font-medium', filter === value ? 'text-fg' : 'text-muted hover:text-fg')}
+              className={cn('pressable tabular relative h-8 shrink-0 whitespace-nowrap rounded-lg px-2.5 text-sm font-medium pointer-coarse:h-10', filter === value ? 'text-fg' : 'text-muted hover:text-fg')}
             >
               {filter === value && <motion.span layoutId="compare-filter" transition={{ duration: 0.16 }} className="absolute inset-0 rounded-lg bg-accent-tint" />}
               <span className="relative">

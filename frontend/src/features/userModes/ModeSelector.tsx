@@ -49,7 +49,7 @@ export function ModeSelector({ showAllLabels = false }: { showAllLabels?: boolea
             tabIndex={active ? 0 : -1}
             title={`${name}: ${t(`userModes.modes.${mode}.description`)}`}
             onClick={() => setUserMode(mode)}
-            className={cn('pressable inline-flex h-7 min-w-7 items-center justify-center gap-1.5 rounded-lg border px-1.5 text-xs font-medium', active ? 'border-accent-line bg-accent-tint text-fg' : 'border-transparent text-muted hover:text-fg')}
+            className={cn('pressable inline-flex h-7 min-w-7 pointer-coarse:h-9 pointer-coarse:min-w-9 items-center justify-center gap-1.5 rounded-lg border px-1.5 text-xs font-medium', active ? 'border-accent-line bg-accent-tint text-fg' : 'border-transparent text-muted hover:text-fg')}
           >
             <Icon size={14} className="shrink-0" aria-hidden />
             {(active || showAllLabels) && <span>{name}</span>}
@@ -66,7 +66,7 @@ export function ModeSelect() {
   const selected = useUserMode();
   const Icon = MODE_ICONS[selected];
   return (
-    <label data-testid="mode-select" title={t(`userModes.modes.${selected}.description`)} className="relative inline-flex h-7 min-w-0 items-center rounded-lg border border-line bg-card text-xs font-medium focus-within:border-accent hover:border-line-strong">
+    <label data-testid="mode-select" title={t(`userModes.modes.${selected}.description`)} className="relative inline-flex h-7 min-w-0 items-center rounded-lg pointer-coarse:h-9 border border-line bg-card text-xs font-medium focus-within:border-accent hover:border-line-strong">
       <Icon size={13} className="pointer-events-none absolute left-2 text-accent" aria-hidden />
       <select
         aria-label={t('userModes.selector')}

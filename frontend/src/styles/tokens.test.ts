@@ -20,6 +20,12 @@ const contrast = (a: string, b: string) => {
   return (hi + 0.05) / (lo + 0.05);
 };
 
+describe('highlights over the PDF', () => {
+  it('blend at the layer level, so they never hide the text of the page', () => {
+    expect(css).toMatch(/\.textLayer \{\s*mix-blend-mode: multiply;/);
+  });
+});
+
 describe('design tokens meet WCAG AA text contrast', () => {
   const light = scope('@theme');
   it.each([

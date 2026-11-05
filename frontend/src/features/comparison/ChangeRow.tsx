@@ -90,7 +90,7 @@ export function ChangeRow({ difference, number, selected, docA, docB, canShowInD
       className={cn('overflow-hidden rounded-control border border-l-[3px] bg-card transition-colors duration-150', TONE[type].rail, selected ? 'border-y-accent-line border-r-accent-line shadow-[0_0_0_1px_var(--color-accent-line)]' : 'border-y-line border-r-line')}
     >
       <div className="flex flex-wrap items-center gap-2 border-b border-line py-1 pr-1 pl-3">
-        <button type="button" onClick={onSelect} aria-pressed={selected} className="flex min-h-8 min-w-0 flex-1 items-center gap-2 rounded-lg text-left">
+        <button type="button" onClick={onSelect} aria-pressed={selected} className="relative flex min-h-8 min-w-40 flex-1 items-center gap-2 rounded-lg text-left">
           <span className="tabular text-xs text-muted">{number}</span>
           <TypeBadge type={type} />
           {diff && (

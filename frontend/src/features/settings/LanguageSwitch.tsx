@@ -6,7 +6,7 @@ import { LANGUAGES, type Language } from '@/i18n';
 export function LanguageSwitch({ variant = 'compact' }: { variant?: 'compact' | 'full' }) {
   const { t, i18n } = useTranslation();
   return (
-    <div role="radiogroup" aria-label={t('settings.language')} className="inline-flex rounded-[10px] border border-line bg-card p-0.5">
+    <div role="radiogroup" aria-label={t('settings.language')} className="inline-flex max-w-full flex-wrap rounded-[10px] border border-line bg-card p-0.5">
       {LANGUAGES.map((language: Language) => {
         const active = i18n.language === language.code;
         return (

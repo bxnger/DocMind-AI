@@ -13,6 +13,9 @@ import { centerOn, fitView, layoutGraph, zoomAt, type View } from './layout';
 const GROUP_FILL = ['fill-accent', 'fill-accent-2-line', 'fill-plum', 'fill-slate', 'fill-fg'];
 const GROUP_BG = ['bg-accent', 'bg-accent-2-line', 'bg-plum', 'bg-slate', 'bg-fg'];
 const KEY_PAN = 40;
+const MIN_NODE_ZOOM = 0.75;
+/** Half of a comfortable finger target, in screen pixels. */
+const TOUCH_RADIUS = 22;
 
 interface Props {
   /** Undefined while the text is being read. */
@@ -83,12 +86,17 @@ function MapCanvas({ text, onOpenFragment }: { text: DocumentText; onOpenFragmen
   const searching = query.trim().length > 0;
   const maxMentions = Math.max(1, ...graph.nodes.map((node) => node.mentions));
   const radius = (node: TopicNode) => 7 + 15 * Math.sqrt(node.mentions / maxMentions);
-  const labelled = new Set([...graph.nodes].sort((a, b) => b.mentions - a.mentions).slice(0, view.k > 1.2 ? 30 : 12).map((node) => node.id));
+  const narrow = size.width > 0 && size.width < 640;
+  const labelled = new Set([...graph.nodes].sort((a, b) => b.mentions - a.mentions).slice(0, view.k > 1.2 ? 30 : narrow ? 6 : 12).map((node) => node.id));
+  // Fit-to-screen on a phone shrinks the world a lot. Nodes and labels keep a usable size on screen.
+  const nodeScale = view.k < MIN_NODE_ZOOM ? MIN_NODE_ZOOM / view.k : 1;
+  const hitRadius = (node: TopicNode) => Math.max(radius(node) + 7, TOUCH_RADIUS / (view.k * nodeScale));
 
   const select = (node: TopicNode) => {
     setSelectedId(node.id);
     const point = positions.get(node.id);
-    if (point && size.width) setMoved(centerOn(view, point, size.width, size.height));
+    // On a phone the panel covers the lower half, so the node goes in the part left visible.
+    if (point && size.width) setMoved(centerOn(view, point, size.width, narrow ? size.height * 0.45 : size.height));
   };
   const zoomButton = (factor: number) => setMoved(zoomAt(view, factor, size.width / 2, size.height / 2));
 
@@ -167,7 +175,7 @@ function MapCanvas({ text, onOpenFragment }: { text: DocumentText; onOpenFragmen
                 tabIndex={0}
                 aria-pressed={isSelected}
                 aria-label={t('map.nodeLabel', { label: node.label, count: node.mentions })}
-                transform={`translate(${point.x} ${point.y})`}
+                transform={`translate(${point.x} ${point.y}) scale(${nodeScale})`}
                 onClick={() => select(node)}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' || event.key === ' ') {
@@ -178,6 +186,7 @@ function MapCanvas({ text, onOpenFragment }: { text: DocumentText; onOpenFragmen
                 }}
                 className={cn('group cursor-pointer outline-none transition-opacity duration-150', dim ? 'opacity-25' : 'opacity-100')}
               >
+                <circle r={hitRadius(node)} fill="transparent" />
                 <circle r={r + 7} className={cn(GROUP_FILL[node.group], 'opacity-15 transition-opacity duration-150 group-hover:opacity-40 group-focus-visible:opacity-60')} />
                 {(isSelected || match) && <circle r={r + 5} fill="none" strokeWidth={2} className={match && !isSelected ? 'stroke-accent-2' : 'stroke-fg'} />}
                 <circle r={r} className={GROUP_FILL[node.group]} />
@@ -205,7 +214,7 @@ function MapCanvas({ text, onOpenFragment }: { text: DocumentText; onOpenFragmen
             }}
             aria-label={t('map.search')}
             placeholder={t('map.search')}
-            className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted"
+            className="h-full min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted"
           />
         </label>
         <p aria-live="polite" className="tabular rounded-control border border-line bg-card px-3 py-1.5 text-xs text-muted">
@@ -213,12 +222,13 @@ function MapCanvas({ text, onOpenFragment }: { text: DocumentText; onOpenFragmen
         </p>
       </div>
 
-      <div className="absolute bottom-3 left-3 flex flex-col gap-2">
+      <div className={cn('absolute bottom-3 left-3 flex flex-col gap-2', selected && 'max-sm:hidden')}>
         <div role="toolbar" aria-label={t('map.controls')} className="flex w-fit rounded-control border border-line bg-card p-0.5">
           <IconButton dense label={t('viewer.zoomOut')} icon={<Minus size={16} aria-hidden />} onClick={() => zoomButton(0.8)} />
           <IconButton dense label={t('viewer.zoomIn')} icon={<Plus size={16} aria-hidden />} onClick={() => zoomButton(1.25)} />
           <IconButton dense label={t('map.fit')} icon={<Maximize2 size={15} aria-hidden />} onClick={() => setMoved(null)} />
         </div>
+        <p className="w-fit rounded-control border border-line bg-card px-2 py-1 text-xs font-medium sm:hidden">{t('map.noticeShort')}</p>
         <p data-testid="map-notice" className="max-w-72 rounded-control border border-line bg-card px-3 py-1.5 text-xs text-muted max-sm:hidden">
           <strong className="font-medium text-fg">{t('map.noticeTitle')}</strong> {t('map.noticeBody')}
         </p>
