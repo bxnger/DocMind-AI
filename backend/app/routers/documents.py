@@ -119,13 +119,30 @@ def get_document_text(doc_id: str, store: Store = Depends(get_store)) -> dict:
     return {"documentId": doc_id, "kind": doc["kind"], "language": doc.get("language"), "blocks": blocks}
 
 
+def fact_segments(store: Store, doc: dict) -> list[dict]:
+    """The text the facts are found in. A DOCX section joins its heading, paragraphs and table rows into one string,
+    so a "sentence" could run from a heading into a paragraph or across rows: for DOCX each block is its own segment,
+    and its index travels with the fact as `paragraph`."""
+    if doc["kind"] == "docx":
+        try:
+            blocks = docx_blocks(store.file_path(doc["id"], "docx"))
+        except (ExtractionError, OSError):
+            return store.segments_for_document(doc["id"])
+        return [
+            {"page": None, "location": block["section"], "text": block["text"], "paragraph": block["index"]}
+            for block in blocks
+            if block["kind"] != "heading"
+        ]
+    return store.segments_for_document(doc["id"])
+
+
 @router.get("/{doc_id}/facts")
 def get_document_facts(doc_id: str, store: Store = Depends(get_store)) -> dict:
     """Dates, deadlines, amounts and percentages with their exact sentence, plus questions worth asking."""
     doc = store.get(doc_id)
     if doc["status"] != "ready":
         raise AppError(409, "DOCUMENT_NOT_READY", "Document is still being processed")
-    facts = extract_facts(store.segments_for_document(doc_id))
+    facts = extract_facts(fact_segments(store, doc))
     for fact in facts:
         highlights = []
         if doc["kind"] == "pdf" and fact["page"] is not None:

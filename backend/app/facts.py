@@ -77,9 +77,10 @@ def extract_facts(segments: list[dict]) -> list[dict]:
                 if key in seen:
                     continue
                 seen.add(key)
-                facts.append(
-                    {"kind": kind, "value": value, "quote": sentence, "page": segment["page"], "location": segment["location"]}
-                )
+                fact = {"kind": kind, "value": value, "quote": sentence, "page": segment["page"], "location": segment["location"]}
+                if segment.get("paragraph") is not None:
+                    fact["paragraph"] = segment["paragraph"]  # DOCX: the block of GET /documents/{id}/text
+                facts.append(fact)
                 if len(facts) >= MAX_FACTS:
                     return facts
     return facts

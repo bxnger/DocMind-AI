@@ -139,7 +139,6 @@ async def send_message(
                 logger.info("chat translate targets=%s ok=%s ms=%.0f", ",".join(targets), bool(translated), translate_ms)
         picked, overview = select_chunks(question, history, chunks, translated)
 
-    store.add_message(conversation_id, "user", question)
     prep_ms = (time.monotonic() - prep_started) * 1000
     assistant_id = uuid.uuid4().hex
     return StreamingResponse(
@@ -229,21 +228,28 @@ async def answer_stream(
             outcome, mode, model, prep_ms, chunk_count, first, (time.monotonic() - started) * 1000, detail,
         )
 
+    def save(content: str, status: str, sources: list[dict], reason: str | None = None) -> None:
+        # The question is saved together with its answer, and before the answer is sent. A failed attempt
+        # (provider error, timeout, a closed connection) leaves nothing behind, so a retry does not repeat
+        # the question in the history or in the model's context.
+        store.add_message(conversation_id, "user", question)
+        store.add_message(conversation_id, "assistant", content, status, sources, message_id=assistant_id, reason=reason)
+
     yield sse("start", {"messageId": assistant_id})
 
     if cached is not None:
         # The same question on the same documents was answered and verified before: replay it without the model.
+        save(cached.text, "answered", cached.sources)
         for piece in cached.pieces():
             yield sse("token", {"text": piece})
         yield sse("sources", {"sources": cached.sources})
         yield sse("done", {"messageId": assistant_id, "answerStatus": "answered"})
-        store.add_message(conversation_id, "assistant", cached.text, "answered", cached.sources, message_id=assistant_id)
         log("answered", cache="hit", sources=len(cached.sources))
         return
 
     if not picked:
         # Nothing relevant in the documents: no model call, an honest not_found.
-        store.add_message(conversation_id, "assistant", "", "not_found", [], message_id=assistant_id)
+        save("", "not_found", [], "no_matching_excerpt")
         yield sse("done", {"messageId": assistant_id, "answerStatus": "not_found", "reason": "no_matching_excerpt"})
         log("not_found", reason="no_matching_excerpt")
         return
@@ -292,22 +298,15 @@ async def answer_stream(
         cited = cited_numbers(answer)
         reason = "model_refused" if refused else "empty_answer" if not answer.strip() else "no_citation" if not cited else "citations_failed_verification"
         log("not_found", reason=reason, excerpts=len(excerpts), cited=len(cited), answer_chars=len(answer))
+    if status == "answered":
+        ANSWER_CACHE.put(key, final_text, sources)
+    save(final_text if status == "answered" else "", status, sources, reason if status == "not_found" else None)
     if sources:
         yield sse("sources", {"sources": sources})
     done = {"messageId": assistant_id, "answerStatus": status}
     if status == "not_found":
         done["reason"] = reason  # model_refused, no_citation, citations_failed_verification, empty_answer
     yield sse("done", done)
-    if status == "answered":
-        ANSWER_CACHE.put(key, final_text, sources)
-    store.add_message(
-        conversation_id,
-        "assistant",
-        final_text if status == "answered" else "",
-        status,
-        sources,
-        message_id=assistant_id,
-    )
 
 
 def claim_for(answer: str, number: int) -> str:
