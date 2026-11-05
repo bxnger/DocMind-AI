@@ -50,7 +50,7 @@ export function ViewerPane({ doc, source, pdf, text, jump, citedPages, quoteNoti
     if (source.reason === 'docx') {
       return (
         <Centered>
-          <StateBlock icon={<FileWarning size={18} aria-hidden />} title={t('viewer.docxTitle')} description={t('viewer.docxBody')} />
+          <StateBlock icon={<FileWarning size={18} aria-hidden />} title={t('viewer.docxTitle')} description={doc.status === 'ready' ? t('viewer.docxReady') : t('viewer.docxBody')} />
         </Centered>
       );
     }

@@ -93,11 +93,11 @@ export function AppearanceSection() {
           <p className="mb-2 text-sm text-muted">{t('settings.theme')}</p>
           <Choice
             label={t('settings.theme')}
-            value="dark"
+            value="light"
             onChange={() => undefined}
             options={[
-              { value: 'dark', label: t('settings.themeDark') },
-              { value: 'light', label: t('settings.themeLightSoon'), disabled: true },
+              { value: 'light', label: t('settings.themeLight') },
+              { value: 'dark', label: t('settings.themeDarkSoon'), disabled: true },
             ]}
           />
         </div>

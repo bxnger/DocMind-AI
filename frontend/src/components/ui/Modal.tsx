@@ -59,7 +59,7 @@ function ModalDialog({
       onClick={(event) => {
         if (event.target === ref.current) onClose();
       }}
-      className="fixed inset-0 m-0 flex h-dvh max-h-none w-screen max-w-none items-start justify-center bg-black/60 p-4 pt-[12vh] outline-none backdrop:bg-transparent"
+      className="fixed inset-0 m-0 flex h-dvh max-h-none w-screen max-w-none items-start justify-center bg-fg/45 p-4 pt-[12vh] outline-none backdrop:bg-transparent"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}

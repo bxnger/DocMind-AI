@@ -90,8 +90,8 @@ export function CitationMarker({ source, active, selected, onActivate, onOpen }:
           selected
             ? 'border-accent bg-accent text-on-accent'
             : active
-              ? 'border-accent-2 bg-accent-2-tint text-accent-2'
-              : 'border-accent-2-line text-accent-2 hover:bg-accent-2-tint',
+              ? 'border-accent-2 bg-accent-2-tint text-fg ring-1 ring-accent-2-line'
+              : 'border-accent-2-line bg-accent-2-tint text-fg hover:border-accent-2',
         )}
       >
         {source.index}

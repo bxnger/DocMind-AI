@@ -32,19 +32,21 @@ export function Dropzone({ className }: { className?: string }) {
       transition={{ duration: 0.14 }}
       data-testid="dropzone"
       className={cn(
-        'flex flex-col items-center justify-center rounded-panel border border-dashed px-6 py-8 text-center transition-colors duration-150',
-        dragging ? 'border-accent bg-accent-tint' : 'border-line-strong bg-sidebar',
+        'flex flex-wrap items-center gap-x-4 gap-y-3 rounded-panel border border-dashed p-4 transition-colors duration-150',
+        dragging ? 'border-accent bg-accent-tint' : 'border-line-strong bg-card',
         className,
       )}
     >
-      <span className="mb-3 inline-flex size-10 items-center justify-center rounded-control border border-line bg-card text-accent">
+      <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-control border border-line bg-sidebar text-accent">
         <Upload size={18} aria-hidden />
       </span>
-      <p className="text-md font-medium">{t('upload.dropTitle')}</p>
-      <p className="tabular mt-1 text-sm text-muted">
+      <div className="min-w-0 flex-1 basis-48">
+      <p className="font-medium">{t('upload.dropTitle')}</p>
+      <p className="tabular text-sm text-muted">
         {t('upload.limits', { size: formatBytes(maxBytes, i18n.language) })}
       </p>
-      <Button variant="primary" size="lg" className="mt-4" onClick={openPicker}>
+      </div>
+      <Button variant="primary" size="lg" className="max-sm:w-full" onClick={openPicker}>
         {t('upload.choose')}
       </Button>
     </motion.div>

@@ -100,7 +100,7 @@ export function Sidebar({ collapsed, drawer = false, canToggle, onToggle, onClos
     <aside
       aria-label={t('nav.sidebar')}
       className={cn(
-        'flex h-full shrink-0 flex-col overflow-hidden border-r border-line bg-sidebar p-3 transition-[width] duration-200 ease-[var(--ease-in-out)]',
+        'theme-ink flex h-full shrink-0 flex-col overflow-hidden border-r border-line bg-sidebar p-3 transition-[width] duration-200 ease-[var(--ease-in-out)]',
         collapsed ? 'w-16' : 'w-64',
       )}
     >

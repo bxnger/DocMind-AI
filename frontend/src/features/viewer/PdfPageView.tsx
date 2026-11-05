@@ -38,7 +38,7 @@ export const PdfPageView = memo(function PdfPageView({ pdf, page, scale, width, 
       role="group"
       aria-label={t('viewer.pageLabel', { page })}
       style={{ width, height }}
-      className="relative mx-auto bg-white shadow-[0_1px_2px_rgb(0_0_0/0.4),0_8px_24px_rgb(0_0_0/0.3)]"
+      className="relative mx-auto bg-white shadow-[0_1px_2px_rgb(32_41_37/0.14),0_6px_20px_rgb(32_41_37/0.1)]"
     >
       {rects?.map((rect, index) => (
         <span

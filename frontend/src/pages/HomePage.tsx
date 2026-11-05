@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, RotateCcw } from 'lucide-react';
+import { FileText, GitCompareArrows, Network, RotateCcw } from 'lucide-react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
@@ -9,6 +9,8 @@ import { DocumentRow, DocumentRowSkeleton } from '@/features/documents/DocumentR
 import { EvidencePreview } from '@/features/documents/EvidencePreview';
 import { useDocuments } from '@/features/documents/useDocuments';
 import { useErrorMessage } from '@/features/system/useErrorMessage';
+import { useCapabilities } from '@/features/system/useSystem';
+import { SAMPLE_DOCUMENT_ID } from '@/services/sampleDocument';
 import { Dropzone } from '@/features/upload/Dropzone';
 import { HomeModeStrip } from '@/features/userModes/HomeModeStrip';
 import type { DocumentModel } from '@/types/document';
@@ -24,14 +26,14 @@ function RecentDocuments() {
   return (
     <section className="mt-8">
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="font-semibold">{t('home.latest')}</h2>
+        <h2 className="font-display text-lg font-medium">{t('home.latest')}</h2>
         {(documents.data?.length ?? 0) > 0 && (
           <Link to="/documents" className="text-sm text-muted hover:text-fg">
             {t('home.viewAll')}
           </Link>
         )}
       </div>
-      <div className="rounded-panel border border-line bg-sidebar">
+      <div className="rounded-panel border border-line bg-card">
         {documents.isPending && (
           <ul role="status" aria-label={t('common.loading')}>
             <DocumentRowSkeleton />
@@ -53,7 +55,10 @@ function RecentDocuments() {
           />
         )}
         {documents.data?.length === 0 && (
-          <StateBlock icon={<FileText size={18} aria-hidden />} title={t('documents.emptyTitle')} description={t('documents.emptyBody')} />
+          <p className="flex items-center gap-3 px-4 py-3 text-sm text-muted">
+            <FileText size={16} className="shrink-0" aria-hidden />
+            <span><strong className="font-medium text-fg">{t('documents.emptyTitle')}.</strong> {t('documents.emptyBody')}</span>
+          </p>
         )}
         {documents.data && documents.data.length > 0 && (
           <ul>
@@ -71,19 +76,32 @@ function RecentDocuments() {
 export function HomePage() {
   const { t } = useTranslation();
   const documents = useDocuments();
+  const capabilities = useCapabilities();
   return (
     <div className="h-full overflow-y-auto">
       <div className="mx-auto w-full max-w-[1040px] px-4 py-6 md:px-8 md:py-10">
-        <header className="mb-6">
-          <h1 className="text-xl font-semibold tracking-[-0.01em]">{t('home.title')}</h1>
-          <p className="mt-1 max-w-[65ch] text-muted">{t('home.subtitle')}</p>
-        </header>
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <Dropzone className="min-h-64" />
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start">
+          <div className="min-w-0">
+            <h1 className="font-display text-[32px] leading-[38px] font-medium tracking-[-0.02em] md:text-[40px] md:leading-[46px]">{t('home.title')}</h1>
+            <p className="mt-3 max-w-[58ch] text-md text-muted">{t('home.subtitle')}</p>
+            <Dropzone className="mt-6" />
+            <nav aria-label={t('home.shortcuts')} className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+              {capabilities.data?.comparison && (
+                <Link to="/compare" className="inline-flex min-h-6 items-center gap-1.5 text-muted hover:text-accent">
+                  <GitCompareArrows size={14} aria-hidden />
+                  {t('home.shortcutCompare')}
+                </Link>
+              )}
+              <Link to={`/documents/${SAMPLE_DOCUMENT_ID}`} state={{ view: 'map' }} className="inline-flex min-h-6 items-center gap-1.5 text-muted hover:text-accent">
+                <Network size={14} aria-hidden />
+                {t('home.shortcutMap')}
+              </Link>
+            </nav>
+          </div>
           <EvidencePreview />
         </div>
-        <HomeModeStrip hasDocuments={(documents.data?.length ?? 0) > 0} />
         <RecentDocuments />
+        <HomeModeStrip hasDocuments={(documents.data?.length ?? 0) > 0} />
       </div>
     </div>
   );

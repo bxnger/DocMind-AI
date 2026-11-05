@@ -1,7 +1,8 @@
 import { useRef, type KeyboardEvent } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
-import { MODE_ICONS, USER_MODES, type UserMode } from './modes';
+import { MODE_ICONS, USER_MODES, isUserMode, type UserMode } from './modes';
 import { setUserMode, useUserMode } from './useUserMode';
 
 /** Icons for all modes, with the name shown on the selected one so it fits a narrow panel. */
@@ -56,5 +57,30 @@ export function ModeSelector({ showAllLabels = false }: { showAllLabels?: boolea
         );
       })}
     </div>
+  );
+}
+
+/** Compact control for the assistant header. A native select keeps keyboard and phone behaviour free. */
+export function ModeSelect() {
+  const { t } = useTranslation();
+  const selected = useUserMode();
+  const Icon = MODE_ICONS[selected];
+  return (
+    <label data-testid="mode-select" title={t(`userModes.modes.${selected}.description`)} className="relative inline-flex h-7 min-w-0 items-center rounded-lg border border-line bg-card text-xs font-medium focus-within:border-accent hover:border-line-strong">
+      <Icon size={13} className="pointer-events-none absolute left-2 text-accent" aria-hidden />
+      <select
+        aria-label={t('userModes.selector')}
+        value={selected}
+        onChange={(event) => {
+          if (isUserMode(event.target.value)) setUserMode(event.target.value);
+        }}
+        className="h-full min-w-0 cursor-pointer appearance-none rounded-lg bg-transparent pr-6 pl-7 outline-none"
+      >
+        {USER_MODES.map((mode) => (
+          <option key={mode} value={mode}>{t(`userModes.modes.${mode}.name`)}</option>
+        ))}
+      </select>
+      <ChevronDown size={12} className="pointer-events-none absolute right-1.5 text-muted" aria-hidden />
+    </label>
   );
 }
