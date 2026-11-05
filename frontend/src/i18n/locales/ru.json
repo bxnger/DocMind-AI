@@ -327,7 +327,9 @@
     "notAvailable": "Недоступно",
     "capabilitiesError": "Не удалось получить возможности сервера.",
     "themeLight": "Светлая",
-    "themeDarkSoon": "Тёмная (недоступна)"
+    "themeDark": "Тёмная",
+    "themeSystem": "Системная",
+    "themeToggle": "Тема: {{current}}. Переключить на: {{next}}"
   },
   "notFound": {
     "title": "Страница не найдена",

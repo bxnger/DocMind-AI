@@ -21,6 +21,7 @@ interface Props {
   quoteNotice: boolean;
   annotations?: Annotation[];
   compact?: boolean;
+  roomForInspector?: boolean;
   onRetry: () => void;
 }
 
@@ -40,7 +41,7 @@ function Loading({ progress }: { progress: number | null }) {
   );
 }
 
-export function ViewerPane({ doc, source, pdf, text, jump, citedPages, quoteNotice, annotations, compact, onRetry }: Props) {
+export function ViewerPane({ doc, source, pdf, text, jump, citedPages, quoteNotice, annotations, compact, roomForInspector, onRetry }: Props) {
   const { t } = useTranslation();
   const codeMessage = useCodeMessage();
 
@@ -100,5 +101,5 @@ export function ViewerPane({ doc, source, pdf, text, jump, citedPages, quoteNoti
 
   if (pdf.status !== 'ready') return <Loading progress={pdf.status === 'loading' ? pdf.progress : null} />;
 
-  return <PdfViewer pdf={pdf.pdf} text={text} jump={jump} citedPages={citedPages} quoteNotice={quoteNotice} annotations={annotations} compact={compact} />;
+  return <PdfViewer pdf={pdf.pdf} text={text} jump={jump} citedPages={citedPages} quoteNotice={quoteNotice} annotations={annotations} compact={compact} roomForInspector={roomForInspector} />;
 }

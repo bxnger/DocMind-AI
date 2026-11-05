@@ -11,6 +11,7 @@ import { cn } from '@/lib/cn';
 import { formatBytes } from '@/lib/format';
 import { clearLocalFiles } from '@/services/localFiles';
 import { LanguageSwitch } from './LanguageSwitch';
+import { setThemePreference, useThemePreference } from './theme';
 import { setMotionPreference, useMotionPreference, type MotionPreference } from './preferences';
 
 declare const __APP_VERSION__: string;
@@ -86,6 +87,7 @@ export function LanguageSection() {
 export function AppearanceSection() {
   const { t } = useTranslation();
   const motion = useMotionPreference();
+  const theme = useThemePreference();
   return (
     <Section title={t('settings.appearance')} description={t('settings.appearanceBody')}>
       <div className="space-y-4">
@@ -93,11 +95,12 @@ export function AppearanceSection() {
           <p className="mb-2 text-sm text-muted">{t('settings.theme')}</p>
           <Choice
             label={t('settings.theme')}
-            value="light"
-            onChange={() => undefined}
+            value={theme}
+            onChange={setThemePreference}
             options={[
               { value: 'light', label: t('settings.themeLight') },
-              { value: 'dark', label: t('settings.themeDarkSoon'), disabled: true },
+              { value: 'dark', label: t('settings.themeDark') },
+              { value: 'system', label: t('settings.themeSystem') },
             ]}
           />
         </div>

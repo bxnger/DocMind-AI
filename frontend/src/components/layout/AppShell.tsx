@@ -8,6 +8,7 @@ import { IconButton } from '@/components/ui/IconButton';
 import { Logo } from '@/components/ui/Logo';
 import { CommandPalette } from '@/features/command/CommandPalette';
 import { useBackendHealth } from '@/features/system/useSystem';
+import { ThemeToggle } from '@/features/settings/ThemeToggle';
 import { GlobalDropOverlay } from '@/features/upload/GlobalDropOverlay';
 import { UploadTray } from '@/features/upload/UploadTray';
 import { MOBILE_QUERY, useMediaQuery } from '@/hooks/useMediaQuery';
@@ -103,7 +104,7 @@ export function AppShell() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-30 bg-fg/45"
+              className="fixed inset-0 z-30 bg-scrim"
               onClick={() => setDrawerOpen(false)}
             />
             <motion.div
@@ -139,6 +140,7 @@ export function AppShell() {
             <div className="flex-1">
               <Logo />
             </div>
+            <ThemeToggle />
             <IconButton label={t('nav.search')} icon={<Search size={18} aria-hidden />} onClick={openSearch} />
           </header>
         )}

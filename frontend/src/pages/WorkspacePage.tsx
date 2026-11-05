@@ -28,6 +28,7 @@ import { usePdfDocument, type PdfInput } from '@/features/viewer/usePdfDocument'
 import { ResizeHandle } from '@/features/workspace/ResizeHandle';
 import { useAssistant } from '@/features/workspace/useAssistant';
 import { useDocumentSource } from '@/features/workspace/useDocumentSource';
+import { ThemeToggle } from '@/features/settings/ThemeToggle';
 import { ViewerPane } from '@/features/workspace/ViewerPane';
 import { HIDDEN_PANE, SEGMENTS, applySegment, segmentOf, type Pane } from '@/features/workspace/workspaceView';
 import { SPLIT_PANE_QUERY, useMediaQuery } from '@/hooks/useMediaQuery';
@@ -192,6 +193,7 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
             {t('workspace.browserCopy')}
           </span>
         )}
+        {!split && <ThemeToggle />}
         {!isSample && (
           <IconButton label={t('common.delete')} icon={<Trash2 size={16} aria-hidden />} onClick={() => setDeleting(true)} />
         )}
@@ -246,6 +248,7 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
               jump={jump}
               citedPages={chat.citedPages}
               quoteNotice={selection === null}
+              roomForInspector={selection !== null}
               onRetry={() => setAttempt(attempt + 1)}
             />
           </ErrorBoundary>

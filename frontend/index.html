@@ -7,6 +7,21 @@
     <meta name="description" content="DOCMIND AI: a document workspace where every answer shows its source." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>DOCMIND AI</title>
+    <style>html[data-theme='dark'] { background: #151a19; color-scheme: dark; }</style>
+    <!-- Runs before the first paint, so a saved or system dark theme never flashes light. Mirrors lib/themeCore.ts. -->
+    <script>
+      (function () {
+        var choice = null;
+        try {
+          choice = JSON.parse(localStorage.getItem('docmind.theme'));
+        } catch (error) {
+          // Storage can be blocked or hold a bad value: fall back to the system theme.
+        }
+        var dark = choice === 'dark' || (choice !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', dark ? '#151a19' : '#f4f2ec');
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

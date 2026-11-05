@@ -43,6 +43,8 @@ interface Props {
   annotations?: Annotation[];
   /** For a narrow pane: no thumbnail rail. */
   compact?: boolean;
+  /** A floating panel covers the lower part. Extra scroll room lets the end of the document move clear of it. */
+  roomForInspector?: boolean;
 }
 
 function addMarks(target: Map<number, Map<number, MarkSpan[]>>, page: number, match: TextMatch, className: string) {
@@ -55,7 +57,7 @@ function addMarks(target: Map<number, Map<number, MarkSpan[]>>, page: number, ma
   target.set(page, pageMarks);
 }
 
-export function PdfViewer({ pdf, text, jump, citedPages, quoteNotice = true, annotations, compact = false }: Props) {
+export function PdfViewer({ pdf, text, jump, citedPages, quoteNotice = true, annotations, compact = false, roomForInspector = false }: Props) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const sizes = usePageSizes(pdf);
@@ -234,6 +236,7 @@ export function PdfViewer({ pdf, text, jump, citedPages, quoteNotice = true, ann
                 onTextReady={onTextReady}
               />
             ))}
+            {roomForInspector && <div data-testid="inspector-room" aria-hidden className="h-[55vh] shrink-0" />}
           </div>
         </div>
       </div>

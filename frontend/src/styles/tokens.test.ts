@@ -26,6 +26,16 @@ describe('highlights over the PDF', () => {
   });
 });
 
+describe('PDF pages in the dark theme', () => {
+  it('are never inverted or filtered', () => {
+    expect(css).not.toMatch(/filter:\s*invert|invert\(/);
+  });
+  it('page highlights use fixed colours, not theme tokens that turn pale', () => {
+    const block = css.slice(css.indexOf('.hl-rect::after'), css.indexOf('@keyframes rect-ring'));
+    expect(block).toContain('#145a4d');
+  });
+});
+
 describe('design tokens meet WCAG AA text contrast', () => {
   const light = scope('@theme');
   it.each([
@@ -33,6 +43,14 @@ describe('design tokens meet WCAG AA text contrast', () => {
     ['on-accent', 'accent'], ['fg', 'accent-2-tint'], ['accent-2', 'card'], ['success', 'card'], ['warning', 'card'], ['danger', 'card'],
   ])('%s on %s', (text, surface) => {
     expect(contrast(color(light, text), color(light, surface))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  const dark = scope("html[data-theme='dark'] {");
+  it.each([
+    ['fg', 'bg'], ['muted', 'bg'], ['muted', 'sidebar'], ['muted', 'card'], ['accent', 'bg'], ['accent', 'card'],
+    ['on-accent', 'accent'], ['fg', 'accent-2-tint'], ['accent-2', 'card'], ['success', 'card'], ['warning', 'card'], ['danger', 'card'],
+  ])('dark: %s on %s', (text, surface) => {
+    expect(contrast(color(dark, text), color(dark, surface))).toBeGreaterThanOrEqual(4.5);
   });
 
   const ink = scope('.theme-ink');
