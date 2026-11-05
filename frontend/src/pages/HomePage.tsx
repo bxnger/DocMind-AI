@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, GitCompareArrows, Network, RotateCcw } from 'lucide-react';
+import { FileText, GitCompareArrows, Network, RotateCcw, Send } from 'lucide-react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
@@ -16,6 +16,8 @@ import { HomeModeStrip } from '@/features/userModes/HomeModeStrip';
 import type { DocumentModel } from '@/types/document';
 
 const HOME_DOCS = 5;
+// The same backend answers in Telegram. An empty VITE_TELEGRAM_BOT_URL hides the link.
+const TELEGRAM_BOT_URL = import.meta.env.VITE_TELEGRAM_BOT_URL ?? 'https://t.me/DOCMIND67_bot';
 
 function RecentDocuments() {
   const { t } = useTranslation();
@@ -96,6 +98,18 @@ export function HomePage() {
                 <Network size={14} aria-hidden />
                 {t('home.shortcutMap')}
               </Link>
+              {TELEGRAM_BOT_URL && (
+                <a
+                  href={TELEGRAM_BOT_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-6 items-center gap-1.5 text-muted hover:text-accent pointer-coarse:min-h-10"
+                >
+                  <Send size={14} aria-hidden />
+                  {t('home.shortcutTelegram')}
+                  <span className="sr-only"> ({t('home.opensInNewTab')})</span>
+                </a>
+              )}
             </nav>
           </div>
           <EvidencePreview />
