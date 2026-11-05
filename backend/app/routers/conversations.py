@@ -9,8 +9,9 @@ from contextlib import aclosing
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import Response, StreamingResponse
 
+from app.answer_cache import REPLAY_PIECE_CHARS, AnswerCache, cache_key
 from app.chunking import SENTENCE_END
-from app.citations import is_verbatim
+from app.citations import is_verbatim, unsupported_numbers
 from app.config import MAX_MESSAGE_CHARS
 from app.deps import get_answerer, get_store
 from app.errors import AppError
@@ -24,6 +25,9 @@ from app.store import Store
 router = APIRouter(prefix="/conversations", tags=["conversations"])
 
 EXCERPTS_PER_ANSWER = 5
+# A document this small fits in one prompt. If search finds nothing (a synonym, a paraphrase), the model reads it all
+# and decides, instead of the question being refused without anyone reading the document.
+SMALL_DOCUMENT_CHUNKS = 12
 HISTORY_TURNS = 3
 SHORT_QUESTION_TOKENS = 3
 NOT_FOUND_MARKER = "NOT_FOUND"
@@ -124,6 +128,8 @@ def select_chunks(question: str, history: History, chunks: list[dict]) -> tuple[
     if is_overview_question(question):
         return overview_chunks(chunks, EXCERPTS_PER_ANSWER), True
     hits = rank(retrieval_query(question, history), [chunk["text"] for chunk in chunks], EXCERPTS_PER_ANSWER)
+    if not hits and 0 < len(chunks) <= SMALL_DOCUMENT_CHUNKS:
+        return list(chunks), False
     return [chunks[index] for index, _score in hits], False
 
 
@@ -157,6 +163,9 @@ def retrieval_query(question: str, history: History) -> str:
     if history and len(tokenize(question)) <= SHORT_QUESTION_TOKENS:
         return f"{history[-1][0]} {question}"
     return question
+
+
+ANSWER_CACHE = AnswerCache()
 
 
 async def answer_stream(
@@ -200,10 +209,19 @@ async def answer_stream(
 
     excerpts = to_excerpts(picked, overview)
 
+    key = cache_key(store.get_conversation(conversation_id)["documentIds"], question, language, history)
+    cached = ANSWER_CACHE.get(key)
+    if cached is not None:
+        # The same question on the same documents was answered and verified before: replay it without the model.
+        for piece in cached.pieces():
+            yield sse("token", {"text": piece})
+        yield sse("sources", {"sources": cached.sources})
+        yield sse("done", {"messageId": assistant_id, "answerStatus": "answered"})
+        store.add_message(conversation_id, "assistant", cached.text, "answered", cached.sources, message_id=assistant_id)
+        log("answered", cache="hit", sources=len(cached.sources))
+        return
+
     answer = ""
-    pending = ""
-    decided = False
-    refused = False
     try:
         async with aclosing(answerer.stream(question, excerpts, language, history)) as pieces:
             async for piece in pieces:
@@ -212,18 +230,6 @@ async def answer_stream(
                 answer += piece
                 if piece and not first_token_ms:
                     first_token_ms.append((time.monotonic() - started) * 1000)
-                if decided:
-                    if not refused:
-                        yield sse("token", {"text": piece})
-                    continue
-                # Hold back the first few characters: a NOT_FOUND reply must not reach the client as text.
-                pending += piece
-                if len(pending.strip()) < len(NOT_FOUND_MARKER):
-                    continue
-                decided = True
-                refused = pending.strip().startswith(NOT_FOUND_MARKER)
-                if not refused:
-                    yield sse("token", {"text": pending})
     except LlmTimeout:
         log("error", code="LLM_TIMEOUT", answer_chars=len(answer))
         yield sse("error", {"code": "LLM_TIMEOUT", "message": "The AI model timed out", "retryable": True})
@@ -241,15 +247,16 @@ async def answer_stream(
         yield sse("error", {"code": "LLM_UNAVAILABLE", "message": "The AI model is unavailable", "retryable": True})
         return
 
-    if not decided:
-        refused = answer.strip().startswith(NOT_FOUND_MARKER)
-        if not refused and pending:
-            yield sse("token", {"text": pending})
-
-    sources = [] if refused else verified_sources(answer, excerpts, store, question)
+    # The answer is checked before any of it is shown: a sentence the sources do not support never reaches the reader.
+    refused = answer.strip().startswith(NOT_FOUND_MARKER)
+    final_text, sources = ("", []) if refused else verify_answer(answer, excerpts, store, question)
     status = "answered" if sources else "not_found"
     if status == "answered":
-        log("answered", excerpts=len(excerpts), cited=len(cited_numbers(answer)), sources=len(sources), answer_chars=len(answer))
+        final_text = normalize_markers(final_text)
+        dropped = len(SENTENCE_END.split(answer.strip())) - len(SENTENCE_END.split(final_text.strip()))
+        log("answered", excerpts=len(excerpts), cited=len(cited_numbers(answer)), sources=len(sources), answer_chars=len(answer), dropped_sentences=max(dropped, 0))
+        for start in range(0, len(final_text), REPLAY_PIECE_CHARS):
+            yield sse("token", {"text": final_text[start : start + REPLAY_PIECE_CHARS]})
     else:
         # Says why an answer became not_found: the model refused, wrote nothing, cited nothing, or cited wrongly.
         cited = cited_numbers(answer)
@@ -258,10 +265,12 @@ async def answer_stream(
     if sources:
         yield sse("sources", {"sources": sources})
     yield sse("done", {"messageId": assistant_id, "answerStatus": status})
+    if status == "answered":
+        ANSWER_CACHE.put(key, final_text, sources)
     store.add_message(
         conversation_id,
         "assistant",
-        normalize_markers(answer) if status == "answered" else "",
+        final_text if status == "answered" else "",
         status,
         sources,
         message_id=assistant_id,
@@ -288,19 +297,36 @@ def best_sentence(excerpt_text: str, focus: str) -> str:
     return excerpt_text if best == 0 else sentences[scores.index(best)]
 
 
-def verified_sources(answer: str, excerpts: list[Excerpt], store: Store, question: str = "") -> list[dict]:
-    """Sources for the [n] markers the answer uses, keeping only quotes found verbatim in their segment.
+def sentence_problem(sentence: str, excerpts: list[Excerpt]) -> bool:
+    """True when the sentence cannot be shown: it cites a source that does not exist, states a number its
+    own sources do not contain, or states a number from nowhere without citing anything."""
+    cited = cited_numbers(sentence)
+    if cited:
+        if any(not 1 <= number <= len(excerpts) for number in cited):
+            return True
+        evidence = " ".join(excerpts[number - 1].text for number in cited)
+        return bool(unsupported_numbers(sentence, evidence))
+    return bool(unsupported_numbers(sentence, " ".join(excerpt.text for excerpt in excerpts)))
 
-    The quote is the sentence of the excerpt closest to the question and the cited claim.
-    PDF sources also carry `highlights`, the quote's rectangles on the page, when they can be located.
+
+def verify_answer(answer: str, excerpts: list[Excerpt], store: Store, question: str = "") -> tuple[str, list[dict]]:
+    """The answer without the sentences its sources do not support, and the verified sources of what is left.
+
+    A source is kept only when a shown sentence cites it and its quote is verbatim in its segment.
+    PDF sources also carry the quote's highlights when they can be located.
     """
-    cited = sorted(cited_numbers(answer))
+    parts = re.split(r"(?<=[.!?])(\s+)", answer.strip())  # sentence, separator, sentence, ...
+    sentences = parts[0::2]
+    bad = [sentence_problem(sentence, excerpts) for sentence in sentences]
+    shown = [sentence for sentence, is_bad in zip(sentences, bad) if not is_bad]
+    text = " ".join(shown) if any(bad) else answer.strip()
     sources = []
-    for number in cited:
+    for number in sorted(cited_numbers(" ".join(shown))):
         if not 1 <= number <= len(excerpts):
             continue
         excerpt = excerpts[number - 1]
-        quote = best_sentence(excerpt.text, f"{question} {claim_for(answer, number)}")
+        claim = " ".join(sentence for sentence in shown if number in cited_numbers(sentence))
+        quote = best_sentence(excerpt.text, f"{question} {claim}")
         if not is_verbatim(quote, excerpt.segment_text):
             continue
         source = {
@@ -316,4 +342,9 @@ def verified_sources(answer: str, excerpts: list[Excerpt], store: Store, questio
             if highlights:
                 source["highlights"] = highlights
         sources.append(source)
-    return sources
+    return (text if sources else ""), sources
+
+
+def verified_sources(answer: str, excerpts: list[Excerpt], store: Store, question: str = "") -> list[dict]:
+    """Sources of the shown part of the answer (see verify_answer)."""
+    return verify_answer(answer, excerpts, store, question)[1]

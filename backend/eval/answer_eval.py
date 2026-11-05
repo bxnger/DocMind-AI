@@ -1,7 +1,9 @@
 """End-to-end evaluation: upload a PDF, ask each question through the real chat endpoint.
 
-Needs ANTHROPIC_API_KEY (it calls Claude and costs a little money). For every question it records whether
-the answer was given or refused, which pages were cited, and compares them with the expected page.
+Needs a key for the chosen provider in the environment or backend/.env (ANTHROPIC_API_KEY or
+GEMINI_API_KEY with LLM_PROVIDER). It calls the real model and costs a little. For every question it records
+whether the answer was given or refused, which pages were cited, how long it took, and whether the provider
+failed, then compares the pages with the expected one.
 
     python eval/answer_eval.py demo.pdf eval/sample_set.json
 
@@ -10,8 +12,10 @@ The question file has the same format as for retrieval_eval.py; only "questions"
 Everything runs in a temporary data directory, nothing is kept.
 """
 import json
+import statistics
 import sys
 import tempfile
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -32,9 +36,16 @@ class Result:
     answered: bool
     cited_pages: list[int]
     text: str
+    seconds: float = 0.0
+    error_code: str | None = None  # a provider failure: not an answer and not a refusal
+    expected_pages: list[int] | None = None  # for a question that needs several pages
 
     @property
     def correct(self) -> bool:
+        if self.error_code:
+            return False
+        if self.expected_pages:
+            return self.answered and all(page in self.cited_pages for page in self.expected_pages)
         if self.expected_page is None:
             return not self.answered
         return self.answered and self.expected_page in self.cited_pages
@@ -67,14 +78,26 @@ def evaluate(pdf_path: Path, questions: list[dict], answerer, data_dir: Path) ->
     for item in questions:
         # A fresh conversation per question keeps earlier answers out of the context.
         conversation = client.post("/api/v1/conversations", json={"documentIds": [document["id"]]}).json()
+        started = time.perf_counter()
         response = client.post(f"/api/v1/conversations/{conversation['id']}/messages", json={"content": item["q"]})
+        seconds = time.perf_counter() - started
+        if response.status_code != 200:
+            code = response.json().get("error", {}).get("code", f"HTTP_{response.status_code}")
+            results.append(Result(item["q"], item.get("page"), False, [], "", seconds, code, item.get("pages")))
+            continue
         events = parse_sse(response.text)
+        error = next((data for name, data in events if name == "error"), None)
+        if error:
+            results.append(Result(item["q"], item.get("page"), False, [], "", seconds, error.get("code", "ERROR"), item.get("pages")))
+            continue
         sources = next((data["sources"] for name, data in events if name == "sources"), [])
         status = next(data["answerStatus"] for name, data in events if name == "done")
         results.append(
             Result(
                 question=item["q"],
-                expected_page=item["page"],
+                expected_page=item.get("page"),
+                expected_pages=item.get("pages"),
+                seconds=seconds,
                 answered=status == "answered",
                 cited_pages=sorted({s["page"] for s in sources if s["page"] is not None}),
                 text="".join(data["text"] for name, data in events if name == "token"),
@@ -83,16 +106,35 @@ def evaluate(pdf_path: Path, questions: list[dict], answerer, data_dir: Path) ->
     return results
 
 
+def percentile(values: list[float], fraction: float) -> float:
+    ordered = sorted(values)
+    return ordered[min(len(ordered) - 1, round(fraction * (len(ordered) - 1)))]
+
+
 def report(results: list[Result]) -> None:
     for result in results:
         mark = "ok  " if result.correct else "FAIL"
-        state = f"answered, cited {result.cited_pages}" if result.answered else "not_found"
-        print(f"{mark} p.{result.expected_page!s:>4}  {state:<28} {result.question}")
-    answerable = [r for r in results if r.expected_page is not None]
-    unanswerable = [r for r in results if r.expected_page is None]
+        want = result.expected_pages or result.expected_page
+        if result.error_code:
+            state = f"PROVIDER ERROR {result.error_code}"
+        else:
+            state = f"answered, cited {result.cited_pages}" if result.answered else "not_found"
+        print(f"{mark} p.{want!s:>8}  {state:<30} {result.seconds:5.1f}s  {result.question}")
+    asked = [r for r in results if not r.error_code]
+    errors = [r for r in results if r.error_code]
+    answerable = [r for r in asked if r.expected_page is not None or r.expected_pages]
+    unanswerable = [r for r in asked if r.expected_page is None and not r.expected_pages]
+    wrong_answers = [r for r in answerable if r.answered and not r.correct]
+    wrongly_answered = [r for r in unanswerable if r.answered]
     print()
-    print(f"answerable: {sum(r.correct for r in answerable)}/{len(answerable)} answered with the expected page cited")
-    print(f"unanswerable: {sum(r.correct for r in unanswerable)}/{len(unanswerable)} correctly refused")
+    print(f"questions: {len(results)}, provider errors: {len(errors)} ({len(errors) / max(len(results), 1):.0%})")
+    print(f"answerable: {sum(r.correct for r in answerable)}/{len(answerable)} answered with the expected page(s) cited")
+    print(f"  answered but cited the wrong page: {len(wrong_answers)} (unsupported-claim proxy)")
+    print(f"unanswerable: {sum(r.correct for r in unanswerable)}/{len(unanswerable)} correctly refused; {len(wrongly_answered)} wrongly answered")
+    if asked:
+        seconds = [r.seconds for r in asked]
+        print(f"latency: median {statistics.median(seconds):.1f}s, p95 {percentile(seconds, 0.95):.1f}s, max {max(seconds):.1f}s")
+    print("Note: errors are counted separately and never shown as refusals.")
 
 
 if __name__ == "__main__":
@@ -102,7 +144,7 @@ if __name__ == "__main__":
 
     answerer = real_answerer.__wrapped__()  # bypass the cache so the key is read now
     if answerer is None:
-        raise SystemExit("Set ANTHROPIC_API_KEY first.")
+        raise SystemExit("No model configured: set LLM_PROVIDER and the matching key in backend/.env or the environment.")
     questions = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))["questions"]
     with tempfile.TemporaryDirectory() as directory:
         report(evaluate(Path(sys.argv[1]), questions, answerer, Path(directory)))

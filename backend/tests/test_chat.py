@@ -134,13 +134,34 @@ def test_retrieval_sends_the_relevant_page_to_the_model(client, answerer):
     assert excerpts[0].text == RULES_PAGE_2
 
 
-def test_no_matching_text_skips_the_model(client, answerer):
-    document_id = ready_document(client)
+# More than SMALL_DOCUMENT_CHUNKS pages, so the whole document is not sent when search finds nothing.
+BIG_DOCUMENT = (RULES_PAGE_1, RULES_PAGE_2, *(f"Filler page {i} about unrelated gardening topic {i}." for i in range(3, 16)))
+
+
+def test_no_matching_text_skips_the_model_for_a_large_document(client, answerer):
+    document_id = ready_document(client, pages=BIG_DOCUMENT)
     conversation_id = conversation_for(client, document_id)
 
     events = ask(client, conversation_id, "quantum chromodynamics")
     assert answerer.calls == []
     assert events[-1][1]["answerStatus"] == "not_found"
+
+
+def test_small_document_is_read_whole_when_search_finds_nothing(client, answerer):
+    """A paraphrase or synonym ("electricity" for "utilities") must not be refused before anyone read the page."""
+    document_id = ready_document(client)
+    answerer.reply = "Registration closes on 5 November 2026 [1]."
+    events = ask(client, conversation_for(client, document_id), "quantum chromodynamics")
+    assert len(answerer.calls) == 1 and len(answerer.calls[0][1]) == 2  # both pages were sent
+    assert events[-1][1]["answerStatus"] == "answered"
+
+
+def test_small_document_still_refuses_when_the_model_does(client, answerer):
+    document_id = ready_document(client)
+    answerer.reply = "NOT_FOUND"
+    events = ask(client, conversation_for(client, document_id), "quantum chromodynamics")
+    assert len(answerer.calls) == 1 and events[-1][1]["answerStatus"] == "not_found"
+    assert not [name for name, _ in events if name == "token"]
 
 
 def test_without_api_key_chat_returns_503(client):

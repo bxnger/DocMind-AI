@@ -137,7 +137,9 @@ def test_overview_answer_without_valid_citation_is_still_not_found(client, answe
 
 
 def test_specific_question_with_no_match_still_skips_the_model(client, answerer):
-    events = ask(client, conversation_for(client, ready_document(client)), "quantum chromodynamics lagrangian")
+    from tests.test_chat import BIG_DOCUMENT
+
+    events = ask(client, conversation_for(client, ready_document(client, pages=BIG_DOCUMENT)), "quantum chromodynamics lagrangian")
     assert answerer.calls == [] and events[-1][1]["answerStatus"] == "not_found"
 
 
@@ -155,7 +157,9 @@ def test_grouped_citations_from_gemini_are_answered_and_saved_linkable(client):
 def test_logs_explain_not_found_without_content(client, answerer, caplog):
     answerer.reply = "Secret reply text with no citation."
     with caplog.at_level(logging.INFO, logger="app"):
-        conversation = conversation_for(client, ready_document(client))
+        from tests.test_chat import BIG_DOCUMENT
+
+        conversation = conversation_for(client, ready_document(client, pages=BIG_DOCUMENT))
         ask(client, conversation, "О чём этот документ?")
         ask(client, conversation, "SECRETQUESTION zzz")
     assert "reason=no_citation" in caplog.text and "mode=overview" in caplog.text

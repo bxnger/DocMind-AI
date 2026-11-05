@@ -4,7 +4,7 @@
     python eval/gemini_diagnose.py [model ...]
 
 Lists the models this key can call generateContent on, then sends a tiny request to the configured model
-(GEMINI_MODEL, default gemini-2.5-flash-lite) and to any models named on the command line. Never prints the key.
+(GEMINI_MODEL, default gemini-3.5-flash-lite) and to any models named on the command line. Never prints the key.
 """
 
 import os
@@ -16,7 +16,7 @@ from google.genai import errors, types
 from app.config import Settings
 from app.llm_gemini import classify_not_found
 
-PREFERRED = ("gemini-2.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-2.5-flash")
+PREFERRED = ("gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash-lite", "gemini-2.5-flash")
 
 
 def try_model(client: genai.Client, model: str) -> bool:

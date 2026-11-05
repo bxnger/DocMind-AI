@@ -83,7 +83,7 @@ def test_answer_eval_scores_answers_and_refusals(tmp_path):
 
     class Scripted(FakeAnswerer):
         async def stream(self, question, excerpts, language, history):
-            self.reply = "Yes [1]." if excerpts else ""
+            self.reply = "NOT_FOUND" if "quantum" in question else "Yes [1]."
             async for piece in super().stream(question, excerpts, language, history):
                 yield piece
 

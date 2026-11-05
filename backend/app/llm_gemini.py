@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import time
+import weakref
 from collections.abc import AsyncIterator
 
 import httpx
@@ -28,6 +29,8 @@ GATEWAY_TIMEOUT = 504
 # A failure before the first token is retried, because 500/503 ("high demand") from Gemini are brief.
 # Accepted by the SDK's ThinkingConfig for Gemini 3.x. Which levels a model supports differs (see the docs).
 THINKING_LEVELS = ("minimal", "low", "medium", "high")
+# With a backup model the main one gets less time, so a stalled request moves on early.
+PRIMARY_BUDGET_SECONDS = 25.0
 MAX_ATTEMPTS = 3
 RETRY_DELAY_SECONDS = 0.7
 TRANSIENT_NETWORK_ERRORS = (httpx.ConnectError, httpx.ConnectTimeout, httpx.RemoteProtocolError, httpx.ReadError)
@@ -139,16 +142,56 @@ class GeminiAnswerer:
     """Answers through the Google Gen AI SDK with real streaming, using the same prompt as Claude."""
 
     def __init__(
-        self, model: str, api_key: str, client: genai.Client | None = None, thinking_level: str | None = None
+        self,
+        model: str,
+        api_key: str,
+        client: genai.Client | None = None,
+        thinking_level: str | None = None,
+        timeout_seconds: float | None = None,
+        fallback: "GeminiAnswerer | None" = None,
     ) -> None:
         self.model = model
+        self.fallback = fallback  # asked when this model is rate limited or too slow before any text
+        self.timeout_seconds = timeout_seconds  # None: REQUEST_TIMEOUT_SECONDS
         self.thinking_level = thinking_level
-        self.client = client or genai.Client(
-            api_key=api_key,
-            http_options=types.HttpOptions(timeout=int(REQUEST_TIMEOUT_SECONDS * 1000)),
-        )
+        self.api_key = api_key
+        self._given_client = client  # tests pass a fake
+        # The SDK's async client is bound to the event loop it was first used in. Under one server loop a
+        # single client is enough; a second loop (reload, tests, scripts) gets its own instead of failing.
+        self._clients: "weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, genai.Client]" = weakref.WeakKeyDictionary()
+
+    @property
+    def client(self) -> genai.Client:
+        if self._given_client is not None:
+            return self._given_client
+        loop = asyncio.get_running_loop()
+        client = self._clients.get(loop)
+        if client is None:
+            client = genai.Client(
+                api_key=self.api_key,
+                http_options=types.HttpOptions(timeout=int(REQUEST_TIMEOUT_SECONDS * 1000)),
+            )
+            self._clients[loop] = client
+        return client
 
     async def stream(
+        self, question: str, excerpts: list[Excerpt], language: str | None, history: History
+    ) -> AsyncIterator[str]:
+        """Once text has reached the client nothing is retried on the other model, so words are never repeated."""
+        yielded = False
+        try:
+            async for piece in self._stream_once(question, excerpts, language, history):
+                yielded = True
+                yield piece
+            return
+        except (LlmRateLimited, LlmTimeout) as exc:
+            if yielded or self.fallback is None:
+                raise
+            logger.warning("Gemini %s failed (%s), falling back to %s", self.model, type(exc).__name__, self.fallback.model)
+        async for piece in self.fallback._stream_once(question, excerpts, language, history):
+            yield piece
+
+    async def _stream_once(
         self, question: str, excerpts: list[Excerpt], language: str | None, history: History
     ) -> AsyncIterator[str]:
         contents: list[dict] = []
@@ -171,7 +214,7 @@ class GeminiAnswerer:
 
         loop = asyncio.get_running_loop()
         # The HTTP timeout only limits gaps between bytes; this also bounds the whole answer, retries included.
-        deadline = loop.time() + REQUEST_TIMEOUT_SECONDS
+        deadline = loop.time() + (self.timeout_seconds or REQUEST_TIMEOUT_SECONDS)
         report = _Report(prompt_chars)
         yielded = False
         attempt = 0
@@ -226,3 +269,4 @@ class GeminiAnswerer:
                 close = getattr(chunks, "aclose", None)
                 if close is not None:
                     await close()
+
