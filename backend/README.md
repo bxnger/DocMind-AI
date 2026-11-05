@@ -60,6 +60,23 @@ Environment variables:
 
 Robustness: SQLite runs in WAL mode; documents left `processing` by a restart are processed again on startup and unfinished comparisons are marked failed; model requests time out after 60 s (`LLM_TIMEOUT`). Source quotes are the single best sentence of the cited excerpt, so highlights are precise.
 
+## Telegram bot (optional)
+
+`bot/` is a Telegram front end for the same backend: send a PDF or DOCX, ask in Russian, Kazakh or English, get the
+verified answer with its sources; for a PDF a "Page N" button sends the page with the quote highlighted. Commands:
+`/docs`, `/use N`, `/delete N`, `/facts`, `/compare 1 2`, `/help`. Bot messages follow the user's Telegram language.
+
+```bash
+# backend/.env: TELEGRAM_BOT_TOKEN=... (from @BotFather), the backend must be running
+python -m bot.main --check   # checks the token and the backend
+python -m bot.main           # long polling, no public address needed; Ctrl+C stops it
+```
+
+It holds no AI logic: answers, verification, fallbacks and caches are the backend's. Each chat sees only its own documents,
+there is a per-chat message limit (`BOT_MESSAGES_PER_MINUTE`), and `TELEGRAM_ALLOWED_CHATS` can close the bot to everyone else.
+Files go to the project's server, which the `/start` message says. Tested with a fake Telegram and the real backend
+(`tests/test_bot.py`); a live run needs the token.
+
 ## Evaluate answers (needs a key)
 
 ```bash

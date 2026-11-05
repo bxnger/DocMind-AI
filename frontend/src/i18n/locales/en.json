@@ -85,6 +85,8 @@
     "shortcuts": "Shortcuts",
     "shortcutCompare": "Compare two documents",
     "shortcutMap": "See the Knowledge Map on the sample",
+    "shortcutTelegram": "Ask in the Telegram bot",
+    "opensInNewTab": "opens in a new tab",
     "sample": {
       "notice": "What is the notice period for termination?",
       "interest": "How much late payment interest applies?",
