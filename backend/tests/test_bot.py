@@ -25,6 +25,11 @@ PNG = b"\x89PNG"
 class FakeTelegram:
     def __init__(self):
         self.messages, self.photos, self.actions, self.callbacks, self.files = [], [], [], [], {}
+        self.documents = []
+
+    def send_document(self, chat_id, data, filename, caption=None):
+        self.documents.append((chat_id, data, filename, caption))
+        return {}
 
     def send_message(self, chat_id, text, reply_markup=None, parse_mode="HTML"):
         self.messages.append((chat_id, text, reply_markup))
@@ -216,6 +221,30 @@ def test_facts_lists_dates_and_amounts_with_pages(bot, telegram):
     upload_rules(bot, telegram, pages=("Registration closes on 5 November 2026. The fee is 500 USD.", "Teams have three members."))
     bot.handle_update(text_update("/facts", code="en"))
     assert "5 November 2026" in telegram.last and "500 USD" in telegram.last and "p. 1" in telegram.last
+
+
+def test_export_sends_questions_answers_and_exact_quotes_as_a_file(bot, telegram, answerer):
+    upload_rules(bot, telegram)
+    bot.handle_update(text_update("/export", code="en"))
+    assert telegram.last == t("en", "export_none") and not telegram.documents  # nothing asked yet
+
+    answerer.reply = ANSWER
+    bot.handle_update(text_update("When does registration close?", code="en"))
+    answerer.reply = "NOT_FOUND"
+    bot.handle_update(text_update("quantum chromodynamics", code="en"))
+    bot.handle_update(text_update("/export", code="en"))
+
+    chat, data, filename, caption = telegram.documents[-1]
+    text = data.decode("utf-8")
+    assert filename == "rules-qa.md" and "rules.pdf" in caption
+    assert "When does registration close?" in text and "Registration closes on 5 November 2026" in text
+    assert "> [1] rules.pdf, p. 1:" in text and "«" in text  # the quote with its file and page
+    assert "quantum chromodynamics" in text and t("en", "export_not_found") in text
+
+
+def test_export_without_a_document_asks_for_one(bot, telegram):
+    bot.handle_update(text_update("/export", code="en"))
+    assert telegram.last == t("en", "need_doc")
 
 
 def test_compare_reports_the_differences_and_says_it_is_text_not_meaning(bot, telegram):

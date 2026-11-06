@@ -84,6 +84,10 @@ class BackendClient:
             raise BackendUnavailable(type(exc).__name__) from None
         return answer
 
+    def messages(self, conversation_id: str) -> list[dict]:
+        response = self._request("GET", f"/conversations/{conversation_id}/messages")
+        return response.json().get("items", []) if response.status_code == 200 else []
+
     def facts(self, document_id: str) -> dict | None:
         response = self._request("GET", f"/documents/{document_id}/facts")
         return response.json() if response.status_code == 200 else None
