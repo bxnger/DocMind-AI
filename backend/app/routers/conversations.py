@@ -12,6 +12,7 @@ from fastapi.responses import Response, StreamingResponse
 from app.answer_cache import REPLAY_PIECE_CHARS, AnswerCache, cache_key
 from app.chunking import SENTENCE_END
 from app.citations import is_verbatim, unsupported_numbers
+from app.comparison import chat_evidence, is_change_question, load_sentences
 from app.config import MAX_MESSAGE_CHARS
 from app.deps import get_answerer, get_store
 from app.errors import AppError
@@ -32,6 +33,14 @@ OVERVIEW_EXCERPTS = 12
 # A document this small fits in one prompt. If search finds nothing (a synonym, a paraphrase), the model reads it all
 # and decides, instead of the question being refused without anyone reading the document.
 SMALL_DOCUMENT_CHUNKS = 12
+# "What changed?" with two documents: up to this many changed clauses (and twice as many unchanged facts for
+# "what did not change?"), plus the best search hits, which hold the document's own words about the change.
+VERSION_PAIRS = 8
+SEARCH_WITH_VERSIONS = 3
+# "Which sums / amounts are mentioned?" (a question the interface suggests).
+AMOUNTS_QUESTION = re.compile(r"сумм|amount|sums?\b|сомалар|сома\w*|денежн|money", re.IGNORECASE)
+MONEY = re.compile(r"\d[\d  .,]*\s?(?:₸|тенге|теңге|тг\b|kzt|руб|₽|\$|usd|€|eur)", re.IGNORECASE)
+AMOUNT_EXCERPTS = 5
 HISTORY_TURNS = 3
 SHORT_QUESTION_TOKENS = 3
 NOT_FOUND_MARKER = "NOT_FOUND"
@@ -151,6 +160,8 @@ async def send_message(
             if targets:
                 logger.info("chat translate targets=%s ok=%s ms=%.0f", ",".join(targets), bool(translated), translate_ms)
         picked, overview = select_chunks(question, history, chunks, translated)
+        if not overview and len(conversation["documentIds"]) >= 2 and is_change_question(question):
+            picked = version_chunks(store, conversation["documentIds"][:2], question) + picked[:SEARCH_WITH_VERSIONS]
 
     prep_ms = (time.monotonic() - prep_started) * 1000
     assistant_id = uuid.uuid4().hex
@@ -169,9 +180,43 @@ def select_chunks(question: str, history: History, chunks: list[dict], translate
         return overview_chunks(chunks, OVERVIEW_EXCERPTS), True
     query = f"{retrieval_query(question, history)} {translated}".strip()
     hits = rank(query, [chunk["text"] for chunk in chunks], EXCERPTS_PER_ANSWER)
-    if not hits and 0 < len(chunks) <= SMALL_DOCUMENT_CHUNKS:
+    picked = [chunks[index] for index, _score in hits]
+    if AMOUNTS_QUESTION.search(question):
+        # "Which amounts are in the document?": the word "amount" is rarely next to the figures, so search misses them.
+        with_money = sorted(
+            (chunk for chunk in chunks if MONEY.search(chunk["text"])), key=lambda chunk: -len(MONEY.findall(chunk["text"]))
+        )
+        picked += [chunk for chunk in with_money if chunk not in picked][:AMOUNT_EXCERPTS]
+    if not picked and 0 < len(chunks) <= SMALL_DOCUMENT_CHUNKS:
         return list(chunks), False
-    return [chunks[index] for index, _score in hits], False
+    return picked, False
+
+
+def version_chunks(store: Store, document_ids: list[str], question: str) -> list[dict]:
+    """Excerpts for "what changed between the two documents?": the clauses the comparison finds, with their values.
+    Empty when the documents are too large to compare here."""
+    try:
+        first, second = (load_sentences(store, document_id) for document_id in document_ids)
+    except AppError:
+        return []
+    names = [store.get(document_id)["name"] for document_id in document_ids]
+
+    def chunk(sentence, side: int, version: str) -> dict:
+        return {
+            "documentId": document_ids[side], "documentName": names[side], "page": sentence.page,
+            "location": sentence.location, "text": sentence.text, "segmentText": sentence.segment_text, "version": version,
+        }
+
+    picked: list[dict] = []
+    for kind, left, right in chat_evidence(first, second, question, VERSION_PAIRS):
+        if kind == "same" and left:
+            picked.append(chunk(left, 0, "both"))
+            continue
+        if left:
+            picked.append(chunk(left, 0, "first"))
+        if right:
+            picked.append(chunk(right, 1, "second"))
+    return picked
 
 
 def to_excerpts(picked: list[dict], sampled: bool) -> list[Excerpt]:
@@ -185,6 +230,7 @@ def to_excerpts(picked: list[dict], sampled: bool) -> list[Excerpt]:
             text=chunk["text"],
             segment_text=chunk["segmentText"],
             sampled=sampled,
+            version=chunk.get("version"),
         )
         for number, chunk in enumerate(picked, start=1)
     ]

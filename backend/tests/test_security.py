@@ -2,6 +2,7 @@
 
 import io
 import logging
+import sys
 import zipfile
 
 import pytest
@@ -257,7 +258,13 @@ def test_page_limit_is_checked_before_reading(store, client, monkeypatch):
     assert leftovers(store) == []
 
 
-@pytest.mark.parametrize("name,value", [("app.pipeline.WORKER_TIMEOUT_SECONDS", 0), ("app.pipeline.WORKER_MEMORY_MB", 1)])
+POSIX_ONLY = pytest.mark.skipif(sys.platform == "win32", reason="memory limits and file modes are POSIX: the server runs Linux")
+
+
+@pytest.mark.parametrize(
+    "name,value",
+    [("app.pipeline.WORKER_TIMEOUT_SECONDS", 0), pytest.param("app.pipeline.WORKER_MEMORY_MB", 1, marks=POSIX_ONLY)],
+)
 def test_worker_over_its_limit_is_killed_and_leaves_nothing(store, client, monkeypatch, name, value):
     monkeypatch.setattr(name, value)
     created = upload(client, "a.pdf", make_pdf([TEXT])).json()
@@ -501,6 +508,7 @@ def test_chats_are_separate_guests(app):
     assert bot.chat(1)["token"] != bot.chat(2).get("token")
 
 
+@POSIX_ONLY
 def test_bot_state_file_is_private(app, tmp_path):
     from tests.test_bot import file_update
 
