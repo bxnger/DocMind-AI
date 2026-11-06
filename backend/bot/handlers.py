@@ -461,7 +461,7 @@ class Bot:
             self._say(chat_id, t(language, "need_doc"))
             return
         conversation = chat["conversations"].get(doc["id"])
-        messages = self.backend.messages(conversation) if conversation else []
+        messages = self._api(chat).messages(conversation) if conversation else []
         text = export_markdown(doc["name"], messages, language)
         if text is None:
             self._say(chat_id, t(language, "export_none"))
