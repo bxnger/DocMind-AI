@@ -62,7 +62,7 @@ export function RecentPage() {
               <DocumentRow
                 key={doc.id}
                 doc={doc}
-                tag={isSampleDocument(doc.id) ? t('documents.sampleTag') : undefined}
+                tag={isSampleDocument(doc.id) ? t('documents.sampleTag') : doc.isDemo ? t('documents.demoTag') : undefined}
                 meta={t('recent.opened', { when: formatRelative(openedAt, i18n.language) })}
               />
             ))}

@@ -1,3 +1,4 @@
+import { getSessionToken, invalidateSession } from './session';
 import type { EvidenceRect } from '@/types/chat';
 import type { DocumentModel, DocumentError } from '@/types/document';
 import {
@@ -64,6 +65,7 @@ export function toDocument(dto: unknown): DocumentModel {
     language: oneOf(dto.language, ['kk', 'ru', 'en', 'mixed'] as const),
     ocrUsed: typeof dto.ocrUsed === 'boolean' ? dto.ocrUsed : null,
     hasPreview: dto.hasPreview === true,
+    isDemo: dto.isDemo === true,
     error: toDocumentError(dto.error),
   };
 }
@@ -93,13 +95,16 @@ export interface UploadCallbacks {
 }
 
 /** XMLHttpRequest because fetch still has no upload progress events. */
-export function uploadDocument(file: File, { onProgress, signal }: UploadCallbacks): Promise<DocumentModel> {
+export async function uploadDocument(file: File, { onProgress, signal }: UploadCallbacks): Promise<DocumentModel> {
+  const token = await getSessionToken();
+  if (signal.aborted) throw new DOMException('Upload cancelled', 'AbortError');
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     const form = new FormData();
     form.append('file', file);
 
     xhr.open('POST', apiUrl('/documents'));
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
     xhr.responseType = 'text';
     xhr.timeout = UPLOAD_TIMEOUT_MS;
     xhr.ontimeout = () => reject(timeoutError());
@@ -122,7 +127,9 @@ export function uploadDocument(file: File, { onProgress, signal }: UploadCallbac
           reject(error);
         }
       } else {
-        reject(errorFromBody(xhr.status, body));
+        // Not sent again by itself: the upload counts against limits, and the user decides.
+        if (xhr.status === 401) invalidateSession(token);
+        reject(errorFromBody(xhr.status, body, xhr.getResponseHeader('Retry-After')));
       }
     };
     signal.addEventListener('abort', () => xhr.abort(), { once: true });
@@ -163,6 +170,8 @@ export interface DocumentFact {
   page: number | null;
   location: string | null;
   highlights: EvidenceRect[];
+  /** Block index in /text. DOCX only. */
+  paragraph?: number;
 }
 
 export interface DocumentFacts {
@@ -183,6 +192,7 @@ export async function getDocumentFacts(id: string, signal?: AbortSignal): Promis
       quote: fact.quote,
       page: typeof fact.page === 'number' ? fact.page : null,
       location: typeof fact.location === 'string' ? fact.location : null,
+      ...(typeof fact.paragraph === 'number' ? { paragraph: fact.paragraph } : {}),
       highlights: Array.isArray(fact.highlights) ? fact.highlights.flatMap((rect: unknown) => {
         const parsed = toRect(rect);
         return parsed ? [parsed] : [];

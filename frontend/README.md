@@ -14,8 +14,14 @@ npm install
 npm run dev               # http://localhost:5173
 ```
 
-Start the backend first (`../backend`, port 8011). Open the app on `localhost`, not `127.0.0.1`: the backend's CORS
+Start the backend first (`../backend`, port 8011, from a version with guest sessions). Open the app on `localhost`, not `127.0.0.1`: the backend's CORS
 default allows only the former.
+
+## Sessions
+
+The API needs a guest session. `src/api/session.ts` creates one on the first protected request and keeps it in `localStorage`, so a reload continues the same guest. `src/api/client.ts` adds `Authorization: Bearer` to every protected request, including SSE; uploads and PDF.js send the same header. The token never goes into a URL or a log.
+
+When the server answers 401, the session is replaced, everything of the old guest is cleared from this browser (`src/services/userData.ts`) and the app is rebuilt from nothing. Only a GET is repeated by itself: a question, upload or delete waits for the user. Theme, language and mode stay.
 
 ## Evidence Jump
 

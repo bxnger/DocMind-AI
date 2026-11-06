@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { deleteDocument, getDocument, listDocuments } from '@/api/documents';
-import { AppError } from '@/api/client';
+import { queryRetryDelay, shouldRetryQuery } from '@/api/retry';
 import { deleteLiveConversation } from '@/services/chat/live/liveChatAdapter';
 import { deleteLocalFile } from '@/services/localFiles';
 import { forgetRecent } from '@/services/recents';
@@ -42,7 +42,8 @@ export function useDocument(id: string) {
     queryKey: isSampleDocument(id) ? [...DOCUMENTS_KEY, id, i18n.language] : [...DOCUMENTS_KEY, id],
     queryFn: ({ signal }) => (isSampleDocument(id) ? sampleDocument(i18n.language) : getDocument(id, signal)),
     refetchInterval: (query) => pollInterval(query.state.data ? [query.state.data] : undefined),
-    retry: (count, error) => !(error instanceof AppError && error.status === 404) && count < 1,
+    retry: shouldRetryQuery,
+    retryDelay: queryRetryDelay,
   });
 }
 

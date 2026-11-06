@@ -1,7 +1,9 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { resetSessionState } from './session';
 import { RESPONSE_TIMEOUT_MS, send } from './client';
 import type { ChatMessage } from '@/types/chat';
-import { tidyHistory, toSource } from './conversations';
+import { listMessages, tidyHistory, toSource } from './conversations';
+import { toDocument } from './documents';
 
 const base = { index: 2, documentId: 'd', documentName: 'n', quote: 'q' };
 
@@ -41,6 +43,10 @@ describe('history after failed attempts', () => {
 });
 
 describe('waiting for the server', () => {
+  beforeEach(() => {
+    resetSessionState();
+    vi.stubGlobal('navigator', {}); // the hanging server below would hold a real lock for the next test
+  });
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
@@ -65,5 +71,27 @@ describe('waiting for the server', () => {
   it('reports an unreachable server as a network error', async () => {
     vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new TypeError('failed'))));
     await expect(send('/x')).rejects.toMatchObject({ code: 'NETWORK_ERROR', retryable: true });
+  });
+});
+
+describe('saved answers', () => {
+  it('keep the reason of a not_found', async () => {
+    resetSessionState();
+    vi.stubGlobal('navigator', {});
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => url.endsWith('/sessions')
+      ? new Response(JSON.stringify({ token: 't', expiresAt: 'x' }), { status: 201 })
+      : new Response(JSON.stringify({ items: [{ id: '1', role: 'user', content: 'q' }, { id: '2', role: 'assistant', content: '', answerStatus: 'not_found', reason: 'model_refused' }] }))));
+    const [, answer] = await listMessages('c');
+    expect(answer).toMatchObject({ notFoundReason: 'model_refused', text: '' });
+    vi.unstubAllGlobals();
+  });
+});
+
+describe('documents from the server', () => {
+  const dto = { id: 'd', name: 'n', kind: 'pdf', sizeBytes: 1, status: 'ready', createdAt: 'now' };
+  it('reads isDemo strictly', () => {
+    expect(toDocument({ ...dto, isDemo: true }).isDemo).toBe(true);
+    expect(toDocument({ ...dto, isDemo: 'yes' }).isDemo).toBe(false);
+    expect(toDocument(dto).isDemo).toBe(false);
   });
 });

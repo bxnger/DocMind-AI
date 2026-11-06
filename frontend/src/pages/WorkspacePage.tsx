@@ -213,6 +213,7 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
         </div>
         {split && viewSwitch}
         {isSample && <span className="rounded-full border border-accent-line px-2 text-xs text-accent-strong">{t('documents.sampleTag')}</span>}
+        {doc.isDemo && <span data-testid="demo-tag" className="rounded-full border border-accent-line px-2 text-xs text-accent-strong">{t('documents.demoTag')}</span>}
         {!isSample && <StatusBadge doc={doc} compact={!split} />}
         {origin === 'browser' && (
           <span
@@ -224,7 +225,7 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
           </span>
         )}
         {!split && <ThemeToggle />}
-        {!isSample && (
+        {!isSample && !doc.isDemo && (
           <IconButton label={t('common.delete')} icon={<Trash2 size={16} aria-hidden />} onClick={() => setDeleting(true)} />
         )}
         {!split && (

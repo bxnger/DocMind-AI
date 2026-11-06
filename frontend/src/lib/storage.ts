@@ -26,3 +26,12 @@ export function removeStored(storage: 'local' | 'session', key: string): void {
     // Nothing to clean up if storage is unavailable.
   }
 }
+
+export function removeStoredByPrefix(storage: 'local' | 'session', prefix: string): void {
+  try {
+    const store = storage === 'local' ? localStorage : sessionStorage;
+    for (const key of Object.keys(store)) if (key.startsWith(prefix)) store.removeItem(key);
+  } catch {
+    // Nothing to clean up if storage is unavailable.
+  }
+}

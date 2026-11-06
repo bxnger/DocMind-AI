@@ -8,7 +8,7 @@ import type { AssistantMessage, EvidenceSource } from '@/types/chat';
  */
 export function factSource(fact: DocumentFact, documentId: string, documentName: string, blocks: readonly TextBlock[] | undefined): EvidenceSource {
   const paragraph = fact.page === null
-    ? (blocks?.find((block) => block.text.includes(fact.quote)) ?? blocks?.find((block) => block.text.includes(fact.value) && fact.quote.includes(block.text)))?.index
+    ? fact.paragraph ?? (blocks?.find((block) => block.text.includes(fact.quote)) ?? blocks?.find((block) => block.text.includes(fact.value) && fact.quote.includes(block.text)))?.index
     : undefined;
   return {
     index: 1,

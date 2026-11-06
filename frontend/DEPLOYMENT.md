@@ -1,6 +1,6 @@
 # Deploying DOCMIND AI
 
-**Status: the backend is not safe to expose publicly yet.** The API has no authentication or ownership checks. Do not give it a public address until the "Before release" list below is done.
+**Status: deploy only a backend with guest sessions** (`backend/security-hardening` or later), together with this frontend. Earlier backends have no authentication, and this frontend needs `POST /api/v1/sessions`.
 
 ## Architecture
 
@@ -60,25 +60,25 @@ Set these in the host's secret store, never in Git or in Vercel:
 | `CORS_ORIGINS` | Exact frontend origin, comma separated. No wildcard. |
 | `TELEGRAM_BOT_TOKEN` | Secret, bot process only |
 | `BACKEND_URL` | Backend address, bot process only |
-| `TELEGRAM_ALLOWED_CHATS` | Set for the demo. Empty lets everybody use the bot. |
+| `TELEGRAM_ALLOWED_CHATS` | Required: the bot refuses to start without it. |
+| `APP_ENV` | `production` |
+| `TRUSTED_PROXY_IPS` | The reverse proxy's address |
 
 Set a spending or usage limit in the Groq console too: the backend has no daily budget.
 
 ## Before release
 
-- [ ] Authentication and per-owner checks on every document, conversation and comparison route
-- [ ] Guests cannot delete shared demo data
-- [ ] Per-client rate limits on chat, upload, comparison and facts, plus a daily AI budget
-- [ ] Processing limits: time, memory, decompressed DOCX size, disk quota
-- [ ] `/docs` and `/openapi.json` off in production
-- [ ] Telegram bot isolated per chat, or closed with `TELEGRAM_ALLOWED_CHATS`
+- [ ] Backend and frontend branches merged and deployed together
+- [ ] Backend has `APP_ENV=production`, exact `CORS_ORIGINS` and `TRUSTED_PROXY_IPS`
+- [ ] The bomb and limit checks repeated on the Linux host
+- [ ] A real AI answer checked on the deployed pair
 
 ## Checks after deploying
 
 1. `GET /api/v1/health` returns `{"status":"ok"}`.
 2. `GET /api/v1/capabilities` shows the expected version and OCR state.
 3. A request with an `Origin` that is not allowed gets no `access-control-allow-origin` header.
-4. A request without credentials to `/api/v1/documents` is refused. **This fails today.**
+4. A request without credentials to `/api/v1/documents` is refused with 401.
 5. In the browser: refresh a `/documents/<id>` link, upload, ask, open a citation, and check the console for CSP errors.
 
 ## Rollback

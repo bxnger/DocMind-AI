@@ -72,9 +72,20 @@
       "INDEXING_FAILED": "The document couldn't be indexed.",
       "INTERNAL_ERROR": "The server had an internal problem. Start again.",
       "STREAM_INTERRUPTED": "The connection dropped before the answer finished. Try again.",
-      "REQUEST_TIMEOUT": "The server took too long to respond. Try again in a moment."
+      "REQUEST_TIMEOUT": "The server took too long to respond. Try again in a moment.",
+      "UNAUTHORIZED": "The session is no longer valid. Try again.",
+      "SESSION_EXPIRED": "This session has ended, so its documents are no longer available.",
+      "DEMO_READ_ONLY": "Demo documents can't be changed or deleted.",
+      "QUOTA_EXCEEDED": "Your limit for this session is reached. Delete something and try again.",
+      "AI_SESSION_BUDGET_EXCEEDED": "Your AI questions for today are used up. They renew within a day. Reading documents still works.",
+      "AI_BUDGET_EXCEEDED": "AI answers are unavailable for now. They renew within a day. Reading documents still works.",
+      "STORAGE_FULL": "The server has no room for more documents right now. Try again later.",
+      "DOCUMENT_TOO_COMPLEX": "This file needs too much time or memory to read.",
+      "DOCX_TOO_LARGE": "This DOCX is too large once unpacked."
     },
-    "noTextWithOcr": "No text could be read from this file, even with text recognition (OCR)."
+    "noTextWithOcr": "No text could be read from this file, even with text recognition (OCR).",
+    "rateLimitedWait": "Too many requests. Try again in {{seconds}} s.",
+    "sessionReplaced": "This session has ended, so its documents are no longer available. You can upload them again."
   },
   "home": {
     "title": "Documents you can question",
@@ -115,7 +126,8 @@
     "deleted": "Document deleted",
     "sampleHeading": "Sample",
     "sampleTag": "Sample",
-    "sampleMeta": "Fictional contract"
+    "sampleMeta": "Fictional contract",
+    "demoTag": "Demo"
   },
   "recent": {
     "title": "Recent",

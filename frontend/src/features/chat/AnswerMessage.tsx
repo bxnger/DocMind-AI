@@ -125,7 +125,7 @@ export function AnswerMessage({ message, animate, onRetry, onRephrase, onUseDemo
                 {t('common.retry')}
               </Button>
             )}
-            {message.errorCode === 'LLM_UNAVAILABLE' && onUseDemo && (
+            {(message.errorCode === 'LLM_UNAVAILABLE' || message.errorCode === 'AI_SESSION_BUDGET_EXCEEDED' || message.errorCode === 'AI_BUDGET_EXCEEDED') && onUseDemo && (
               <Button size="sm" onClick={onUseDemo}>{t('chat.useDemo')}</Button>
             )}
           </div>

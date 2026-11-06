@@ -20,6 +20,8 @@ export interface DocumentModel {
   language: DocumentLanguage | null;
   ocrUsed: boolean | null;
   hasPreview: boolean;
+  /** Public and read-only: every guest can read and ask about it, nobody can delete it. */
+  isDemo: boolean;
   createdAt: string;
   error: DocumentError | null;
 }

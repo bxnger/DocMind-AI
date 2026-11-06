@@ -1,95 +1,46 @@
-/** Normalised error for everything that crosses the network boundary. */
-export class AppError extends Error {
-  readonly code: string;
-  readonly retryable: boolean;
-  readonly status: number | null;
-  readonly requestId: string | null;
+import { getSessionToken, invalidateSession } from './session';
+import { errorFromResponse, request } from './transport';
 
-  constructor(options: {
-    code: string;
-    message: string;
-    retryable?: boolean;
-    status?: number | null;
-    requestId?: string | null;
-  }) {
-    super(options.message);
-    this.name = 'AppError';
-    this.code = options.code;
-    this.retryable = options.retryable ?? false;
-    this.status = options.status ?? null;
-    this.requestId = options.requestId ?? null;
-  }
+export * from './transport';
+
+function withToken(init: RequestInit | undefined, token: string): RequestInit {
+  const headers = new Headers(init?.headers);
+  headers.set('Authorization', `Bearer ${token}`);
+  return { ...init, headers };
 }
 
-export const ERROR_NETWORK = 'NETWORK_ERROR';
-export const ERROR_BAD_RESPONSE = 'BAD_RESPONSE';
-
-// The fallback exists only in development. vite.config.ts stops a production build without a real address.
-const DEFAULT_BASE_URL = import.meta.env.DEV ? 'http://127.0.0.1:8000' : '';
-
-export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? DEFAULT_BASE_URL).replace(/\/+$/, '');
-
-export const ERROR_TIMEOUT = 'REQUEST_TIMEOUT';
-/** How long a server may take to start answering. The chat's search and translation happen before that. */
-export const RESPONSE_TIMEOUT_MS = 45_000;
-
-export function timeoutError(): AppError {
-  return new AppError({ code: ERROR_TIMEOUT, message: 'The backend took too long to respond', retryable: true });
-}
-
-export function apiUrl(path: string): string {
-  return `${API_BASE_URL}/api/v1${path}`;
-}
-
-export function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
-/** Turns a parsed non-2xx body in the backend's `{ error: {...} }` shape into an AppError. */
-export function errorFromBody(status: number, body: unknown): AppError {
-  const error = isRecord(body) && isRecord(body.error) ? body.error : null;
-  return new AppError({
-    code: typeof error?.code === 'string' ? error.code : `HTTP_${status}`,
-    message: typeof error?.message === 'string' ? error.message : `Request failed with status ${status}`,
-    retryable: error?.retryable === true || status >= 500,
-    status,
-    requestId: typeof error?.requestId === 'string' ? error.requestId : null,
+/** Waiting for a session must not outlive a request the user has stopped. */
+function tokenFor(signal: AbortSignal | null | undefined): Promise<string> {
+  if (!signal) return getSessionToken();
+  return new Promise((resolve, reject) => {
+    const stop = () => reject(new DOMException('Aborted', 'AbortError'));
+    if (signal.aborted) stop();
+    signal.addEventListener('abort', stop, { once: true });
+    getSessionToken().then(resolve, reject).finally(() => signal.removeEventListener('abort', stop));
   });
 }
 
-export function networkError(): AppError {
-  return new AppError({
-    code: ERROR_NETWORK,
-    message: 'The backend could not be reached',
-    retryable: true,
-  });
-}
-
+/**
+ * A request as the current guest. After a 401 the session is replaced, and only a GET is repeated:
+ * a POST or DELETE may cost AI budget or quota, and what it named belonged to the old session anyway.
+ */
 export async function send(path: string, init?: RequestInit): Promise<Response> {
-  let response: Response;
-  const controller = new AbortController();
-  let timedOut = false;
-  const timer = setTimeout(() => {
-    timedOut = true;
-    controller.abort();
-  }, RESPONSE_TIMEOUT_MS);
-  const caller = init?.signal;
-  const forward = () => controller.abort();
-  if (caller?.aborted) controller.abort();
-  caller?.addEventListener('abort', forward, { once: true });
-  try {
-    response = await fetch(apiUrl(path), { ...init, signal: controller.signal });
-  } catch (cause) {
-    if (timedOut) throw timeoutError();
-    if (cause instanceof DOMException && cause.name === 'AbortError') throw cause;
-    throw networkError();
-  } finally {
-    // Only the wait for a response is limited: a stream may then run longer, and can still be stopped.
-    clearTimeout(timer);
+  const token = await tokenFor(init?.signal);
+  let response = await request(path, withToken(init, token));
+  if (response.status === 401) {
+    invalidateSession(token);
+    if ((init?.method ?? 'GET') !== 'GET') throw await errorFromResponse(response);
+    response = await request(path, withToken(init, await tokenFor(init?.signal)));
   }
   if (response.ok) return response;
-  const body: unknown = await response.json().catch(() => null);
-  throw errorFromBody(response.status, body);
+  throw await errorFromResponse(response);
+}
+
+/** For the few routes that need no session, so that a health check never creates one. */
+export async function getPublicJson(path: string, signal?: AbortSignal): Promise<unknown> {
+  const response = await request(path, { signal });
+  if (!response.ok) throw await errorFromResponse(response);
+  return response.json();
 }
 
 export async function getJson(path: string, signal?: AbortSignal): Promise<unknown> {

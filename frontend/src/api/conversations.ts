@@ -75,6 +75,7 @@ export async function listMessages(id: string, signal?: AbortSignal): Promise<Ch
       sources: answerStatus === 'answered' && Array.isArray(item.sources) ? item.sources.map(toSource) : [],
       status: 'done',
       answerStatus,
+      ...(answerStatus === 'not_found' ? { notFoundReason: toReason(item.reason) } : {}),
     };
   });
   return tidyHistory(items);
