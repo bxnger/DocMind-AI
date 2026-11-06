@@ -35,6 +35,82 @@ def test_the_real_ocr_reads_the_latin_code_of_the_qa_scan():
     assert "QA-2027-041" in text and "QA-2026-014" in text and "780 500" in text
 
 
+def test_a_damaged_pdf_that_opens_with_no_pages_is_reported_as_unreadable(tmp_path):
+    """Found live: a truncated PDF with a valid header was reported as NO_TEXT_FOUND ("a scan, OCR needed"), because
+    PyMuPDF repairs it into a document with no pages. It is a damaged file, PARSE_FAILED."""
+    from app.extraction import ExtractionError
+
+    path = tmp_path / "trunc.pdf"
+    path.write_bytes(b"%PDF-1.4\n1 0 obj<<>>endobj garbage")
+    with pytest.raises(ExtractionError) as error:
+        extract_pdf(path)
+    assert error.value.code == "PARSE_FAILED"
+
+
+def test_what_changed_between_two_versions_shows_the_model_both_values(client, answerer):
+    """Found live: "What exactly changed?" over two versions was answered with the documents' own summary sentence
+    ("the budget and the deadline change") without the values, because search found that sentence and not the
+    clauses. Now the clauses that differ reach the model in pairs, and the answer is verified against them."""
+    from tests.test_chat import ask, ready_document
+
+    first = ready_document(client, ("The budget is 12 450 000 KZT. The lead is Arman Sadykov.", "Reserve is 850 000 KZT."))
+    second = ready_document(client, ("The budget is 18 750 000 KZT. The lead is Elena Kim.", "Reserve is 850 000 KZT."))
+    conversation = client.post("/api/v1/conversations", json={"documentIds": [first, second]}).json()["id"]
+    answerer.reply = "The budget grew from 12 450 000 KZT [1] to 18 750 000 KZT [2]."
+    events = ask(client, conversation, "What exactly changed?")
+
+    excerpts = answerer.calls[-1][1]
+    versions = [(excerpt.version, excerpt.text) for excerpt in excerpts if excerpt.version]
+    assert ("first", "The budget is 12 450 000 KZT.") in versions and ("second", "The budget is 18 750 000 KZT.") in versions
+    assert ("first", "The lead is Arman Sadykov.") in versions and ("second", "The lead is Elena Kim.") in versions
+    assert all("850 000" not in text for _version, text in versions)  # unchanged: not a change
+    sources = next(data for event, data in events if event == "sources")["sources"]
+    assert [(source["documentId"], source["page"]) for source in sources] == [(first, 1), (second, 1)]
+
+    ask(client, conversation, "What did not change?")
+    unchanged = [excerpt.text for excerpt in answerer.calls[-1][1] if excerpt.version == "both"]
+    assert unchanged == ["Reserve is 850 000 KZT."]
+
+
+def test_one_document_or_an_ordinary_question_gets_no_comparison(client, answerer):
+    from tests.test_chat import ask, ready_document
+
+    first = ready_document(client, ("The budget is 12 450 000 KZT.", "x"))
+    second = ready_document(client, ("The budget is 18 750 000 KZT.", "x"))
+    answerer.reply = "NOT_FOUND"
+    both = client.post("/api/v1/conversations", json={"documentIds": [first, second]}).json()["id"]
+    ask(client, both, "What is the budget?")
+    one = client.post("/api/v1/conversations", json={"documentIds": [first]}).json()["id"]
+    ask(client, one, "What changed in the budget?")
+    assert all(excerpt.version is None for call in answerer.calls for excerpt in call[1])
+
+
+def test_which_amounts_are_mentioned_reaches_the_figures():
+    """Found live: "Какие суммы указаны в документе?" (suggested by the interface) was refused by both models: the word
+    "суммы" is not next to the figures, so search did not find them. Excerpts with money are now added."""
+    from app.routers.conversations import select_chunks
+
+    def chunk(number, text):
+        return {"documentId": "d", "documentName": "a.pdf", "page": number, "location": None, "text": text, "segmentText": text}
+
+    chunks = [chunk(1, "Утверждённый бюджет пилота составляет 12 450 000 ₸.")] + [
+        chunk(n, f"Раздел {n} описывает порядок работы команды и сроки согласования.") for n in range(2, 20)
+    ] + [chunk(20, "Резерв на риски 850 000 тенге.")]
+    picked, overview = select_chunks("Какие суммы указаны в документе?", [], chunks)
+    texts = [item["text"] for item in picked]
+    assert not overview and chunks[0]["text"] in texts and chunks[-1]["text"] in texts
+    plain, _ = select_chunks("Кто руководитель?", [], chunks)
+    assert chunks[-1] not in plain
+
+
+def test_the_prompt_answers_a_wrong_premise_instead_of_refusing():
+    """Found live: "How many calendar days does the supplier have?" was refused, though the document says 5 working days."""
+    from app.llm import SYSTEM_PROMPT
+
+    assert "calendar days" in SYSTEM_PROMPT and "point out the difference" in SYSTEM_PROMPT
+    assert "say nothing that answers the question, reply with exactly NOT_FOUND" in SYSTEM_PROMPT
+
+
 def test_a_session_may_process_as_many_files_at_once_as_it_may_upload_per_minute():
     """Found live: dropping five files at once gave 'Too many requests' for the fourth and fifth, because only three
     could be processing at once while the upload limit allows six a minute. The frontend promises that several files

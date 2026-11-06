@@ -74,6 +74,8 @@ def extract_pdf(path: Path, languages: str | None = None) -> list[Segment]:
     try:
         if doc.needs_pass:
             raise ExtractionError("PASSWORD_PROTECTED", "The PDF is password protected")
+        if doc.page_count == 0:  # a damaged file that PyMuPDF "repairs" into an empty document
+            raise ExtractionError("PARSE_FAILED", "The PDF is damaged: no pages could be read")
         segments = []
         for number, page in enumerate(doc, start=1):
             if languages:
