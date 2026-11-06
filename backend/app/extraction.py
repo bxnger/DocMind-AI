@@ -34,6 +34,24 @@ def normalize(text: str) -> str:
     return WHITESPACE.sub(" ", text).strip()
 
 
+# Tesseract reads the Latin letters of a code like "QA-2027-041" as Cyrillic ones ("ОА-2027-041") when Kazakh or Russian
+# is listed before English, and "Q" has no Cyrillic look-alike to translate back. So a page that holds such a code is read
+# once more with English only, and the code is taken from that reading.
+_CYRILLIC_CODE = re.compile(r"(?<![\w-])[А-ЯЁӘІҢҒҮҰҚӨҺ]{1,4}((?:-\d+){2,})(?![\w-])")
+_LATIN_CODE = re.compile(r"(?<![\w-])[A-Z]{1,4}((?:-\d+){2,})(?![\w-])")
+
+
+def needs_latin_codes(text: str) -> bool:
+    return _CYRILLIC_CODE.search(text) is not None
+
+
+def repair_codes(text: str, latin_text: str) -> str:
+    """Replaces each Cyrillic-lettered code of `text` by the Latin-lettered code with the same numbers that
+    `latin_text` (the same page read as English) holds. A code the English reading does not hold is kept."""
+    latin = {match.group(1): match.group(0) for match in _LATIN_CODE.finditer(latin_text)}
+    return _CYRILLIC_CODE.sub(lambda match: latin.get(match.group(1), match.group(0)), text)
+
+
 def ocr_languages() -> str | None:
     """Tesseract languages usable for OCR, like "kaz+rus+eng", or None when OCR is not set up."""
     try:
@@ -61,6 +79,9 @@ def extract_pdf(path: Path, languages: str | None = None) -> list[Segment]:
             if languages:
                 textpage = page.get_textpage_ocr(language=languages, dpi=OCR_DPI, full=True)
                 text = page.get_text("text", textpage=textpage)
+                if needs_latin_codes(text) and languages != "eng":
+                    english = page.get_textpage_ocr(language="eng", dpi=OCR_DPI, full=True)
+                    text = repair_codes(text, page.get_text("text", textpage=english))
             else:
                 text = page.get_text("text")
             segments.append(Segment(page=number, location=None, text=normalize(text)))

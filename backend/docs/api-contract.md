@@ -42,7 +42,7 @@ The owner comes only from the token. An owner or user id in a request is ignored
 
 **Demo documents:** added on the server with `python -m app.demo_docs <files>`. Every session sees them in `GET /documents` with `isDemo: true` and can read, ask about and compare them. Only DELETE is refused. Conversations and comparisons about them belong to the session that made them.
 
-**Limits per session (defaults, all configurable):** chat 12, upload 6, comparison 6, facts 20, `/text` 30 and other reads 600 per minute; 10 documents, 100 MB, 3 processing at once; 50 conversations; 20 comparisons, 1 running; 40 AI requests a day. Also 300 AI requests a day per address, and 1000 for the whole server.
+**Limits per session (defaults, all configurable):** chat 12, upload 6, comparison 6, facts 20, `/text` 30 and other reads 600 per minute; 10 documents, 100 MB, 6 processing at once; 50 conversations; 20 comparisons, 1 running; 40 AI requests a day. Also 300 AI requests a day per address, and 1000 for the whole server.
 
 **Uploads:** 20 MB. PDF: `%PDF-` signature, 300 pages, scans 50 pages. DOCX: a real archive with `word/document.xml`, at most 2000 entries, 100 MB unpacked, of which 32 MB XML. Reading runs in a separate process limited to 180 s and 768 MB; over that, the document ends `failed` with `DOCUMENT_TOO_COMPLEX`. A failed document keeps its record, without its file or text, and still counts towards the document limit until deleted.
 

@@ -52,7 +52,7 @@ class Settings:
     read_limit_per_minute: int = _int("READ_LIMIT_PER_MINUTE", 600)
     session_max_documents: int = _int("SESSION_MAX_DOCUMENTS", 10)
     session_max_bytes: int = _int("SESSION_MAX_MB", 100) * 1024 * 1024
-    session_max_processing: int = _int("SESSION_MAX_PROCESSING", 3)
+    session_max_processing: int = _int("SESSION_MAX_PROCESSING", 6)
     session_max_conversations: int = _int("SESSION_MAX_CONVERSATIONS", 50)
     session_max_comparisons: int = _int("SESSION_MAX_COMPARISONS", 20)
     global_max_processing: int = _int("GLOBAL_MAX_PROCESSING", 20)
