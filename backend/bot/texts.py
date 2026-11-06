@@ -4,15 +4,28 @@ LANGUAGES = ("ru", "kk", "en")
 
 TEXTS: dict[str, dict[str, str]] = {
     "start": {
-        "ru": "Привет! Я DOCMIND AI. Пришлите PDF или DOCX (до 20 МБ) и задавайте вопросы на русском, казахском или английском. Каждый ответ приходит с источником: файл, страница и точная цитата.\n\nКоманды: /docs, /facts, /compare, /help.\n\nФайлы обрабатываются на сервере проекта. Не присылайте конфиденциальные документы.",
-        "kk": "Сәлем! Мен DOCMIND AI. PDF немесе DOCX (20 МБ-қа дейін) жіберіңіз де, қазақша, орысша немесе ағылшынша сұрақ қойыңыз. Әр жауап дереккөзімен келеді: файл, бет және нақты дәйексөз.\n\nБұйрықтар: /docs, /facts, /compare, /help.\n\nФайлдар жоба серверінде өңделеді. Құпия құжаттарды жібермеңіз.",
-        "en": "Hi! I am DOCMIND AI. Send a PDF or DOCX (up to 20 MB) and ask questions in Russian, Kazakh or English. Every answer comes with its source: file, page and the exact quote.\n\nCommands: /docs, /facts, /compare, /help.\n\nFiles are processed on the project's server. Do not send confidential documents.",
+        "ru": "Привет! Я DOCMIND AI. Пришлите PDF или DOCX (до 20 МБ) и задавайте вопросы на русском, казахском или английском. Каждый ответ приходит с источником: файл, страница и точная цитата.\n\nКоманды: /docs, /facts, /export, /compare, /help.\n\nФайлы обрабатываются на сервере проекта. Не присылайте конфиденциальные документы.",
+        "kk": "Сәлем! Мен DOCMIND AI. PDF немесе DOCX (20 МБ-қа дейін) жіберіңіз де, қазақша, орысша немесе ағылшынша сұрақ қойыңыз. Әр жауап дереккөзімен келеді: файл, бет және нақты дәйексөз.\n\nБұйрықтар: /docs, /facts, /export, /compare, /help.\n\nФайлдар жоба серверінде өңделеді. Құпия құжаттарды жібермеңіз.",
+        "en": "Hi! I am DOCMIND AI. Send a PDF or DOCX (up to 20 MB) and ask questions in Russian, Kazakh or English. Every answer comes with its source: file, page and the exact quote.\n\nCommands: /docs, /facts, /export, /compare, /help.\n\nFiles are processed on the project's server. Do not send confidential documents.",
     },
     "help": {
-        "ru": "/docs: мои документы\n/use N: выбрать документ\n/delete N: удалить документ\n/facts: даты, сроки и суммы документа\n/compare 1 2: сравнить два документа\n\nПросто напишите вопрос, чтобы спросить о текущем документе.",
-        "kk": "/docs: менің құжаттарым\n/use N: құжатты таңдау\n/delete N: құжатты жою\n/facts: құжаттағы күндер, мерзімдер, сомалар\n/compare 1 2: екі құжатты салыстыру\n\nАғымдағы құжат туралы сұрау үшін сұрағыңызды жазыңыз.",
-        "en": "/docs: my documents\n/use N: choose a document\n/delete N: delete a document\n/facts: dates, deadlines and amounts of the document\n/compare 1 2: compare two documents\n\nJust write a question to ask about the current document.",
+        "ru": "/docs: мои документы\n/use N: выбрать документ\n/delete N: удалить документ\n/facts: даты, сроки и суммы документа\n/export: выгрузить вопросы и ответы файлом\n/compare 1 2: сравнить два документа\n\nПросто напишите вопрос, чтобы спросить о текущем документе.",
+        "kk": "/docs: менің құжаттарым\n/use N: құжатты таңдау\n/delete N: құжатты жою\n/facts: құжаттағы күндер, мерзімдер, сомалар\n/export: сұрақтар мен жауаптарды файлға шығару\n/compare 1 2: екі құжатты салыстыру\n\nАғымдағы құжат туралы сұрау үшін сұрағыңызды жазыңыз.",
+        "en": "/docs: my documents\n/use N: choose a document\n/delete N: delete a document\n/facts: dates, deadlines and amounts of the document\n/export: save the questions and answers as a file\n/compare 1 2: compare two documents\n\nJust write a question to ask about the current document.",
     },
+    "export_none": {
+        "ru": "По этому документу ещё нет ответов. Задайте вопрос, затем повторите /export.",
+        "kk": "Бұл құжат бойынша жауап әлі жоқ. Алдымен сұрақ қойып, содан кейін /export қайталаңыз.",
+        "en": "There are no answers for this document yet. Ask a question, then repeat /export.",
+    },
+    "export_caption": {
+        "ru": "Вопросы и ответы по «{name}» с точными цитатами.",
+        "kk": "«{name}» бойынша сұрақтар мен жауаптар, нақты дәйексөздермен.",
+        "en": "Questions and answers about “{name}”, with exact quotes.",
+    },
+    "export_title": {"ru": "Вопросы и ответы", "kk": "Сұрақтар мен жауаптар", "en": "Questions and answers"},
+    "export_question": {"ru": "Вопрос", "kk": "Сұрақ", "en": "Question"},
+    "export_not_found": {"ru": "В документе ответа не найдено.", "kk": "Құжатта жауап табылмады.", "en": "No answer found in the document."},
     "need_doc": {
         "ru": "Сначала пришлите PDF или DOCX как файл.",
         "kk": "Алдымен PDF немесе DOCX файлын жіберіңіз.",

@@ -4,6 +4,7 @@ import html
 import json
 import logging
 import os
+import re
 import threading
 import time
 from collections import deque
@@ -55,6 +56,35 @@ def split_message(text: str, limit: int = MESSAGE_LIMIT) -> list[str]:
     if current:
         parts.append(current)
     return parts
+
+
+def export_markdown(name: str, messages: list[dict], language: str) -> str | None:
+    """The conversation as a Markdown file: each question, the answer and the exact quotes behind it.
+    None when there is no answered or refused question yet."""
+    blocks: list[str] = []
+    question: str | None = None
+    for message in messages:
+        if message["role"] == "user":
+            question = message["content"]
+        elif message["role"] == "assistant" and question is not None:
+            lines = [f"## {t(language, 'export_question')}: {question}", ""]
+            if message.get("answerStatus") == "answered":
+                lines += [message["content"].strip(), ""]
+                for source in message.get("sources") or []:
+                    place = (
+                        f"{t(language, 'page_short')} {source['page']}"
+                        if source.get("page") is not None
+                        else str(source.get("location") or "")
+                    )
+                    lines.append(f"> [{source['index']}] {source['documentName']}, {place}: «{source['quote']}»")
+                    lines.append("")
+            else:
+                lines += [f"_{t(language, 'export_not_found')}_", ""]
+            blocks.append("\n".join(lines))
+            question = None
+    if not blocks:
+        return None
+    return f"# {t(language, 'export_title')}: {name}\n\n" + "\n".join(blocks)
 
 
 class Bot:
@@ -214,6 +244,8 @@ class Bot:
             self._delete(chat, chat_id, language, argument)
         elif command == "/facts":
             self._facts(chat, chat_id, language)
+        elif command == "/export":
+            self._export(chat, chat_id, language)
         elif command == "/compare":
             self._compare(chat, chat_id, language, argument)
         else:
@@ -421,6 +453,22 @@ class Bot:
                 f"{FACT_ICONS.get(fact['kind'], '•')} {html.escape(fact['value'])} ({place}): «{html.escape(short(fact['quote'], 120))}»"
             )
         self._say(chat_id, "\n".join(lines))
+
+    def _export(self, chat: dict, chat_id: int, language: str) -> None:
+        """Sends the whole conversation about the current document as a Markdown file."""
+        doc = self._current(chat)
+        if doc is None:
+            self._say(chat_id, t(language, "need_doc"))
+            return
+        conversation = chat["conversations"].get(doc["id"])
+        messages = self.backend.messages(conversation) if conversation else []
+        text = export_markdown(doc["name"], messages, language)
+        if text is None:
+            self._say(chat_id, t(language, "export_none"))
+            return
+        stem = re.sub(r"[^\w.-]+", "_", doc["name"].rsplit(".", 1)[0]).strip("_") or "document"
+        caption = short(t(language, "export_caption", name=html.escape(doc["name"])), CAPTION_LIMIT)
+        self.telegram.send_document(chat_id, text.encode("utf-8"), f"{stem}-qa.md", caption)
 
     def _compare(self, chat: dict, chat_id: int, language: str, argument: str) -> None:
         parts = argument.split()

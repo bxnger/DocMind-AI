@@ -63,6 +63,11 @@ class TelegramAPI:
             "sendPhoto", files={"photo": ("page.png", png, "image/png")}, chat_id=chat_id, caption=caption, parse_mode="HTML"
         )
 
+    def send_document(self, chat_id: int, data: bytes, filename: str, caption: str | None = None) -> dict:
+        return self.call(
+            "sendDocument", files={"document": (filename, data, "text/markdown")}, chat_id=chat_id, caption=caption, parse_mode="HTML"
+        )
+
     def send_chat_action(self, chat_id: int, action: str = "typing") -> None:
         try:
             self.call("sendChatAction", chat_id=chat_id, action=action)

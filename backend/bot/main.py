@@ -31,9 +31,9 @@ from bot.telegram_api import TelegramAPI, TelegramError
 logger = logging.getLogger("bot")
 WORKERS = 6
 COMMANDS = {
-    "ru": [("docs", "Мои документы"), ("facts", "Даты, сроки и суммы"), ("compare", "Сравнить два документа"), ("help", "Помощь")],
-    "en": [("docs", "My documents"), ("facts", "Dates, deadlines, amounts"), ("compare", "Compare two documents"), ("help", "Help")],
-    "kk": [("docs", "Құжаттарым"), ("facts", "Күндер, мерзімдер, сомалар"), ("compare", "Екі құжатты салыстыру"), ("help", "Көмек")],
+    "ru": [("docs", "Мои документы"), ("facts", "Даты, сроки и суммы"), ("export", "Выгрузить вопросы и ответы"), ("compare", "Сравнить два документа"), ("help", "Помощь")],
+    "en": [("docs", "My documents"), ("facts", "Dates, deadlines, amounts"), ("export", "Export questions and answers"), ("compare", "Compare two documents"), ("help", "Help")],
+    "kk": [("docs", "Құжаттарым"), ("facts", "Күндер, мерзімдер, сомалар"), ("export", "Сұрақ-жауаптарды шығару"), ("compare", "Екі құжатты салыстыру"), ("help", "Көмек")],
 }
 
 
