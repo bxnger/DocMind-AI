@@ -12,7 +12,9 @@ import { StateBlock } from '@/components/ui/StateBlock';
 import { AssistantPanel } from '@/features/chat/AssistantPanel';
 import type { ComposerHandle } from '@/features/chat/Composer';
 import { useChat } from '@/features/chat/useChat';
-import { useDocumentFacts } from '@/features/documents/useDocumentContent';
+import type { TextBlock } from '@/api/documents';
+import { useDocumentBlocks, useDocumentFacts } from '@/features/documents/useDocumentContent';
+import { blocksToMapText } from '@/features/knowledgeMap/docxText';
 import { FactsPanel, factMessage } from '@/features/facts/FactsPanel';
 import { DeleteDocumentDialog } from '@/features/documents/DeleteDocumentDialog';
 import { StatusBadge } from '@/features/documents/StatusBadge';
@@ -48,7 +50,7 @@ const MIN_CHAT_WIDTH = 340;
 const MAX_CHAT_WIDTH = 640;
 
 /** A topic's fragments in the shape Evidence Jump reads. It has no answer text and never enters the chat. */
-function fragmentMessage(node: TopicNode, doc: DocumentModel): AssistantMessage {
+function fragmentMessage(node: TopicNode, doc: DocumentModel, blocks: readonly TextBlock[] | undefined): AssistantMessage {
   return {
     id: `map:${node.id}`,
     role: 'assistant',
@@ -61,8 +63,10 @@ function fragmentMessage(node: TopicNode, doc: DocumentModel): AssistantMessage 
       index: index + 1,
       documentId: doc.id,
       documentName: doc.name,
-      page: fragment.page,
-      location: null,
+      // A DOCX has no pages: on its map, `page` is the position of the block.
+      ...(doc.kind === 'docx'
+        ? { page: null, paragraph: fragment.page - 1, location: blocks?.[fragment.page - 1]?.section ?? null }
+        : { page: fragment.page, location: null }),
       quote: fragment.quote,
     })),
   };
@@ -87,7 +91,10 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
   const navigate = useNavigate();
   const split = useMediaQuery(SPLIT_PANE_QUERY);
   const routerLocation = useLocation();
-  const [pane, setPane] = useState<Pane>(routerLocation.state ? 'document' : 'assistant');
+  const startState: unknown = routerLocation.state;
+  // A question handed over from the home page, for the user to read and send.
+  const prefill = isRecord(startState) && typeof startState.prefill === 'string' ? startState.prefill : null;
+  const [pane, setPane] = useState<Pane>(startState && !prefill ? 'document' : 'assistant');
   const [chatWidth, setChatWidth] = usePersistentState('docmind.workspace.chatWidth', DEFAULT_CHAT_WIDTH);
   const [attempt, setAttempt] = useState(0);
   const [mode, setMode] = useState<ChatMode>('live');
@@ -105,7 +112,14 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
   const { text, adapter, availability, mode: effectiveMode } = useAssistant(doc, source, pdf, mode);
   const chat = useChat(doc.id, doc.name, adapter);
   const composer = useRef<ComposerHandle>(null);
+  const docxBlocks = useDocumentBlocks(doc.id, doc.kind === 'docx' && doc.status === 'ready');
+  const docxMapText = useMemo(() => (docxBlocks.data ? blocksToMapText(docxBlocks.data) : undefined), [docxBlocks.data]);
+  const placeOfBlock = (fragment: Fragment) => docxBlocks.data?.[fragment.page - 1]?.section ?? t('compare.inText');
   const isSampleDoc = isSampleDocument(doc.id);
+  useEffect(() => {
+    if (prefill) composer.current?.insert(prefill);
+    // Only once, when the document opens.
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const facts = useDocumentFacts(doc.id, doc.status === 'ready' && !isSampleDoc);
   const suggestedQuestions = facts.data?.suggestedQuestions ?? [];
 
@@ -142,8 +156,8 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
   );
 
   const openFragment = (node: TopicNode, fragment: Fragment) => {
-    const message = fragmentMessage(node, doc);
-    const opened = message.sources.find((candidate) => candidate.page === fragment.page && candidate.quote === fragment.quote);
+    const message = fragmentMessage(node, doc, docxBlocks.data);
+    const opened = message.sources[node.fragments.indexOf(fragment)];
     if (!opened) return;
     setMapEvidence(message);
     setRouteJump(null);
@@ -270,8 +284,10 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
           <div className={cn('h-full', view !== 'map' && HIDDEN_PANE)}>
             <ErrorBoundary fallback={(reset) => <RegionCrash reset={reset} />}>
               <KnowledgeMap
-                text={text}
-                unavailable={doc.kind === 'docx' ? 'docx' : source.kind === 'unavailable' || pdf.status === 'error' ? 'other' : null}
+                text={doc.kind === 'docx' ? docxMapText : text}
+                unavailable={doc.kind === 'docx' ? (docxBlocks.isError ? 'other' : null) : source.kind === 'unavailable' || pdf.status === 'error' ? 'other' : null}
+                documentName={doc.name}
+                placeOf={doc.kind === 'docx' ? placeOfBlock : undefined}
                 onOpenFragment={openFragment}
               />
             </ErrorBoundary>

@@ -1,4 +1,6 @@
-import type { Difference, DifferenceType } from '@/types/comparison';
+import type { Comparison, Difference, DifferenceType } from '@/types/comparison';
+
+import type { QuoteMark } from '@/features/docx/quoteParts';
 
 export type ChangeFilter = 'all' | DifferenceType;
 export type Side = 'a' | 'b';
@@ -38,7 +40,36 @@ export function annotationsFor(differences: readonly Difference[], side: Side) {
   });
 }
 
+/** The same for a document without pages, whose reader marks text wherever it is really found. */
+export function textMarksFor(differences: readonly Difference[], side: Side): QuoteMark[] {
+  return differences.flatMap((difference) => {
+    const evidence = difference[side];
+    return evidence ? [{ quote: evidence.quote, className: `docx-${difference.type}` }] : [];
+  });
+}
+
 /** Scroll lock moves by the same share of the document. Pages do not align one to one, so it is approximate. */
 export function mirrorTop(from: { top: number; range: number }, targetRange: number): number {
   return from.range <= 0 ? 0 : (from.top / from.range) * targetRange;
+}
+
+/** The same result read the other way round: what was added to B is what would be removed from it. */
+export function swapComparison(comparison: Comparison): Comparison {
+  const opposite = { added: 'removed', removed: 'added', changed: 'changed' } as const;
+  return {
+    ...comparison,
+    documentAId: comparison.documentBId,
+    documentBId: comparison.documentAId,
+    differences: comparison.differences.map((difference) => ({ ...difference, type: opposite[difference.type], a: difference.b, b: difference.a })),
+  };
+}
+
+/** The server reports a sentence that only changed place as a change with identical text on both sides. */
+export const isMoved = (difference: Difference): boolean =>
+  difference.type === 'changed' && difference.a !== null && difference.a.quote === difference.b?.quote;
+
+/** Pages can line up one to one only between PDFs of equal length. Anything else must not claim to. */
+export function alignmentOf(a: { kind: string; pageCount: number | null } | undefined, b: { kind: string; pageCount: number | null } | undefined): 'same-length' | 'proportional' | 'none' {
+  if (a?.kind !== 'pdf' || b?.kind !== 'pdf') return 'none';
+  return a.pageCount === b.pageCount ? 'same-length' : 'proportional';
 }

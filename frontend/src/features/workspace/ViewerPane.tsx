@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { StateBlock } from '@/components/ui/StateBlock';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { DocxReader, type DocxTarget } from '@/features/docx/DocxReader';
+import type { QuoteMark } from '@/features/docx/quoteParts';
 import { useDocumentFailure } from '@/features/system/useErrorMessage';
 import { PdfViewer, type Annotation, type JumpRequest } from '@/features/viewer/PdfViewer';
 import type { PdfState } from '@/features/viewer/usePdfDocument';
@@ -19,6 +20,7 @@ interface Props {
   text: DocumentText | undefined;
   jump: JumpRequest | null;
   docxTarget?: DocxTarget | null;
+  docxMarks?: readonly QuoteMark[];
   citedPages: ReadonlySet<number>;
   quoteNotice: boolean;
   annotations?: Annotation[];
@@ -43,7 +45,7 @@ function Loading({ progress }: { progress: number | null }) {
   );
 }
 
-export function ViewerPane({ doc, source, pdf, text, jump, docxTarget, citedPages, quoteNotice, annotations, compact, roomForInspector, onRetry }: Props) {
+export function ViewerPane({ doc, source, pdf, text, jump, docxTarget, docxMarks, citedPages, quoteNotice, annotations, compact, roomForInspector, onRetry }: Props) {
   const { t } = useTranslation();
   const failure = useDocumentFailure();
 
@@ -51,7 +53,7 @@ export function ViewerPane({ doc, source, pdf, text, jump, docxTarget, citedPage
 
   if (source.kind === 'unavailable') {
     if (source.reason === 'docx') {
-      if (doc.status === 'ready') return <DocxReader doc={doc} target={docxTarget ?? null} roomForInspector={roomForInspector ?? false} />;
+      if (doc.status === 'ready') return <DocxReader doc={doc} target={docxTarget ?? null} roomForInspector={roomForInspector ?? false} marks={docxMarks} />;
       return (
         <Centered>
           <StateBlock icon={<FileWarning size={18} aria-hidden />} title={t('viewer.notReadyTitle')} description={t('viewer.docxBody')} />

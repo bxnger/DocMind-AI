@@ -37,16 +37,19 @@ Every source of an AI answer is interactive: the `[n]` marker, the source card, 
 
 ## Knowledge Map
 
-The Map view in the workspace is an interactive graph of a PDF's repeated terms, built in the browser from its real text
-(`src/features/knowledgeMap/`). It is word statistics, not AI, and says so: a link means two terms share sentences. Every
-fragment is verbatim and opens through Evidence Jump. DOCX has no map, because its text isn't available in the browser.
+The Map view in the workspace is an interactive graph of a document's repeated terms, built in the browser from its real text (`src/features/knowledgeMap/`). There is no map API on the backend. It is word statistics, not AI, and says so: a link means two terms share passages, the document's own node links to the largest topic of each group, and every fragment is verbatim and opens through Evidence Jump. A DOCX works too, from `/text`, with sections instead of pages.
+
+The layout is computed once and never moves by itself. Dragging places a node and pins it, and only its direct neighbours make a little room. There is zoom, pan, fit, reset, a minimap, search, and a choice of 15, 30 or all topics, up to 50. On a focused topic, arrow keys move it and P pins it. It is drawn with plain SVG: a graph library would add weight and fight the round nodes, for no gain at this size.
 
 ## Compare documents
 
-`/compare` shows the backend's sentence diff (`POST /comparisons`) of two ready documents. It is not AI and says so.
-Changes view: aligned passages with word marks computed from the two real quotes. Documents view: the PDF viewer on both
-sides, marking changes only where the text is found on the page, with an optional proportional scroll lock.
-DOCX has no preview, and the API gives it no location, so its changes appear as text only.
+`/compare` shows the backend's sentence diff (`POST /comparisons`) of two ready documents. The API gives a page and a quote for each change, without coordinates, so a change is marked only where its quote is really found on the page or in the text.
+
+- **Side by side:** the real PDFs in the app's viewer, or a DOCX in its text reader, with the change list beside them. Choosing a change moves both documents to it. A side without the change says so.
+- **Unified diff:** the unchanged text of both documents, from `/text`, with each change in its place. Unchanged text can be hidden, and a change that can't be placed is listed apart, not put at a guessed spot.
+- Filters by type, previous and next, arrow keys and J/K, swapping the documents without reloading them.
+- Scroll lock keeps the same share of each PDF. It is approximate and says so; a DOCX has no pages to align, so it isn't offered there.
+- A phone shows one thing at a time: changes, A, B or diff.
 
 ## User modes
 
