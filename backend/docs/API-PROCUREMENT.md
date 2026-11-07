@@ -1,6 +1,8 @@
 # DOCMIND: производство и закупки — API-контракт (черновик на согласование)
 
 Статус: **предложение**, ничего из этого ещё не реализовано. Ветка `backend/procurement-mvp`.
+Ревизия 2: учтены замечания из issue #23 (подтверждение после фото, наличие, происхождение цен, capabilities,
+поведение при удалении прайса). Список изменений — в конце файла.
 Всё под `/api/v1`, авторизация как сейчас: `Authorization: Bearer <token>` гостевой сессии.
 Ошибки в общем формате: `{"error": {"code", "message", "retryable", "requestId"}}`.
 
@@ -35,7 +37,9 @@
 ---
 
 ## 0. Возможности: `GET /capabilities` (расширение)
-Добавляется объект `features`, остальное без изменений. `languages` теперь заполнен, когда есть OCR.
+Только добавления: все текущие поля (`version`, `languages`, `ocr`, `docxPreview`, `comparison`, `highlights`, `limits`)
+остаются с прежним смыслом. Новые: объект `features` и `limits.maxImageBytes`. `languages` теперь заполнен, когда есть OCR.
+`ocr` по-прежнему означает **OCR сканированных PDF** (Tesseract). Распознавание фото детали — отдельная функция `features.photoIdentify` (Gemini).
 ```json
 {
   "version": "0.4.0",
@@ -114,7 +118,7 @@
 Фото **не сохраняется** на сервере. Требует, чтобы детали документа уже были извлечены (`409 PARTS_NOT_READY`).
 ```json
 {
-  "status": "needs_confirmation",
+  "matchStatus": "needs_confirmation",
   "recognized": {
     "text": "SKF 6205-2RSH  C3  MADE IN ...",
     "partNumber": "6205-2RSH",
@@ -129,15 +133,29 @@
   "message": "Похоже на позицию p1, но обозначение отличается. Подтвердите вручную."
 }
 ```
-- `status`:
-  - `confirmed` — артикул с фото совпал с одной деталью документа (после нормализации пробелов, дефисов и похожих букв);
+- `matchStatus` — это **автоматическое сопоставление кодом, а не подтверждение человеком**:
+  - `matched` — артикул с фото совпал ровно с одной деталью документа (после нормализации пробелов, дефисов и похожих букв);
   - `needs_confirmation` — совпадение неточное или кандидатов несколько: **показать кандидатов и спросить пользователя**;
   - `no_match` — прочитано, но в документе такой детали нет;
   - `unreadable` — маркировку не удалось прочитать надёжно (размыто, блик): попросить переснять.
 - `matches[].match`: `exact` | `close` | `partial`. Решение о совпадении принимает **код**, ИИ только читает текст на фото.
-- Отдельного эндпоинта подтверждения нет: выбранный пользователем `partId` просто идёт в закупку (раздел 4).
+- «Подтверждено» появляется **только** после явного действия пользователя (ниже), даже при `matched`.
+- Фото не сохраняется: превью фронтенд показывает локально; при повторе пользователь загружает фото заново.
 
 Ошибки: `413 IMAGE_TOO_LARGE`, `415 UNSUPPORTED_IMAGE`, `503 VISION_UNAVAILABLE`.
+
+### `POST /documents/{documentId}/parts/{partId}/confirmations` → `201` `Confirmation`
+Пользователь подтверждает (или отклоняет) соответствие фото и детали. Тело:
+```json
+{"recognizedText": "SKF 6205-2RSH  C3", "recognizedPartNumber": "6205-2RSH", "decision": "confirmed"}
+```
+`decision`: `confirmed` | `rejected`. Ответ:
+```json
+{"id": "c1", "partId": "p1", "decision": "confirmed", "recognizedPartNumber": "6205-2RSH",
+ "documentPartNumber": "6205-2RS", "confirmedBy": "user", "createdAt": "2026-11-08T10:18:00Z"}
+```
+Хранится в сессии вместе с документом. `GET /documents/{documentId}/parts/{partId}/confirmations` → `{"items": [Confirmation]}`.
+В закупке позиция получает `identification` (раздел 4).
 
 ---
 
@@ -147,7 +165,8 @@ MVP: **импорт прайсов CSV/XLSX**. Поиск по сайтам ма
 или разрешение владельца); в MVP не входит, поле `source: "web"` зарезервировано.
 
 ### `POST /price-lists` → `201` `PriceList`
-`multipart/form-data`: `file` (CSV или XLSX, до 5 МБ), необязательно `supplier`, `currency` (по умолчанию `KZT`), `checkedAt` (дата цен, `YYYY-MM-DD`).
+`multipart/form-data`: `file` (CSV или XLSX, до 5 МБ), необязательно `supplier`, `currency` (по умолчанию `KZT`),
+`checkedAt` (дата цен, `YYYY-MM-DD`), `demo` (`true` для тестовых прайсов).
 Колонки распознаются по заголовкам (рус., каз., англ.): артикул / наименование / цена / валюта / наличие / ссылка / поставщик / дата.
 Минимум: артикул или наименование + цена.
 ```json
@@ -158,9 +177,15 @@ MVP: **импорт прайсов CSV/XLSX**. Поиск по сайтам ма
   "rows": 1240,
   "skipped": [{"row": 17, "reason": "Нет цены"}],
   "checkedAt": "2026-11-08",
+  "checkedAtOrigin": "upload_form",
+  "demo": false,
   "importedAt": "2026-11-08T10:15:00Z"
 }
 ```
+- **Цены, даты и наличие — это данные файла поставщика, а не живая проверка сайта.** `checkedAtOrigin`:
+  `file` (колонка даты в файле) | `upload_form` (поле при загрузке) | `import_date` (ничего не указано — дата импорта).
+- Демо-прайсы (`demo: true`) помечаются во всех предложениях; в них нет ссылок на настоящие магазины.
+  Демо-поставщики называются явно вымышленно, их нельзя выдавать за настоящих.
 ### `GET /price-lists` → `{"items": [PriceList]}`  ·  `DELETE /price-lists/{id}` → `204`
 Прайсы принадлежат сессии, как документы.
 
@@ -174,26 +199,41 @@ MVP: **импорт прайсов CSV/XLSX**. Поиск по сайтам ма
       "partNumber": "6205-2RS",
       "offers": [
         {
-          "id": "o1",
+          "id": "pl1:17",
           "supplier": "ТОО Подшипник-Центр",
           "title": "Подшипник 6205-2RS SKF",
           "partNumber": "6205-2RS",
           "match": "exact",
           "price": "4850.00",
           "currency": "KZT",
-          "inStock": true,
-          "url": "https://example.kz/item/6205",
+          "stockStatus": "available",
+          "stockQuantity": 40,
+          "url": null,
           "source": "price_list",
           "priceListId": "pl1",
-          "checkedAt": "2026-11-08"
+          "sourceRow": 17,
+          "checkedAt": "2026-11-08",
+          "checkedAtOrigin": "file",
+          "demo": false
         }
+      ],
+      "similar": [
+        {"id": "pl1:18", "partNumber": "6205-2RSH", "match": "close", "price": "5100.00", "currency": "KZT",
+         "stockStatus": "unknown", "stockQuantity": null, "...": "остальные поля как у offers"}
       ]
     },
-    {"partId": "p2", "partNumber": "NU 210 ECP", "offers": []}
+    {"partId": "p2", "partNumber": "NU 210 ECP", "offers": [], "similar": []}
   ]
 }
 ```
-Предложения отсортированы: сначала точное совпадение артикула, потом по цене. Пустой `offers` — «предложений нет».
+- `offers` — только **точное** совпадение артикула (после нормализации), сортировка по цене.
+- `similar` — похожие артикулы (`close`): **не считаются совместимыми автоматически**, показываются отдельно с пометкой
+  «проверьте совместимость»; бэкенд никогда не выбирает их сам.
+- `stockStatus`: `available` | `unavailable` | `unknown`. Нет колонки или пустая ячейка → `unknown` (не `unavailable`).
+  `stockQuantity` — число или `null`.
+- `url` — только если ссылка есть в файле; иначе `null`. `sourceRow` — номер строки в файле (для проверки).
+- `id` предложения = `<priceListId>:<строка>`: стабилен, пока прайс не удалён.
+- Пустые `offers` и `similar` — «предложений нет».
 
 ---
 
@@ -214,9 +254,11 @@ MVP: **импорт прайсов CSV/XLSX**. Поиск по сайтам ма
 {
   "items": [
     {"partId": "p1", "name": "Подшипник шариковый радиальный", "partNumber": "6205-2RS", "quantity": 2, "unit": "шт",
-     "offer": { /* Offer */ }, "unitPrice": "4850.00", "currency": "KZT", "lineTotal": "9700.00", "status": "priced"},
+     "offer": { /* Offer */ }, "unitPrice": "4850.00", "currency": "KZT", "lineTotal": "9700.00", "status": "priced",
+     "identification": {"status": "user_confirmed", "confirmationId": "c1"}},
     {"partId": "p2", "name": "Подшипник роликовый", "partNumber": "NU 210 ECP", "quantity": 1, "unit": "шт",
-     "offer": null, "unitPrice": null, "currency": null, "lineTotal": null, "status": "no_price"}
+     "offer": null, "unitPrice": null, "currency": null, "lineTotal": null, "status": "no_price",
+     "identification": {"status": "document_only", "confirmationId": null}}
   ],
   "totals": [{"currency": "KZT", "amount": "9700.00", "items": 1}],
   "unpriced": 1,
@@ -225,7 +267,13 @@ MVP: **импорт прайсов CSV/XLSX**. Поиск по сайтам ма
 }
 ```
 - `quantity` по умолчанию берётся из документа; пользователь может изменить. Целое > 0.
-- `status`: `priced` | `no_price`. Итог — сумма только `priced`, по каждой валюте отдельно.
+- `status`: `priced` | `no_price` | `offer_missing` (предложение с таким `offerId` больше не существует: прайс удалён,
+  или это предложение другой сессии, или оно для другого артикула). `offer_missing` — не ошибка запроса: позиция без цены,
+  в `warnings` объяснение. Итог — сумма только `priced`, по каждой валюте отдельно.
+- Выбранное пользователем похожее предложение (`match: close`) считается, но в позиции `matchWarning: true`.
+- `identification.status`: `user_confirmed` (есть подтверждение `decision: confirmed`) | `user_rejected` |
+  `document_only` (деталь из документа, фото не подтверждали). Опционально в теле: `"confirmationId"` на позицию.
+- После удаления прайса его предложения исчезают из `/procurement/offers`; уже сделанный расчёт не меняется (он не хранится).
 
 ### `POST /procurement/quote/export?format=xlsx|csv` → файл
 То же тело, что у `quote`. Возвращает ведомость: позиция, артикул, кол-во, цена, валюта, сумма, поставщик, ссылка, дата цены, страница документа.
@@ -275,6 +323,16 @@ MVP: **импорт прайсов CSV/XLSX**. Поиск по сайтам ма
 `PARTS_NOT_STARTED` (404), `PARTS_NOT_READY` (409), `IMAGE_TOO_LARGE` (413), `UNSUPPORTED_IMAGE` (415),
 `VISION_UNAVAILABLE` (503), `PRICE_LIST_INVALID` (422, `message` объясняет, каких колонок нет), `PRICE_LIST_TOO_LARGE` (413).
 Лимиты и дневной бюджет ИИ — как у чата (`429 RATE_LIMITED`, `429 AI_BUDGET_EXCEEDED`).
+
+## Изменения в ревизии 2 (по issue #23)
+1. Фото: `status` → `matchStatus`, `confirmed` → `matched` (автоматическое сопоставление ≠ подтверждение человеком);
+   добавлен `POST /documents/{id}/parts/{partId}/confirmations`; в закупке `identification`.
+2. Наличие: `inStock` → `stockStatus` (`available|unavailable|unknown`) + `stockQuantity`; нет данных → `unknown`.
+3. Происхождение цен: `sourceRow`, `checkedAtOrigin`, `demo`; цены и наличие — данные файла, не живая проверка;
+   похожие артикулы вынесены в `similar` и не подбираются автоматически; ссылка только из файла.
+4. Capabilities: явно только добавления, `ocr` = OCR сканов PDF, фото — `features.photoIdentify`.
+5. Удаление прайса и чужой `offerId`: статус позиции `offer_missing`, не ошибка.
+6. Фото не хранится: превью на фронтенде, при повторе — повторная загрузка.
 
 ## Что не меняется
 Существующие эндпоинты (документы, чат, цитаты, Compare, сессии) и Telegram-бот работают как раньше; новое — только
