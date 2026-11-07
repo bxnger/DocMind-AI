@@ -20,19 +20,40 @@ class Answer:
     error_code: str | None = None  # LLM_UNAVAILABLE, LLM_TIMEOUT, RATE_LIMITED
 
 
+class SessionExpired(Exception):
+    """The chat's guest session is gone, and with it the documents it owned."""
+
+
 class BackendClient:
-    def __init__(self, client: httpx.Client, prefix: str = "/api/v1") -> None:
+    def __init__(self, client: httpx.Client, prefix: str = "/api/v1", token: str | None = None) -> None:
         self.client = client
         self.prefix = prefix
+        self.token = token
+
+    def for_session(self, token: str) -> "BackendClient":
+        """The same connection acting as one guest. Every chat has its own."""
+        return BackendClient(self.client, self.prefix, token)
+
+    def create_session(self) -> str:
+        response = self._request("POST", "/sessions")
+        if response.status_code != 201:
+            raise BackendUnavailable(f"session refused, HTTP {response.status_code}")
+        return response.json()["token"]
+
+    def _headers(self) -> dict:
+        return {"Authorization": f"Bearer {self.token}"} if self.token else {}
 
     def _url(self, path: str) -> str:
         return f"{self.prefix}{path}"
 
     def _request(self, method: str, path: str, **kwargs):
         try:
-            return self.client.request(method, self._url(path), **kwargs)
+            response = self.client.request(method, self._url(path), headers=self._headers(), **kwargs)
         except httpx.HTTPError as exc:
             raise BackendUnavailable(type(exc).__name__) from None
+        if response.status_code == 401:
+            raise SessionExpired
+        return response
 
     def upload(self, name: str, data: bytes) -> dict:
         response = self._request("POST", "/documents", files={"file": (name, data, "application/octet-stream")}, timeout=120)
@@ -69,9 +90,12 @@ class BackendClient:
         event = None
         try:
             with self.client.stream(
-                "POST", self._url(f"/conversations/{conversation_id}/messages"), json={"content": question}, timeout=150
+                "POST", self._url(f"/conversations/{conversation_id}/messages"), json={"content": question}, headers=self._headers(), timeout=150
             ) as response:
+                if response.status_code == 401:
+                    raise SessionExpired
                 if response.status_code != 200:
+                    response.read()
                     code = _error(response).get("code", "")
                     answer.error_code = code or "LLM_UNAVAILABLE"
                     return answer

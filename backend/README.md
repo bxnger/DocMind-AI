@@ -73,7 +73,7 @@ python -m bot.main           # long polling, no public address needed; Ctrl+C st
 ```
 
 It holds no AI logic: answers, verification, fallbacks and caches are the backend's. Each chat sees only its own documents,
-there is a per-chat message limit (`BOT_MESSAGES_PER_MINUTE`), and `TELEGRAM_ALLOWED_CHATS` can close the bot to everyone else.
+there is a per-chat message limit (`BOT_MESSAGES_PER_MINUTE`), and `TELEGRAM_ALLOWED_CHATS` is required: the bot refuses to start without it. Each chat is its own guest session.
 Files go to the project's server, which the `/start` message says. Tested with a fake Telegram and the real backend
 (`tests/test_bot.py`); a live run needs the token.
 

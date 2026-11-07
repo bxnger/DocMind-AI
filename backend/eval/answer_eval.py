@@ -69,11 +69,12 @@ def parse_sse(text: str) -> list[tuple[str, dict]]:
 def evaluate(pdf_path: Path, questions: list[dict], answerer, data_dir: Path) -> list[Result]:
     """Runs the questions against the PDF with the given answerer (the real one, or a fake in tests)."""
     store = Store(data_dir)
-    settings = Settings(data_dir=data_dir, upload_limit_per_minute=1000, chat_limit_per_minute=1000)
+    settings = Settings(data_dir=data_dir, upload_limit_per_minute=1000, chat_limit_per_minute=1000, ai_session_daily_limit=100_000, ai_client_daily_limit=100_000, ai_global_daily_limit=100_000)
     app = create_app(settings, store)
     app.dependency_overrides[get_store] = lambda: store
     app.dependency_overrides[get_answerer] = lambda: answerer
     client = TestClient(app)
+    client.headers["Authorization"] = "Bearer " + client.post("/api/v1/sessions").json()["token"]
 
     upload = client.post("/api/v1/documents", files={"file": (pdf_path.name, pdf_path.read_bytes(), "application/pdf")})
     upload.raise_for_status()

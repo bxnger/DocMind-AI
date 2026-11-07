@@ -42,6 +42,18 @@ def fresh_translation_cache():
     TRANSLATIONS._items.clear()
 
 
+def relaxed_settings(store: Store, **changes) -> Settings:
+    high = 100_000
+    values = dict(
+        data_dir=store.files_dir.parent, cors_origins=("http://localhost:5173",),
+        session_limit_per_minute=high, upload_limit_per_minute=high, chat_limit_per_minute=high, compare_limit_per_minute=high,
+        facts_limit_per_minute=high, text_limit_per_minute=high, read_limit_per_minute=high,
+        session_max_documents=high, session_max_processing=high, session_max_conversations=high, session_max_comparisons=high,
+        global_max_processing=high, global_max_comparing=high, ai_session_daily_limit=high, ai_client_daily_limit=high, ai_global_daily_limit=high,
+    )
+    return Settings(**{**values, **changes})
+
+
 @pytest.fixture
 def store(tmp_path) -> Store:
     return Store(tmp_path)
@@ -54,10 +66,13 @@ def answerer() -> FakeAnswerer:
 
 @pytest.fixture
 def client(store, answerer) -> TestClient:
-    app = create_app(Settings(data_dir=store.files_dir.parent, cors_origins=("http://localhost:5173",)))
+    # Feature tests are about features: limits get their own tests in test_security.py.
+    app = create_app(relaxed_settings(store))
     app.dependency_overrides[get_store] = lambda: store
     app.dependency_overrides[get_answerer] = lambda: answerer
-    return TestClient(app)
+    test_client = TestClient(app)
+    test_client.headers["Authorization"] = "Bearer " + test_client.post("/api/v1/sessions").json()["token"]
+    return test_client
 
 
 CYRILLIC_FONT = next(

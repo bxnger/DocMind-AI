@@ -160,6 +160,11 @@ TEXTS: dict[str, dict[str, str]] = {
         "kk": "Маған жеке хабарлама жазыңыз.",
         "en": "Please write to me in a private chat.",
     },
+    "session_expired": {
+        "ru": "Сессия истекла, документы этого чата удалены. Пришлите документ заново.",
+        "kk": "Сессия мерзімі өтті, бұл чаттың құжаттары жойылды. Құжатты қайта жіберіңіз.",
+        "en": "The session expired and this chat's documents were deleted. Please send the document again.",
+    },
     "denied": {
         "ru": "Этот бот сейчас закрыт для вас.",
         "kk": "Бұл бот қазір сізге жабық.",

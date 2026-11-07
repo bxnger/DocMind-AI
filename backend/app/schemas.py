@@ -31,6 +31,7 @@ class Document(BaseModel):
     language: Literal["kk", "ru", "en", "mixed"] | None
     ocr_used: bool | None
     has_preview: bool
+    is_demo: bool = False
     created_at: datetime
     error: ApiError | None = None
 

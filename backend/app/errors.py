@@ -12,12 +12,14 @@ class AppError(Exception):
         code: str,
         message: str,
         retryable: bool = False,
+        retry_after: int | None = None,
     ) -> None:
         super().__init__(message)
         self.status_code = status_code
         self.code = code
         self.message = message
         self.retryable = retryable
+        self.retry_after = retry_after
 
 
 def error_body(request: Request, code: str, message: str, retryable: bool = False) -> dict:
@@ -37,6 +39,7 @@ def register_error_handlers(app) -> None:
         return JSONResponse(
             status_code=exc.status_code,
             content=error_body(request, exc.code, exc.message, exc.retryable),
+            headers={"Retry-After": str(exc.retry_after)} if exc.retry_after is not None else None,
         )
 
     @app.exception_handler(RequestValidationError)

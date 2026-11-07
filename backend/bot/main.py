@@ -6,7 +6,7 @@
 Settings (backend/.env or environment variables):
     TELEGRAM_BOT_TOKEN       from @BotFather. Never put it in code, chat or Git.
     BACKEND_URL              default http://127.0.0.1:8011
-    TELEGRAM_ALLOWED_CHATS   optional, comma separated chat ids; empty means everybody may use the bot
+    TELEGRAM_ALLOWED_CHATS   required, comma separated chat ids. The bot refuses to start without it
     BOT_MESSAGES_PER_MINUTE  optional, default 10 per chat
     BOT_STATE_FILE           optional, default data/bot_state.json (which document each chat has open)
 """
@@ -45,7 +45,7 @@ def build_bot(token: str, backend_url: str) -> tuple[Bot, TelegramAPI]:
         telegram,
         backend,
         state_path=Path(os.environ.get("BOT_STATE_FILE", "data/bot_state.json")),
-        allowed_chats=allowed or None,
+        allowed_chats=allowed,
         per_minute=int(os.environ.get("BOT_MESSAGES_PER_MINUTE", "10")),
     )
     return bot, telegram
@@ -77,6 +77,9 @@ def main() -> int:
     token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
     if not token:
         print("TELEGRAM_BOT_TOKEN is not set. Get it from @BotFather and put it in backend/.env.")
+        return 1
+    if not os.environ.get("TELEGRAM_ALLOWED_CHATS", "").replace(",", "").strip():
+        print("TELEGRAM_ALLOWED_CHATS is empty. List the chat ids allowed to use the bot.")
         return 1
     backend_url = os.environ.get("BACKEND_URL", "http://127.0.0.1:8011").rstrip("/")
     bot, telegram = build_bot(token, backend_url)

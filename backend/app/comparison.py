@@ -165,6 +165,51 @@ def _evidence(sentence: Sentence | None) -> dict | None:
     return {"page": sentence.page, "quote": sentence.text}
 
 
+CHANGE_QUESTION = re.compile(r"измен|отлич|разниц|различ|нового|chang|differ|өзгер|айырм", re.IGNORECASE)
+UNCHANGED_QUESTION = re.compile(
+    r"не\s+измен|без\s+измен|прежн|unchanged|not\s+chang|same|өзгермеген|өзгеріссіз|өзгерме", re.IGNORECASE
+)
+# A sentence worth naming when it did not change: it holds a figure or a name (a capital word after the first one).
+MIN_FACT_CHARS = 20
+FACT = re.compile(r"\d|\s[A-ZА-ЯЁӘІҢҒҮҰҚӨҺ][a-zа-яёәіңғүұқөһ]+")
+
+
+def is_change_question(question: str) -> bool:
+    return CHANGE_QUESTION.search(question) is not None
+
+
+Evidence = tuple[str, Sentence | None, Sentence | None]  # ("changed" | "removed" | "added" | "same", first, second)
+
+
+def chat_evidence(a: list[Sentence], b: list[Sentence], question: str, limit: int) -> list[Evidence]:
+    """Sentences that answer "what changed?" (or "what did not?") between two versions.
+
+    Search alone finds the sentence that names the changed topics ("the budget, the deadline ... change"), not the
+    values; the comparison finds the clauses whose figures differ.
+    """
+    first = {sentence.text: sentence for sentence in a}
+    second = {sentence.text: sentence for sentence in b}
+    changed: list[Evidence] = []
+    for difference in compare(a, b):
+        if difference["explanation"].startswith(("Moved", "Only the clause number")):
+            continue
+        left = first.get(difference["a"]["quote"]) if difference["a"] else None
+        right = second.get(difference["b"]["quote"]) if difference["b"] else None
+        if left or right:
+            changed.append((difference["type"], left, right))
+    if not UNCHANGED_QUESTION.search(question):
+        return changed[:limit]
+    matcher = difflib.SequenceMatcher(None, [s.text for s in a], [s.text for s in b], autojunk=False)
+    same = [
+        a[index]
+        for tag, i1, i2, _j1, _j2 in matcher.get_opcodes() if tag == "equal"
+        for index in range(i1, i2)
+        if len(strip_clause_number(a[index].text)) >= MIN_FACT_CHARS and FACT.search(strip_clause_number(a[index].text))
+    ]
+    # Unchanged facts are many short sentences; the changed ones are shown too, so the answer can tell them apart.
+    return [("same", sentence, None) for sentence in same[: limit * 2]] + changed[:limit]
+
+
 def run_comparison(store: Store, comparison_id: str, a: list[Sentence], b: list[Sentence]) -> None:
     """Background task: ends the comparison in `ready` or `failed`."""
     try:

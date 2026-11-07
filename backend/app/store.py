@@ -1,8 +1,10 @@
 import json
+import secrets
 import sqlite3
 import uuid
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Iterator
 
@@ -83,11 +85,46 @@ SCHEMA = [
         created_at TEXT NOT NULL
     )
     """,
+    """
+    CREATE TABLE IF NOT EXISTS sessions (
+        owner_id TEXT PRIMARY KEY,
+        token_hash TEXT NOT NULL UNIQUE,
+        client_key TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        expires_at TEXT NOT NULL
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS ai_usage (
+        day TEXT NOT NULL,
+        scope TEXT NOT NULL,
+        count INTEGER NOT NULL,
+        PRIMARY KEY (day, scope)
+    )
+    """,
 ]
 
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _today() -> str:
+    return datetime.now(timezone.utc).date().isoformat()
+
+
+def seconds_until_midnight() -> int:
+    now = datetime.now(timezone.utc)
+    return int((datetime(now.year, now.month, now.day, tzinfo=timezone.utc) + timedelta(days=1) - now).total_seconds()) + 1
+
+
+@dataclass(frozen=True)
+class UploadQuota:
+    max_documents: int
+    max_bytes: int
+    max_processing: int
+    global_max_processing: int
+    global_max_bytes: int
 
 
 class Store:
@@ -104,6 +141,12 @@ class Store:
             columns = {row[1] for row in conn.execute("PRAGMA table_info(messages)")}
             if "reason" not in columns:
                 conn.execute("ALTER TABLE messages ADD COLUMN reason TEXT")
+            # Rows made before sessions have no owner, so no session can reach them. Nothing old becomes public.
+            for table in ("documents", "conversations", "comparisons"):
+                if "owner_id" not in {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}:
+                    conn.execute(f"ALTER TABLE {table} ADD COLUMN owner_id TEXT")
+            if "is_demo" not in {row[1] for row in conn.execute("PRAGMA table_info(documents)")}:
+                conn.execute("ALTER TABLE documents ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0")
 
     @contextmanager
     def _db(self) -> Iterator[sqlite3.Connection]:
@@ -121,28 +164,65 @@ class Store:
     def new_id() -> str:
         return uuid.uuid4().hex
 
+    @staticmethod
+    def new_owner_id() -> str:
+        return secrets.token_hex(16)
+
     def file_path(self, doc_id: str, kind: str) -> Path:
         return self.files_dir / f"{doc_id}.{kind}"
 
     # Documents
 
-    def insert(self, doc_id: str, name: str, kind: str, size_bytes: int) -> dict:
+    def insert(
+        self, doc_id: str, name: str, kind: str, size_bytes: int, owner_id: str | None = None, quota: UploadQuota | None = None
+    ) -> dict:
         with self._db() as conn:
+            conn.execute("BEGIN IMMEDIATE")  # the check and the insert are one step, so parallel uploads cannot pass together
+            if quota:
+                self._check_upload_quota(conn, owner_id, size_bytes, quota)
             conn.execute(
-                "INSERT INTO documents (id, name, kind, size_bytes, status, stage, created_at)"
-                " VALUES (?, ?, ?, ?, 'processing', 'queued', ?)",
-                (doc_id, name, kind, size_bytes, _now()),
+                "INSERT INTO documents (id, name, kind, size_bytes, status, stage, created_at, owner_id)"
+                " VALUES (?, ?, ?, ?, 'processing', 'queued', ?, ?)",
+                (doc_id, name, kind, size_bytes, _now(), owner_id),
             )
         return self.get(doc_id)
 
-    def list(self) -> list[dict]:
+    @staticmethod
+    def _check_upload_quota(conn: sqlite3.Connection, owner_id: str | None, size_bytes: int, quota: UploadQuota) -> None:
+        count, stored, processing = conn.execute(
+            "SELECT COUNT(*), COALESCE(SUM(CASE WHEN status != 'failed' THEN size_bytes END), 0),"
+            " COALESCE(SUM(status = 'processing'), 0) FROM documents WHERE owner_id = ?",
+            (owner_id,),
+        ).fetchone()
+        if count >= quota.max_documents or stored + size_bytes > quota.max_bytes:
+            raise AppError(429, "QUOTA_EXCEEDED", "This session's document quota is full. Delete a document first")
+        if processing >= quota.max_processing:
+            raise AppError(429, "RATE_LIMITED", "Wait for your documents to finish processing", retryable=True, retry_after=10)
+        total, queued = conn.execute(
+            "SELECT COALESCE(SUM(CASE WHEN status != 'failed' THEN size_bytes END), 0),"
+            " COALESCE(SUM(status = 'processing'), 0) FROM documents"
+        ).fetchone()
+        if queued >= quota.global_max_processing:
+            raise AppError(429, "RATE_LIMITED", "The server is busy processing documents", retryable=True, retry_after=30)
+        if total + size_bytes > quota.global_max_bytes:
+            raise AppError(503, "STORAGE_FULL", "The server has no room for more documents", retryable=True)
+
+    def list(self, owner_id: str | None = None) -> list[dict]:
+        """A session's own documents and the public demo ones. Without an owner: all, for maintenance only."""
+        where, params = ("WHERE owner_id = ? OR is_demo = 1", (owner_id,)) if owner_id else ("", ())
         with self._db() as conn:
-            rows = conn.execute("SELECT * FROM documents ORDER BY created_at DESC, rowid DESC").fetchall()
+            rows = conn.execute(f"SELECT * FROM documents {where} ORDER BY created_at DESC, rowid DESC", params).fetchall()
         return [self._document(row) for row in rows]
 
-    def get(self, doc_id: str) -> dict:
+    def get(self, doc_id: str, owner_id: str | None = None) -> dict:
+        """With an owner, someone else's document does not exist. Routes always pass the owner."""
         with self._db() as conn:
-            row = conn.execute("SELECT * FROM documents WHERE id = ?", (doc_id,)).fetchone()
+            if owner_id:
+                row = conn.execute(
+                    "SELECT * FROM documents WHERE id = ? AND (owner_id = ? OR is_demo = 1)", (doc_id, owner_id)
+                ).fetchone()
+            else:
+                row = conn.execute("SELECT * FROM documents WHERE id = ?", (doc_id,)).fetchone()
         if row is None:
             raise AppError(404, "DOCUMENT_NOT_FOUND", "Document not found")
         return self._document(row)
@@ -153,8 +233,95 @@ class Store:
             conn.execute("DELETE FROM chunks WHERE document_id = ?", (doc_id,))
             conn.execute("DELETE FROM segments WHERE document_id = ?", (doc_id,))
             conn.execute("DELETE FROM conversation_documents WHERE document_id = ?", (doc_id,))
+            conn.execute("DELETE FROM comparisons WHERE document_a_id = ? OR document_b_id = ?", (doc_id, doc_id))
             conn.execute("DELETE FROM documents WHERE id = ?", (doc_id,))
-        self.file_path(doc_id, doc["kind"]).unlink(missing_ok=True)
+        self.remove_files(doc_id, doc["kind"])
+
+    def remove_files(self, doc_id: str, kind: str) -> None:
+        path = self.file_path(doc_id, kind)
+        path.unlink(missing_ok=True)
+        path.with_suffix(".blocks.json").unlink(missing_ok=True)
+
+    def mark_demo(self, doc_id: str) -> None:
+        with self._db() as conn:
+            conn.execute("UPDATE documents SET is_demo = 1, owner_id = NULL WHERE id = ?", (doc_id,))
+
+    # Sessions
+
+    def create_session(self, owner_id: str, token_hash: str, client_key: str, ttl_hours: int, max_active: int) -> str:
+        now = datetime.now(timezone.utc)
+        expires = (now + timedelta(hours=ttl_hours)).isoformat()
+        with self._db() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            active = conn.execute("SELECT COUNT(*) FROM sessions WHERE expires_at > ?", (now.isoformat(),)).fetchone()[0]
+            if active >= max_active:
+                raise AppError(429, "RATE_LIMITED", "Too many active sessions, try again later", retryable=True, retry_after=300)
+            conn.execute(
+                "INSERT INTO sessions (owner_id, token_hash, client_key, created_at, expires_at) VALUES (?, ?, ?, ?, ?)",
+                (owner_id, token_hash, client_key, now.isoformat(), expires),
+            )
+        return expires
+
+    def find_session(self, token_hash: str) -> dict | None:
+        with self._db() as conn:
+            row = conn.execute(
+                "SELECT owner_id, client_key, expires_at FROM sessions WHERE token_hash = ? AND expires_at > ?",
+                (token_hash, _now()),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def session_usage(self, owner_id: str) -> dict:
+        with self._db() as conn:
+            documents, stored = conn.execute(
+                "SELECT COUNT(*), COALESCE(SUM(CASE WHEN status != 'failed' THEN size_bytes END), 0) FROM documents WHERE owner_id = ?",
+                (owner_id,),
+            ).fetchone()
+            used = conn.execute("SELECT count FROM ai_usage WHERE day = ? AND scope = ?", (_today(), f"session:{owner_id}")).fetchone()
+        return {"documents": documents, "storedBytes": stored, "aiRequestsToday": used[0] if used else 0}
+
+    def delete_owner_data(self, owner_id: str) -> None:
+        with self._db() as conn:
+            doc_ids = [row[0] for row in conn.execute("SELECT id FROM documents WHERE owner_id = ? AND is_demo = 0", (owner_id,))]
+            conversation_ids = [row[0] for row in conn.execute("SELECT id FROM conversations WHERE owner_id = ?", (owner_id,))]
+        for doc_id in doc_ids:
+            self.delete(doc_id)
+        for conversation_id in conversation_ids:
+            self.delete_conversation(conversation_id)
+        with self._db() as conn:
+            conn.execute("DELETE FROM comparisons WHERE owner_id = ?", (owner_id,))
+
+    def delete_session(self, owner_id: str) -> None:
+        self.delete_owner_data(owner_id)
+        with self._db() as conn:
+            conn.execute("DELETE FROM sessions WHERE owner_id = ?", (owner_id,))
+
+    def purge_expired_sessions(self) -> int:
+        with self._db() as conn:
+            owners = [row[0] for row in conn.execute("SELECT owner_id FROM sessions WHERE expires_at <= ?", (_now(),))]
+            conn.execute("DELETE FROM ai_usage WHERE day < ?", ((datetime.now(timezone.utc) - timedelta(days=2)).date().isoformat(),))
+        for owner_id in owners:
+            self.delete_session(owner_id)
+        return len(owners)
+
+    # AI budget. Kept in the database, so a restart does not hand out a new day's worth of requests.
+
+    def reserve_ai_request(
+        self, owner_id: str, client_key: str, session_limit: int, client_limit: int, global_limit: int
+    ) -> None:
+        day = _today()
+        scopes = [(f"session:{owner_id}", session_limit, "AI_SESSION_BUDGET_EXCEEDED"), (f"client:{client_key}", client_limit, "AI_BUDGET_EXCEEDED"), ("global", global_limit, "AI_BUDGET_EXCEEDED")]
+        with self._db() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            for scope, limit, code in scopes:
+                row = conn.execute("SELECT count FROM ai_usage WHERE day = ? AND scope = ?", (day, scope)).fetchone()
+                if (row[0] if row else 0) >= limit:
+                    raise AppError(429, code, "The daily AI allowance is used up. It renews at 00:00 UTC", retry_after=seconds_until_midnight())
+            for scope, _limit, _code in scopes:
+                conn.execute(
+                    "INSERT INTO ai_usage (day, scope, count) VALUES (?, ?, 1)"
+                    " ON CONFLICT (day, scope) DO UPDATE SET count = count + 1",
+                    (day, scope),
+                )
 
     def unfinished_document_ids(self) -> list[str]:
         """Documents whose processing was cut off, for example by a server restart."""
@@ -198,6 +365,11 @@ class Store:
                     (doc_id, segment_ids[seq], text),
                 )
 
+    def clear_content(self, doc_id: str) -> None:
+        with self._db() as conn:
+            conn.execute("DELETE FROM chunks WHERE document_id = ?", (doc_id,))
+            conn.execute("DELETE FROM segments WHERE document_id = ?", (doc_id,))
+
     def mark_ready(
         self, doc_id: str, page_count: int | None, language: str | None = None, ocr_used: bool = False
     ) -> None:
@@ -223,12 +395,19 @@ class Store:
         return None if row is None else row["text"]
 
     def mark_failed(self, doc_id: str, code: str, message: str) -> None:
+        """Keeps only the record of the failure: no partial text and no stored file stay behind."""
         error = {"code": code, "message": message, "retryable": False, "requestId": None}
+        row = None
         with self._db() as conn:
+            row = conn.execute("SELECT kind FROM documents WHERE id = ?", (doc_id,)).fetchone()
+            conn.execute("DELETE FROM chunks WHERE document_id = ?", (doc_id,))
+            conn.execute("DELETE FROM segments WHERE document_id = ?", (doc_id,))
             conn.execute(
                 "UPDATE documents SET status = 'failed', stage = NULL, error_json = ? WHERE id = ?",
                 (json.dumps(error), doc_id),
             )
+        if row:
+            self.remove_files(doc_id, row["kind"])
 
     def chunks_for_documents(self, doc_ids: list[str]) -> list[dict]:
         """Chunks of the given documents, in upload order, each with its source segment."""
@@ -273,19 +452,23 @@ class Store:
             "language": row["language"],
             "ocr_used": None if row["ocr_used"] is None else bool(row["ocr_used"]),
             "has_preview": row["kind"] == "pdf",
+            "is_demo": bool(row["is_demo"]),
             "created_at": row["created_at"],
             "error": json.loads(row["error_json"]) if row["error_json"] else None,
         }
 
     # Conversations
 
-    def create_conversation(self, title: str, document_ids: list[str]) -> dict:
+    def create_conversation(self, title: str, document_ids: list[str], owner_id: str | None = None, max_owned: int | None = None) -> dict:
         conversation_id = self.new_id()
         now = _now()
         with self._db() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            if max_owned is not None and conn.execute("SELECT COUNT(*) FROM conversations WHERE owner_id = ?", (owner_id,)).fetchone()[0] >= max_owned:
+                raise AppError(429, "QUOTA_EXCEEDED", "This session has too many conversations. Delete one first")
             conn.execute(
-                "INSERT INTO conversations (id, title, created_at, updated_at) VALUES (?, ?, ?, ?)",
-                (conversation_id, title, now, now),
+                "INSERT INTO conversations (id, title, created_at, updated_at, owner_id) VALUES (?, ?, ?, ?, ?)",
+                (conversation_id, title, now, now, owner_id),
             )
             for position, document_id in enumerate(document_ids):
                 conn.execute(
@@ -294,16 +477,20 @@ class Store:
                 )
         return self.get_conversation(conversation_id)
 
-    def get_conversation(self, conversation_id: str) -> dict:
+    def get_conversation(self, conversation_id: str, owner_id: str | None = None) -> dict:
         with self._db() as conn:
-            row = conn.execute("SELECT * FROM conversations WHERE id = ?", (conversation_id,)).fetchone()
+            if owner_id:
+                row = conn.execute("SELECT * FROM conversations WHERE id = ? AND owner_id = ?", (conversation_id, owner_id)).fetchone()
+            else:
+                row = conn.execute("SELECT * FROM conversations WHERE id = ?", (conversation_id,)).fetchone()
             if row is None:
                 raise AppError(404, "CONVERSATION_NOT_FOUND", "Conversation not found")
             return self._conversation(conn, row)
 
-    def list_conversations(self) -> list[dict]:
+    def list_conversations(self, owner_id: str | None = None) -> list[dict]:
+        where, params = ("WHERE owner_id = ?", (owner_id,)) if owner_id else ("", ())
         with self._db() as conn:
-            rows = conn.execute("SELECT * FROM conversations ORDER BY updated_at DESC, rowid DESC").fetchall()
+            rows = conn.execute(f"SELECT * FROM conversations {where} ORDER BY updated_at DESC, rowid DESC", params).fetchall()
             return [self._conversation(conn, row) for row in rows]
 
     def delete_conversation(self, conversation_id: str) -> None:
@@ -372,19 +559,34 @@ class Store:
 
     # Comparisons
 
-    def create_comparison(self, document_a_id: str, document_b_id: str) -> dict:
+    def create_comparison(
+        self, document_a_id: str, document_b_id: str, owner_id: str | None = None, max_owned: int | None = None, max_running: int | None = None
+    ) -> dict:
         comparison_id = self.new_id()
         with self._db() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            if max_owned is not None:
+                owned, mine = conn.execute(
+                    "SELECT COUNT(*), COALESCE(SUM(status = 'processing'), 0) FROM comparisons WHERE owner_id = ?", (owner_id,)
+                ).fetchone()
+                if owned >= max_owned:
+                    raise AppError(429, "QUOTA_EXCEEDED", "This session has too many comparisons")
+                running = conn.execute("SELECT COUNT(*) FROM comparisons WHERE status = 'processing'").fetchone()[0]
+                if mine >= 1 or (max_running is not None and running >= max_running):
+                    raise AppError(429, "RATE_LIMITED", "A comparison is already running, try again soon", retryable=True, retry_after=10)
             conn.execute(
-                "INSERT INTO comparisons (id, document_a_id, document_b_id, status, progress, created_at)"
-                " VALUES (?, ?, ?, 'processing', 0.0, ?)",
-                (comparison_id, document_a_id, document_b_id, _now()),
+                "INSERT INTO comparisons (id, document_a_id, document_b_id, status, progress, created_at, owner_id)"
+                " VALUES (?, ?, ?, 'processing', 0.0, ?, ?)",
+                (comparison_id, document_a_id, document_b_id, _now(), owner_id),
             )
         return self.get_comparison(comparison_id)
 
-    def get_comparison(self, comparison_id: str) -> dict:
+    def get_comparison(self, comparison_id: str, owner_id: str | None = None) -> dict:
         with self._db() as conn:
-            row = conn.execute("SELECT * FROM comparisons WHERE id = ?", (comparison_id,)).fetchone()
+            if owner_id:
+                row = conn.execute("SELECT * FROM comparisons WHERE id = ? AND owner_id = ?", (comparison_id, owner_id)).fetchone()
+            else:
+                row = conn.execute("SELECT * FROM comparisons WHERE id = ?", (comparison_id,)).fetchone()
         if row is None:
             raise AppError(404, "COMPARISON_NOT_FOUND", "Comparison not found")
         return {

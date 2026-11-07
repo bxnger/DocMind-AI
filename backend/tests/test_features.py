@@ -7,7 +7,7 @@ from app.deps import get_answerer, get_store
 from app.extraction import ExtractionError, Segment, extract_docx
 from app.highlights import quote_highlights
 from app.main import create_app
-from tests.conftest import make_pdf, upload
+from tests.conftest import relaxed_settings, make_pdf, upload
 
 
 def sentences(*texts, page=1):
@@ -139,6 +139,7 @@ def test_scan_goes_through_ocr_when_it_is_set_up(client, monkeypatch):
     def fake_extract(path, languages=None):
         return [Segment(1, None, "Text recognised from the scan.")] if languages else [Segment(1, None, "")]
 
+    monkeypatch.setattr("app.pipeline.ISOLATE", False)  # a replaced OCR call cannot reach the worker process
     monkeypatch.setattr("app.pipeline.ocr_languages", lambda: "eng")
     monkeypatch.setattr("app.pipeline.extract_pdf", fake_extract)
 
@@ -154,6 +155,7 @@ def test_ocr_failure_is_reported(client, monkeypatch):
             raise ExtractionError("OCR_FAILED", "The PDF could not be read")
         return [Segment(1, None, "")]
 
+    monkeypatch.setattr("app.pipeline.ISOLATE", False)  # a replaced OCR call cannot reach the worker process
     monkeypatch.setattr("app.pipeline.ocr_languages", lambda: "eng")
     monkeypatch.setattr("app.pipeline.extract_pdf", fake_extract)
 
@@ -167,16 +169,12 @@ def test_ocr_failure_is_reported(client, monkeypatch):
 
 
 def limited_client(store, upload_limit=2, chat_limit=2) -> TestClient:
-    settings = Settings(
-        data_dir=store.files_dir.parent,
-        cors_origins=("http://localhost:5173",),
-        upload_limit_per_minute=upload_limit,
-        chat_limit_per_minute=chat_limit,
-    )
-    app = create_app(settings)
+    app = create_app(relaxed_settings(store, upload_limit_per_minute=upload_limit, chat_limit_per_minute=chat_limit))
     app.dependency_overrides[get_store] = lambda: store
     app.dependency_overrides[get_answerer] = lambda: None
-    return TestClient(app)
+    limited = TestClient(app)
+    limited.headers["Authorization"] = "Bearer " + limited.post("/api/v1/sessions").json()["token"]
+    return limited
 
 
 def test_uploads_are_rate_limited(store):

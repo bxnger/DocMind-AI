@@ -10,7 +10,8 @@ import time
 from collections import deque
 from pathlib import Path
 
-from bot.backend_client import Answer, BackendClient, BackendUnavailable
+from collections.abc import Container
+from bot.backend_client import BackendClient, BackendUnavailable, SessionExpired
 from bot.render import render_page
 from bot.telegram_api import TelegramAPI, TelegramError
 from bot.texts import TEXTS, language_of, t
@@ -92,14 +93,14 @@ class Bot:
         telegram: TelegramAPI,
         backend: BackendClient,
         state_path: Path | None = None,
-        allowed_chats: set[int] | None = None,
+        allowed_chats: Container[int] = frozenset(),
         per_minute: int = 10,
         clock=time.monotonic,
     ) -> None:
         self.telegram = telegram
         self.backend = backend
         self.state_path = state_path
-        self.allowed_chats = allowed_chats  # None: everybody may use the bot
+        self.allowed_chats = allowed_chats  # empty: nobody may use the bot
         self.per_minute = per_minute
         self.clock = clock
         self._lock = threading.Lock()
@@ -122,7 +123,10 @@ class Bot:
         try:
             self.state_path.parent.mkdir(parents=True, exist_ok=True)
             temporary = self.state_path.with_suffix(".tmp")
-            temporary.write_text(json.dumps(self.state, ensure_ascii=False), encoding="utf-8")
+            # Holds each chat's session token, so only this user may read it.
+            descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(descriptor, "w", encoding="utf-8") as out:
+                out.write(json.dumps(self.state, ensure_ascii=False))
             os.replace(temporary, self.state_path)
         except OSError:
             logger.warning("bot state could not be saved")
@@ -132,6 +136,13 @@ class Bot:
             return self.state.setdefault(
                 str(chat_id), {"docs": [], "current": None, "conversations": {}, "sources": [], "suggestions": []}
             )
+
+    def _api(self, chat: dict) -> BackendClient:
+        """The backend as this chat's own guest, so chats cannot reach each other's documents."""
+        if not chat.get("token"):
+            chat["token"] = self.backend.create_session()
+            self._save()
+        return self.backend.for_session(chat["token"])
 
     def _current(self, chat: dict) -> dict | None:
         return next((doc for doc in chat["docs"] if doc["id"] == chat["current"]), None)
@@ -156,6 +167,11 @@ class Bot:
                 kind = "document" if "document" in message else "command" if text.startswith("/") else "question" if text else "other"
                 logger.info("update %s lang=%s", kind if kind != "command" else text.split()[0].split("@")[0], language)
                 self._handle_message(message, chat_id, language)
+        except SessionExpired:
+            with self._lock:
+                self.state.pop(str(chat_id), None)
+            self._save()
+            self._say(chat_id, t(language, "session_expired"))
         except BackendUnavailable:
             self._say(chat_id, t(language, "backend_down"))
         except TelegramError as exc:
@@ -175,7 +191,7 @@ class Bot:
             logger.warning("send failed: %s", exc)
 
     def _allowed(self, chat_id: int, language: str) -> bool:
-        if self.allowed_chats is not None and chat_id not in self.allowed_chats:
+        if chat_id not in self.allowed_chats:
             self._say(chat_id, t(language, "denied"))
             return False
         recent = self._recent.setdefault(chat_id, deque())
@@ -265,7 +281,7 @@ class Bot:
     def _forget(self, chat: dict, doc: dict, delete_remote: bool) -> None:
         if delete_remote:
             try:
-                self.backend.delete_document(doc["id"])
+                self._api(chat).delete_document(doc["id"])
             except BackendUnavailable:
                 pass
         with self._lock:
@@ -294,13 +310,13 @@ class Bot:
         if len(data) > MAX_FILE_BYTES:
             self._say(chat_id, t(language, "too_big"))
             return
-        created = self.backend.upload(name, data)
+        created = self._api(chat).upload(name, data)
         if not created.get("id"):
             code = (created.get("error") or {}).get("code")
-            key = {"UNSUPPORTED_TYPE": "unsupported", "FILE_TOO_LARGE": "too_big"}.get(code, "failed")
+            key = {"UNSUPPORTED_TYPE": "unsupported", "FILE_TOO_LARGE": "too_big", "DOCX_TOO_LARGE": "too_big", "RATE_LIMITED": "rate", "QUOTA_EXCEEDED": "rate"}.get(code, "failed")
             self._say(chat_id, t(language, key))
             return
-        state = self.backend.wait_ready(created["id"])
+        state = self._api(chat).wait_ready(created["id"])
         logger.info(
             "document kind=%s status=%s pages=%s ocr=%s error=%s",
             state.get("kind"), state["status"], state.get("pageCount"), state.get("ocrUsed"), (state.get("error") or {}).get("code"),
@@ -319,7 +335,7 @@ class Bot:
             chat["current"] = doc["id"]
         while len(chat["docs"]) > MAX_DOCS_PER_CHAT:
             self._forget(chat, chat["docs"][0], delete_remote=True)
-        facts = self.backend.facts(doc["id"]) or {}
+        facts = self._api(chat).facts(doc["id"]) or {}
         suggestions = (facts.get("suggestedQuestions") or [])[:SUGGESTIONS_SHOWN]
         chat["suggestions"] = suggestions
         self._save()
@@ -339,9 +355,9 @@ class Bot:
         if doc is None:
             self._say(chat_id, t(language, "need_doc"))
             return
-        conversation = chat["conversations"].get(doc["id"]) or self.backend.create_conversation([doc["id"]])
+        conversation = chat["conversations"].get(doc["id"]) or self._api(chat).create_conversation([doc["id"]])
         if conversation is None:
-            current = self.backend.document(doc["id"])
+            current = self._api(chat).document(doc["id"])
             if current is None:  # the backend lost it, for example after a reset
                 self._forget(chat, doc, delete_remote=False)
                 self._say(chat_id, t(language, "need_doc"))
@@ -350,7 +366,7 @@ class Bot:
             return
         chat["conversations"][doc["id"]] = conversation
         self.telegram.send_chat_action(chat_id, "typing")
-        answer = self.backend.ask(conversation, question)
+        answer = self._api(chat).ask(conversation, question)
         self._reply(chat, chat_id, language, doc, answer)
 
     def _reply(self, chat: dict, chat_id: int, language: str, doc: dict, answer: Answer) -> None:
@@ -408,7 +424,7 @@ class Bot:
             self._say(chat_id, t(language, "page_gone"))
             return
         source = chat["sources"][index]
-        pdf = self.backend.file(source["documentId"])
+        pdf = self._api(chat).file(source["documentId"])
         if pdf is None or source.get("page") is None:
             self._say(chat_id, t(language, "page_gone"))
             return
@@ -426,7 +442,7 @@ class Bot:
         if doc is None:
             self._say(chat_id, t(language, "need_doc"))
             return
-        facts = (self.backend.facts(doc["id"]) or {}).get("facts") or []
+        facts = (self._api(chat).facts(doc["id"]) or {}).get("facts") or []
         if not facts:
             self._say(chat_id, t(language, "facts_none"))
             return
@@ -445,7 +461,7 @@ class Bot:
             self._say(chat_id, t(language, "need_doc"))
             return
         conversation = chat["conversations"].get(doc["id"])
-        messages = self.backend.messages(conversation) if conversation else []
+        messages = self._api(chat).messages(conversation) if conversation else []
         text = export_markdown(doc["name"], messages, language)
         if text is None:
             self._say(chat_id, t(language, "export_none"))
@@ -462,7 +478,7 @@ class Bot:
             self._say(chat_id, t(language, "compare_usage"))
             return
         self._say(chat_id, t(language, "compare_wait"))
-        result = self.backend.compare(first["id"], second["id"])
+        result = self._api(chat).compare(first["id"], second["id"])
         if not result or result.get("status") != "ready":
             self._say(chat_id, t(language, "compare_failed"))
             return

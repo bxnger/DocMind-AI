@@ -1,3 +1,4 @@
+import json
 import re
 import zipfile
 from dataclasses import dataclass
@@ -33,6 +34,24 @@ def normalize(text: str) -> str:
     return WHITESPACE.sub(" ", text).strip()
 
 
+# Tesseract reads the Latin letters of a code like "QA-2027-041" as Cyrillic ones ("ОА-2027-041") when Kazakh or Russian
+# is listed before English, and "Q" has no Cyrillic look-alike to translate back. So a page that holds such a code is read
+# once more with English only, and the code is taken from that reading.
+_CYRILLIC_CODE = re.compile(r"(?<![\w-])[А-ЯЁӘІҢҒҮҰҚӨҺ]{1,4}((?:-\d+){2,})(?![\w-])")
+_LATIN_CODE = re.compile(r"(?<![\w-])[A-Z]{1,4}((?:-\d+){2,})(?![\w-])")
+
+
+def needs_latin_codes(text: str) -> bool:
+    return _CYRILLIC_CODE.search(text) is not None
+
+
+def repair_codes(text: str, latin_text: str) -> str:
+    """Replaces each Cyrillic-lettered code of `text` by the Latin-lettered code with the same numbers that
+    `latin_text` (the same page read as English) holds. A code the English reading does not hold is kept."""
+    latin = {match.group(1): match.group(0) for match in _LATIN_CODE.finditer(latin_text)}
+    return _CYRILLIC_CODE.sub(lambda match: latin.get(match.group(1), match.group(0)), text)
+
+
 def ocr_languages() -> str | None:
     """Tesseract languages usable for OCR, like "kaz+rus+eng", or None when OCR is not set up."""
     try:
@@ -55,11 +74,16 @@ def extract_pdf(path: Path, languages: str | None = None) -> list[Segment]:
     try:
         if doc.needs_pass:
             raise ExtractionError("PASSWORD_PROTECTED", "The PDF is password protected")
+        if doc.page_count == 0:  # a damaged file that PyMuPDF "repairs" into an empty document
+            raise ExtractionError("PARSE_FAILED", "The PDF is damaged: no pages could be read")
         segments = []
         for number, page in enumerate(doc, start=1):
             if languages:
                 textpage = page.get_textpage_ocr(language=languages, dpi=OCR_DPI, full=True)
                 text = page.get_text("text", textpage=textpage)
+                if needs_latin_codes(text) and languages != "eng":
+                    english = page.get_textpage_ocr(language="eng", dpi=OCR_DPI, full=True)
+                    text = repair_codes(text, page.get_text("text", textpage=english))
             else:
                 text = page.get_text("text")
             segments.append(Segment(page=number, location=None, text=normalize(text)))
@@ -195,6 +219,64 @@ def extract_docx(path: Path) -> list[Segment]:
         else:
             sections[-1][1].append(text)
     return [Segment(page=None, location=heading, text=" ".join(lines)) for heading, lines in sections if lines]
+
+
+def inspect_docx(path: Path, max_entries: int, max_unpacked: int, max_xml: int) -> None:
+    """Checks the archive's directory, without unpacking anything. Python's reader never returns more than an
+    entry declares, so a false size in the directory cannot get past these limits."""
+    try:
+        with zipfile.ZipFile(path) as archive:
+            entries = archive.infolist()
+    except (zipfile.BadZipFile, OSError) as exc:
+        raise ExtractionError("UNSUPPORTED_TYPE", "The file is not a valid DOCX") from exc
+    if "word/document.xml" not in {entry.filename for entry in entries}:
+        raise ExtractionError("UNSUPPORTED_TYPE", "The file is not a valid DOCX")
+    xml = sum(entry.file_size for entry in entries if entry.filename.endswith((".xml", ".rels")))
+    if len(entries) > max_entries or sum(entry.file_size for entry in entries) > max_unpacked or xml > max_xml:
+        raise ExtractionError("DOCX_TOO_LARGE", "The DOCX is too large once unpacked")
+
+
+def pdf_page_count(path: Path) -> int | None:
+    try:
+        with fitz.open(path) as doc:
+            return None if doc.needs_pass else doc.page_count
+    except Exception:
+        return None  # extract_pdf reports what is wrong
+
+
+def read_document(path, kind, max_pages, max_ocr_pages, extract_pdf_fn=None, ocr_languages_fn=None, on_ocr=None):
+    """(segments, ocr_used) for a file. Runs inside the worker process, so it must not import app.config."""
+    read_pdf, languages_of = extract_pdf_fn or extract_pdf, ocr_languages_fn or ocr_languages
+    if kind != "pdf":
+        segments, ocr_used = extract_docx(path), False
+    else:
+        pages = pdf_page_count(path)
+        if pages is not None and pages > max_pages:
+            raise ExtractionError("PARSE_FAILED", f"The document has more than {max_pages} pages")
+        segments, ocr_used = read_pdf(path), False
+        if len(segments) > max_pages:
+            raise ExtractionError("PARSE_FAILED", f"The document has more than {max_pages} pages")
+        if not any(segment.text for segment in segments):
+            languages = languages_of()
+            if languages is None:
+                raise ExtractionError("NO_TEXT_FOUND", "No text found. Scanned documents need OCR, which is not set up on this server")
+            if len(segments) > max_ocr_pages:
+                raise ExtractionError("OCR_FAILED", f"Scans of more than {max_ocr_pages} pages cannot be read")
+            if on_ocr:
+                on_ocr()
+            segments, ocr_used = read_pdf(path, languages), True
+    if not any(segment.text for segment in segments):
+        raise ExtractionError("NO_TEXT_FOUND", "No text found in the document")
+    return segments, ocr_used
+
+
+def stored_blocks(path: Path) -> list[dict]:
+    """The blocks the worker saved, so that reading a document never parses an uploaded file in the API process."""
+    saved = path.with_suffix(".blocks.json")
+    try:
+        return json.loads(saved.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return docx_blocks(path)
 
 
 def docx_blocks(path: Path) -> list[dict]:

@@ -42,6 +42,7 @@ def main() -> int:
     path, good, bad = sys.argv[1:4]
     base = sys.argv[4] if len(sys.argv) > 4 else "http://127.0.0.1:8011"
     with httpx.Client(base_url=f"{base}/api/v1", timeout=120) as client, open(path, "rb") as file:
+        client.headers["Authorization"] = "Bearer " + client.post("/sessions").json()["token"]
         document = client.post("/documents", files={"file": (path.rsplit("/", 1)[-1], file)}).json()
         while document["status"] == "processing":
             time.sleep(1)
