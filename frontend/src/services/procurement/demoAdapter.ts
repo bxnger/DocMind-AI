@@ -157,6 +157,11 @@ export function createDemoAdapter(pages: readonly SourceText[], documentId = 'd'
     checkedAt: row.checkedAt ?? list.checkedAt,
     checkedAtOrigin: row.checkedAt ? 'file' : list.checkedAtOrigin,
     demo: list.demo,
+    manufacturer: null,
+    priceListFile: list.fileName || null,
+    priceOrigin: 'file',
+    filePrice: row.price,
+    siteCheck: null,
   });
 
   const allOffers = (part: Part): { offers: Offer[]; similar: Offer[] } => {

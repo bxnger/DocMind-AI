@@ -52,12 +52,12 @@ export function OffersStep({ adapter, parts, lines, lists, offers, quoteItems, s
                 {quote?.lineTotal && quote.currency && <p data-testid="line-total" className="tabular text-sm"><span className="text-muted">{t('procurement.line')}:</span> <strong className="font-semibold">{formatMoney(quote.lineTotal, quote.currency, i18n.language)}</strong></p>}
               </div>
               {item?.offers.length ? (
-                <ul className="mt-1.5 space-y-1.5">{item.offers.map((offer) => <OfferRow key={offer.id} offer={offer} chosen={offer.id === line?.offerId} lists={lists} onSelect={select} />)}</ul>
+                <ul className="mt-1.5 space-y-1.5">{item.offers.map((offer) => <OfferRow key={offer.id} offer={offer} chosen={offer.id === line?.offerId} lists={lists} onSelect={select} checkPrice={adapter.checkPrice} />)}</ul>
               ) : <p className="mt-1 text-xs text-muted">{t('procurement.noOffers')}</p>}
               {Boolean(item?.similar.length) && (
                 <>
                   <h5 data-testid="similar-title" className="mt-2 mb-1 text-xs font-medium text-warning">{t('procurement.similar')}</h5>
-                  <ul className="space-y-1.5">{item?.similar.map((offer) => <OfferRow key={offer.id} offer={offer} chosen={offer.id === line?.offerId} lists={lists} onSelect={select} />)}</ul>
+                  <ul className="space-y-1.5">{item?.similar.map((offer) => <OfferRow key={offer.id} offer={offer} chosen={offer.id === line?.offerId} lists={lists} onSelect={select} checkPrice={adapter.checkPrice} />)}</ul>
                 </>
               )}
               {!line?.offerId && onlyOutOfStock(item) && <p data-testid="out-of-stock-note" className="mt-1 text-xs text-warning">{t('procurement.outOfStockNote')}</p>}

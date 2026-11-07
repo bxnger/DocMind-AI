@@ -31,10 +31,11 @@ export function useProcurementAdapter(doc: DocumentModel, pdfText: DocumentText 
   const blocks = useDocumentBlocks(doc.id, decided && !live && isDocx && doc.status === 'ready');
   const language = i18n.language;
   const canReadPhotos = features?.photoIdentify === true;
+  const canCheckPrices = features?.priceCheck === true;
 
   return useMemo(() => {
     if (!decided) return null;
-    if (live) return createLiveAdapter(doc.id, language, canReadPhotos);
+    if (live) return createLiveAdapter(doc.id, language, canReadPhotos, canCheckPrices);
     const held = demoAdapters.get(doc.id);
     if (held) return held;
     let pages: SourceText[] | null = null;
@@ -44,7 +45,7 @@ export function useProcurementAdapter(doc: DocumentModel, pdfText: DocumentText 
     const created = createDemoAdapter(pages, doc.id, doc.name);
     demoAdapters.set(doc.id, created);
     return created;
-  }, [blocks.data, canReadPhotos, decided, doc.id, doc.name, isDocx, language, live, pdfText]);
+  }, [blocks.data, canCheckPrices, canReadPhotos, decided, doc.id, doc.name, isDocx, language, live, pdfText]);
 }
 
 export const sheetStorageKey = (documentId: string): string => `docmind.chat.procurement.${documentId}`;

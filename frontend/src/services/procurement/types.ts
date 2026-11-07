@@ -15,6 +15,8 @@ export interface ProcurementAdapter {
   uploadPriceList(file: File, input: PriceListInput): Promise<PriceList>;
   deletePriceList(id: string): Promise<void>;
   offers(partIds: string[]): Promise<PartOffers[]>;
+  /** Only when the server offers it. The demonstration never checks a site. */
+  checkPrice?(offerId: string): Promise<void>;
   quote(items: QuoteRequestItem[]): Promise<Quote>;
   exportQuote(items: QuoteRequestItem[], format: 'csv' | 'xlsx'): Promise<Blob>;
 }

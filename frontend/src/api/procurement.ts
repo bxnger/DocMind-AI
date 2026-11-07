@@ -1,5 +1,5 @@
 import type { EvidenceSource } from '@/types/chat';
-import type { CheckedAtOrigin, Confirmation, ConfirmationInput, MatchStatus, Offer, Part, PartCategory, PartList, PartOffers, PartType, PhotoCandidate, PhotoIssue, PhotoMatch, PriceList, PriceListInput, Quote, QuoteItem, QuoteRequestItem } from '@/types/procurement';
+import type { CheckedAtOrigin, Confirmation, ConfirmationInput, MatchStatus, Offer, Part, PartCategory, PartList, PartOffers, PartType, PhotoCandidate, PhotoIssue, PhotoMatch, PriceList, PriceListInput, Quote, QuoteItem, QuoteRequestItem, SiteCheck } from '@/types/procurement';
 import { AppError, ERROR_BAD_RESPONSE, getJson, isRecord, postJson, send } from './client';
 import { toSource } from './conversations';
 
@@ -106,6 +106,11 @@ export function toPriceList(value: unknown): PriceList {
   };
 }
 
+function toSiteCheck(value: unknown): SiteCheck | null {
+  if (!isRecord(value)) return null;
+  return { status: value.status === 'checked' ? 'checked' : 'failed', reason: text(value.reason), price: text(value.price), currency: text(value.currency), checkedAt: text(value.checkedAt) };
+}
+
 /** A link comes from a price file somebody uploaded, so only a web address may become one. */
 export const toHttpUrl = (value: unknown): string | null => (typeof value === 'string' && /^https?:\/\//i.test(value.trim()) ? value.trim() : null);
 
@@ -129,6 +134,11 @@ export function toOffer(value: unknown): Offer[] {
     checkedAt: text(value.checkedAt),
     checkedAtOrigin: oneOf(value.checkedAtOrigin, ORIGINS, 'import_date'),
     demo: value.demo === true,
+    manufacturer: text(value.manufacturer),
+    priceListFile: text(value.priceListFile),
+    priceOrigin: value.priceOrigin === 'site_checked' ? 'site_checked' : 'file',
+    filePrice: text(value.filePrice),
+    siteCheck: toSiteCheck(value.siteCheck),
   }];
 }
 
@@ -212,6 +222,11 @@ export async function getOffers(documentId: string, partIds: string[]): Promise<
   const body: unknown = await response.json();
   if (!isRecord(body) || !Array.isArray(body.items)) throw bad();
   return body.items.flatMap(toPartOffers);
+}
+
+/** Reads the supplier's page. The server keeps the result, so offers and quotes must be asked again afterwards. */
+export async function checkOfferPrices(offerIds: string[]): Promise<void> {
+  await postJson('/procurement/offers/check', { offerIds });
 }
 
 export async function getQuote(documentId: string, items: QuoteRequestItem[]): Promise<Quote> {

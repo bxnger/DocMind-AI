@@ -887,7 +887,8 @@
         "needs_confirmation": "Not an exact match, or several candidates. A similar designation is not a confirmed substitute.",
         "no_match": "This designation isn't among the document's parts.",
         "unreadable": "Take a clearer photo, or type the part number if you can read it.",
-        "type_only": "No part number was read. These are parts of the same kind in the document, not a match of part numbers. Compare them and decide."
+        "type_only": "No part number was read. These are parts of the same kind in the document, not a match of part numbers. Compare them and decide.",
+        "unreliable": "The part number reads the same, but the photo is unreliable: glare can hide its last letter. Compare with the part itself."
       },
       "takePhoto": "Take a photo of the part",
       "uploadPhoto": "Upload a photo",
@@ -907,7 +908,8 @@
         "exact": "Exact match",
         "close": "Similar, not the same",
         "partial": "Partial match",
-        "type": "Same kind of part only"
+        "type": "Same kind of part only",
+        "readSame": "Reads the same, photo unreliable"
       },
       "readability": {
         "high": "high",
@@ -1010,7 +1012,26 @@
       "lineTotal": "Line total",
       "supplier": "Supplier and source"
     },
-    "outOfStockNote": "An offer exists, but the file says it's out of stock, so it wasn't chosen automatically. You can choose it yourself."
+    "outOfStockNote": "An offer exists, but the file says it's out of stock, so it wasn't chosen automatically. You can choose it yourself.",
+    "priceOrigin": {
+      "file": "Price from the uploaded list",
+      "site_checked": "Price checked on the supplier's site"
+    },
+    "filePrice": "in the list: {{amount}}",
+    "siteCheck": {
+      "button": "Check price on the site",
+      "failed": "Check on the site failed, the price stays from the list: {{reason}}",
+      "reason": {
+        "disabled": "checking isn't set up on the server",
+        "notAllowed": "this site isn't on the allowed list",
+        "network": "the page didn't open",
+        "noData": "the page publishes no product data",
+        "otherPart": "the page is for another part number",
+        "severalPrices": "the page shows several prices",
+        "noPrice": "the page shows no price with a currency",
+        "other": "the address can't be checked"
+      }
+    }
   },
   "hr": {
     "title": "Resume and vacancy",

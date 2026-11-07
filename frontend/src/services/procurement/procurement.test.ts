@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { fromMinor, toMinor } from '@/lib/money';
 import { toHttpUrl, toOffer, toPart, toPartList, toPhotoMatch, toPriceList, toQuote } from '@/api/procurement';
-import { chooseExactOffers, isSheetComplete, onlyOutOfStock, quoteItems, readableQuote } from '@/features/procurement/sheetLines';
+import { canCheckOnSite, checkReasonKey, chooseExactOffers, isSheetComplete, onlyOutOfStock, quoteItems, readableQuote } from '@/features/procurement/sheetLines';
 import { DEMO_SUPPLIER, createDemoAdapter, csvCell, findParts, fixtureParts, parsePriceCsv } from './demoAdapter';
 import { compareCode, demoIdentify, normalizeCode } from './matching';
 
@@ -128,6 +128,31 @@ describe('choosing exact offers for the person', () => {
     const offers = [{ partId: 'a', partNumber: 'x', offers: [offer('o1', '1.00')], similar: [] }];
     expect(chooseExactOffers(offers, { a: { ...line, offerId: 'mine' } })).toEqual({});
     expect(chooseExactOffers(offers, { a: { ...line, included: false } })).toEqual({});
+  });
+});
+
+describe('checking a price on the supplier site', () => {
+  it('is offered only for what the server could check', () => {
+    const offer = { url: 'https://bcindustry.kz/x', demo: false, partNumber: '6205-2RSH' };
+    expect(canCheckOnSite(offer)).toBe(true);
+    expect(canCheckOnSite({ ...offer, url: null })).toBe(false);
+    expect(canCheckOnSite({ ...offer, url: 'http://bcindustry.kz/x' })).toBe(false);
+    expect(canCheckOnSite({ ...offer, demo: true })).toBe(false);
+    expect(canCheckOnSite({ ...offer, partNumber: '' })).toBe(false);
+  });
+  it('turns the reasons into a few a person can act on', () => {
+    expect(checkReasonKey('domain_not_allowed')).toBe('notAllowed');
+    expect(checkReasonKey('http_503')).toBe('network');
+    expect(checkReasonKey('part_number_not_on_page')).toBe('otherPart');
+    expect(checkReasonKey('something_new')).toBe('other');
+    expect(checkReasonKey(null)).toBe('other');
+  });
+  it('a failed check leaves the price from the file, and only a real one changes the origin', () => {
+    const base = { id: 'pl1:1', priceListId: 'pl1', sourceRow: 1, price: '4850.00', filePrice: '4850.00', manufacturer: 'SKF', priceListFile: 'f.csv' };
+    expect(toOffer({ ...base, priceOrigin: 'file', siteCheck: { status: 'failed', reason: 'timeout' } })[0]).toMatchObject({ priceOrigin: 'file', siteCheck: { status: 'failed', reason: 'timeout' }, manufacturer: 'SKF', priceListFile: 'f.csv' });
+    expect(toOffer({ ...base, priceOrigin: 'made_up' })[0]?.priceOrigin).toBe('file');
+    expect(toOffer(base)[0]).toMatchObject({ priceOrigin: 'file', siteCheck: null });
+    expect(toOffer({ ...base, manufacturer: null })[0]?.manufacturer).toBeNull();
   });
 });
 

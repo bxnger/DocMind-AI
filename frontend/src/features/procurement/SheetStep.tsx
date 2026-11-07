@@ -119,8 +119,8 @@ export function SheetStep({ adapter, documentName, parts, lines, lists, offers, 
     const text = origin(item.offer, lists);
     return (
       <div className="text-xs text-muted">
-        <p className="text-sm text-fg break-words [overflow-wrap:anywhere]">{item.offer.supplier}{item.offer.demo && <span className="ml-1 rounded bg-warning-tint px-1 text-[11px] font-semibold text-warning">{t('procurement.demoBadge')}</span>}</p>
-        <p className="break-words [overflow-wrap:anywhere]">{[text.stock, text.source, text.date].filter(Boolean).join(' · ')}</p>
+        <p className="text-sm text-fg break-words [overflow-wrap:anywhere]">{item.offer.supplier}{item.offer.manufacturer ? ` · ${item.offer.manufacturer}` : ''}{item.offer.demo && <span className="ml-1 rounded bg-warning-tint px-1 text-[11px] font-semibold text-warning">{t('procurement.demoBadge')}</span>}</p>
+        <p className="break-words [overflow-wrap:anywhere]">{[text.stock, text.priceOrigin, text.source, text.date, text.filePrice].filter(Boolean).join(' · ')}</p>
         {item.offer.url && <ProductLink url={item.offer.url} />}
         {item.matchWarning && <p className="text-warning">{t('procurement.matchWarning')}</p>}
       </div>

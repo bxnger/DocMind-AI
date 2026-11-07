@@ -2,7 +2,7 @@ import { AppError } from '@/api/client';
 import * as api from '@/api/procurement';
 import type { ProcurementAdapter } from './types';
 
-export function createLiveAdapter(documentId: string, language: string, canReadPhotos: boolean): ProcurementAdapter {
+export function createLiveAdapter(documentId: string, language: string, canReadPhotos: boolean, canCheckPrices: boolean): ProcurementAdapter {
   return {
     isDemo: false,
     canReadPhotos,
@@ -22,6 +22,7 @@ export function createLiveAdapter(documentId: string, language: string, canReadP
     uploadPriceList: api.uploadPriceList,
     deletePriceList: api.deletePriceList,
     offers: (partIds) => api.getOffers(documentId, partIds),
+    ...(canCheckPrices ? { checkPrice: (offerId: string) => api.checkOfferPrices([offerId]) } : {}),
     quote: (items) => api.getQuote(documentId, items),
     exportQuote: (items, format) => api.exportQuote(documentId, items, format),
   };

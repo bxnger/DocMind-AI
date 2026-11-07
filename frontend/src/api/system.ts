@@ -33,6 +33,7 @@ export async function getCapabilities(signal?: AbortSignal): Promise<Capabilitie
       priceLists: features.priceLists === true,
       procurement: features.procurement === true,
       hr: features.hr === true,
+      priceCheck: features.priceCheck === true,
     },
     limits: {
       maxFileSizeBytes: limits.maxFileSizeBytes,

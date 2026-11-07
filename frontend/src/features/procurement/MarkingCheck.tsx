@@ -118,6 +118,8 @@ export function MarkingCheck({ adapter, parts, maxImageBytes, showExamples, onDe
   // With only the kind of part to go on there may be no number to record. Otherwise a decision needs one.
   const canDecide = Boolean(partId && (text.trim() || status === 'type_only'));
   const inscriptions = recognized?.visibleMarkings.length ? recognized.visibleMarkings : (recognized?.markings ?? []);
+  // The number agrees, but glare or a poor read can hide its last letter: 6205-2RSH reads as 6205-2RS.
+  const unreliableSameNumber = status === 'needs_confirmation' && Boolean(result?.matches.some((match) => match.match === 'exact'));
   const estimatedType = recognized?.partType && recognized.partType !== 'unknown' ? recognized.partType : null;
   const readability = READABILITY.find((level) => level === recognized?.readability) ?? null;
   const choices = result?.matches.length
@@ -163,7 +165,7 @@ export function MarkingCheck({ adapter, parts, maxImageBytes, showExamples, onDe
                   <look.Icon size={12} className="shrink-0" aria-hidden />
                   {t(`procurement.marking.status.${status}`)}
                 </span>
-                <p className="mt-1 text-xs text-muted">{t(`procurement.marking.explain.${status}`)}</p>
+                <p data-testid="match-explain" className="mt-1 text-xs text-muted">{t(unreliableSameNumber ? 'procurement.marking.explain.unreliable' : `procurement.marking.explain.${status}`)}</p>
               </div>
             )}
             {recognized && (recognized.partNumber || recognized.manufacturer || inscriptions.length > 0 || estimatedType) && (
@@ -203,7 +205,7 @@ export function MarkingCheck({ adapter, parts, maxImageBytes, showExamples, onDe
                           <span className="min-w-0 break-words [overflow-wrap:anywhere]">
                             <strong className="font-semibold">{choice.label}</strong>
                             {choice.name && <span className="text-muted"> · {choice.name}</span>}
-                            {choice.kind && !(choice.kind === 'type' && choice.difference) && <span className="block text-xs text-muted">{t(`procurement.marking.kind.${choice.kind}`)}</span>}
+                            {choice.kind && !(choice.kind === 'type' && choice.difference) && <span className="block text-xs text-muted">{t(unreliableSameNumber && choice.kind === 'exact' ? 'procurement.marking.kind.readSame' : `procurement.marking.kind.${choice.kind}`)}</span>}
                             {choice.difference && <span data-testid="marking-difference" className="block text-xs text-warning">{choice.difference}</span>}
                           </span>
                         </label>

@@ -334,7 +334,7 @@ describe('capabilities', () => {
   it('reads the flags from features, as the contract has them', async () => {
     handler = () => json(200, { ...body, procurement: true, features: { parts: true, photoIdentify: false, priceLists: true, procurement: true, hr: true, claimCheck: false }, limits: { ...body.limits, maxImageBytes: 8 } });
     const capabilities = await getCapabilities();
-    expect(capabilities.features).toEqual({ parts: true, photoIdentify: false, priceLists: true, procurement: true, hr: true, claimCheck: false });
+    expect(capabilities.features).toEqual({ parts: true, photoIdentify: false, priceLists: true, procurement: true, hr: true, claimCheck: false, priceCheck: false });
     expect(capabilities.limits.maxImageBytes).toBe(8);
   });
   it('a flag outside features turns nothing on', async () => {

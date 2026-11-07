@@ -111,6 +111,15 @@ export interface PriceListInput {
   demo: boolean;
 }
 
+export interface SiteCheck {
+  status: 'checked' | 'failed';
+  /** Why a check failed. The server's list is long and may grow, so this stays a plain string. */
+  reason: string | null;
+  price: string | null;
+  currency: string | null;
+  checkedAt: string | null;
+}
+
 export interface Offer {
   id: string;
   supplier: string;
@@ -129,6 +138,13 @@ export interface Offer {
   checkedAt: string | null;
   checkedAtOrigin: CheckedAtOrigin;
   demo: boolean;
+  /** From the price file's own column, never guessed. */
+  manufacturer: string | null;
+  priceListFile: string | null;
+  /** `site_checked` only after the supplier's page was really read. A link, or a failed check, leaves it `file`. */
+  priceOrigin: 'file' | 'site_checked';
+  filePrice: string | null;
+  siteCheck: SiteCheck | null;
 }
 
 export interface PartOffers {

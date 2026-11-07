@@ -1,5 +1,5 @@
 import { toMinor } from '@/lib/money';
-import type { Decision, Part, PartOffers, QuoteRequestItem } from '@/types/procurement';
+import type { Decision, Offer, Part, PartOffers, QuoteRequestItem } from '@/types/procurement';
 
 /** What the person decided for one line. The server keeps no sheet: it only calculates what it is sent. */
 export interface SheetLine {
@@ -55,6 +55,24 @@ export function onlyOutOfStock(offers: PartOffers | undefined): boolean {
   const exact = offers?.offers.filter((offer) => offer.match === 'exact' && offer.price !== null) ?? [];
   return exact.length > 0 && exact.every((offer) => offer.stockStatus === 'unavailable');
 }
+
+/** Only what the server could check at all: a real price file's https link and a part number to look for. */
+export const canCheckOnSite = (offer: Pick<Offer, 'url' | 'demo' | 'partNumber'>): boolean =>
+  !offer.demo && Boolean(offer.partNumber) && /^https:\/\//i.test(offer.url ?? '');
+
+const CHECK_REASONS: Record<string, string> = {
+  check_disabled: 'disabled',
+  domain_not_allowed: 'notAllowed',
+  dns_failed: 'network', timeout: 'network', connection_failed: 'network',
+  not_html: 'noData', page_too_large: 'noData', no_product_data: 'noData',
+  part_number_not_on_page: 'otherPart',
+  several_prices: 'severalPrices',
+  no_price: 'noPrice', no_currency: 'noPrice',
+};
+
+/** The server's many reasons, in the few a person can act on. */
+export const checkReasonKey = (reason: string | null): string =>
+  (reason && CHECK_REASONS[reason]) || (reason?.startsWith('http_') ? 'network' : 'other');
 
 /** "Full" only when nothing is open: every included line has a quantity and a price. */
 export const isSheetComplete = (quote: { unpriced: number; totals: readonly unknown[] } | undefined, withoutQuantity: number): boolean =>
