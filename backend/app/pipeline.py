@@ -37,6 +37,7 @@ _slots = threading.BoundedSemaphore(WORKER_CONCURRENCY)
 def recover_unfinished(store: Store) -> None:
     """On startup: documents left `processing` by a restart are processed again, comparisons fail."""
     store.fail_unfinished_comparisons()
+    store.fail_unfinished_part_lists()
     for doc_id in store.unfinished_document_ids():
         process_document(store, doc_id)
 

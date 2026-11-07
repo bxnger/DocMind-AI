@@ -380,6 +380,23 @@ class Store:
             rows = conn.execute("SELECT id FROM documents WHERE status = 'processing' ORDER BY rowid").fetchall()
         return [row["id"] for row in rows]
 
+    def fail_unfinished_part_lists(self) -> int:
+        """A part list left `processing` by a restart would be polled forever: it fails, and POST starts it again."""
+        error = {"code": "INTERNAL_ERROR", "message": "The server restarted during the extraction. Start it again"}
+        changed = 0
+        with self._db() as conn:
+            rows = conn.execute("SELECT id, owner_id, data_json FROM records WHERE kind = 'part_list'").fetchall()
+            for row in rows:
+                data = json.loads(row["data_json"])
+                if data.get("status") == "processing":
+                    data.update(status="failed", progress=None, error=error)
+                    conn.execute(
+                        "UPDATE records SET data_json = ? WHERE kind = 'part_list' AND id = ? AND owner_id = ?",
+                        (json.dumps(data, ensure_ascii=False), row["id"], row["owner_id"]),
+                    )
+                    changed += 1
+        return changed
+
     def fail_unfinished_comparisons(self) -> None:
         error = {
             "code": "INTERNAL_ERROR",

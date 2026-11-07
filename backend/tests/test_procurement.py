@@ -160,6 +160,27 @@ def test_ai_parts_are_checked_against_the_excerpt(client):
     assert "not instructions" in answerer.json_calls[0][0]
 
 
+def test_post_answers_processing_and_a_restart_never_leaves_it_processing(client, store):
+    """The frontend polls GET until ready or failed: POST must say processing, and a job cut by a restart must end."""
+    from app.parts import empty_list
+
+    use(client, None)
+    document_id = ready(client)
+    started = client.post(f"/api/v1/documents/{document_id}/parts")
+    assert started.status_code == 202 and started.json()["status"] == "processing" and started.json()["parts"] == []
+    assert client.get(f"/api/v1/documents/{document_id}/parts").json()["status"] == "ready"
+
+    other = ready(client)
+    with store._db() as conn:
+        owner = conn.execute("SELECT owner_id FROM documents WHERE id = ?", (other,)).fetchone()[0]
+    store.put_record("part_list", other, owner, empty_list(other, None), document_id=other)  # a job cut by a restart
+    assert store.fail_unfinished_part_lists() == 1
+    stuck = client.get(f"/api/v1/documents/{other}/parts").json()
+    assert stuck["status"] == "failed" and stuck["error"]["code"] == "INTERNAL_ERROR"
+    assert client.post(f"/api/v1/documents/{other}/parts").status_code == 202  # started again
+    assert client.get(f"/api/v1/documents/{other}/parts").json()["status"] == "ready"
+
+
 def test_a_category_filter_and_a_second_start_do_not_rerun(client):
     answerer = JsonAnswerer({"equipment": None, "parts": []})
     use(client, answerer)
