@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { fromMinor, toMinor } from '@/lib/money';
 import { toOffer, toPart, toPartList, toPhotoMatch, toPriceList, toQuote } from '@/api/procurement';
+import { readableQuote } from '@/features/procurement/PartRow';
 import { quoteItems } from '@/features/procurement/useProcurement';
 import { DEMO_SUPPLIER, createDemoAdapter, csvCell, findParts, fixtureParts, parsePriceCsv } from './demoAdapter';
 import { compareCode, demoIdentify, normalizeCode } from './matching';
@@ -128,6 +129,13 @@ describe('price files', () => {
   it('keeps a formula from running in a spreadsheet', () => {
     expect(csvCell('=HYPERLINK("x")')).toBe(`"'=HYPERLINK(""x"")"`);
     expect(csvCell('-1')).toBe("'-1");
+  });
+});
+
+describe('quotes of parts', () => {
+  it('show the dash of a part number stored as a soft hyphen, and change nothing else', () => {
+    expect(readableQuote('подшипник 6205\u00AD2RS — 4 шт.', '6205-2RS')).toBe('подшипник 6205-2RS — 4 шт.');
+    expect(readableQuote('пере\u00ADнос 6205-2RS', 'XYZ')).toBe('пере\u00ADнос 6205-2RS');
   });
 });
 

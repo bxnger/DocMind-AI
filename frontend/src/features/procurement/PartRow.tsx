@@ -18,6 +18,12 @@ interface Props {
   onOpenSource: (source: EvidenceSource) => void;
 }
 
+/** Some PDFs store the dash of a part number as a soft hyphen, which is invisible on screen: 6205-2RS would read 62052RS. */
+export function readableQuote(quote: string, partNumber: string): string {
+  const dashed = quote.replaceAll('\u00AD', '-');
+  return dashed.includes(partNumber) ? dashed : quote;
+}
+
 function OfferRow({ offer, chosen, onSelect }: { offer: Offer; chosen: boolean; onSelect: (offerId: string | null) => void }) {
   const { t, i18n } = useTranslation();
   const stock = offer.stockStatus === 'available' && offer.stockQuantity !== null ? t('procurement.stock.count', { count: offer.stockQuantity }) : t(`procurement.stock.${offer.stockStatus}`);
@@ -100,7 +106,7 @@ export function PartRow({ part, line, offers, quoteItem, onChange, onOpenSource 
       {source ? (
         <button type="button" data-testid="part-source" onClick={() => onOpenSource(source)} aria-label={t('procurement.source', { place: place(source) })} className="pressable mt-2 w-full rounded-control border border-line bg-sidebar p-2 text-left hover:border-accent-2-line">
           <span className="mb-1 flex items-center gap-1 text-xs font-medium"><FileText size={12} className="shrink-0 text-muted" aria-hidden /><span className="min-w-0 truncate">{place(source)}</span></span>
-          <span className="line-clamp-3 border-l-2 border-accent-2 pl-2 font-quote text-[14px] leading-[21px] break-words text-fg/90">{source.quote}</span>
+          <span className="line-clamp-3 border-l-2 border-accent-2 pl-2 font-quote text-[14px] leading-[21px] break-words text-fg/90">{readableQuote(source.quote, part.partNumber)}</span>
         </button>
       ) : (
         <p data-testid="no-source" className="mt-2 text-xs text-muted">{t('procurement.noSource')}</p>
