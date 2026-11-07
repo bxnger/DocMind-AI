@@ -88,6 +88,14 @@ def test_standard_bearing_dimensions_are_computed_not_guessed():
     assert all(spec["origin"] == "standard" for spec in standard_bearing_specs("6205"))
 
 
+def test_a_soft_hyphen_from_the_pdf_is_the_same_part_number():
+    """Found live: PyMuPDF read the hyphen of "6205-2RS" as U+00AD; the code then found "6205" without its suffix,
+    the AI found "6205\xad2RS", the part was listed twice and a photo of 6205-2RS matched only as "close"."""
+    assert [found[0] for found in find_bearings("подшипник 6205­2RS — 4 шт.")] == ["6205­2RS"]
+    assert code_match("6205­2RS", "6205-2RS") == "exact"
+    assert find_bearings("Электродвигатель 4 кВт, 1500 об/мин — 1 шт. Замена подшипников раз в 2 года.") == []
+
+
 def test_bearings_are_found_but_amounts_and_years_are_not():
     assert [found[0] for found in find_bearings(MANUAL[1])] == ["6205-2RS", "NU 210 ECP"]
     assert find_bearings(MANUAL[3]) == []  # a bearing word nearby, but an amount and a year
@@ -316,6 +324,34 @@ def test_xlsx_price_list_and_export(client):
     assert rows[1][2] == "6205-2RS" and float(rows[1][7]) == 9700.0 and rows[1][11] == "2"
     csv_file = client.post("/api/v1/procurement/quote/export?format=csv", json=body)
     assert "9700.00" in csv_file.content.decode("utf-8-sig")
+
+
+def test_a_brief_gemini_503_on_a_photo_is_retried():
+    """Found live: a marking photo got 503 ("high demand") from both Gemini models; the chat retries that, this did not."""
+    import asyncio
+    from types import SimpleNamespace
+
+    from google.genai import errors
+
+    from app.llm import LlmUnavailable
+    from app.llm_gemini import GeminiAnswerer
+
+    class Flaky:
+        def __init__(self, failures):
+            self.failures, self.calls = failures, 0
+            self.aio = SimpleNamespace(models=SimpleNamespace(generate_content=self.generate))
+
+        async def generate(self, **kwargs):
+            self.calls += 1
+            if self.calls <= self.failures:
+                raise errors.ServerError(503, {"error": {"message": "high demand"}})
+            return SimpleNamespace(text='{"readability": "high"}')
+
+    flaky = Flaky(failures=1)
+    answer = asyncio.run(GeminiAnswerer("m", "unused", client=flaky).complete_json("read", image=JPEG, mime_type="image/jpeg"))
+    assert answer == '{"readability": "high"}' and flaky.calls == 2
+    with pytest.raises(LlmUnavailable):
+        asyncio.run(GeminiAnswerer("m", "unused", client=Flaky(failures=99)).complete_json("read"))
 
 
 # Capabilities ---------------------------------------------------------------------------------------------------------

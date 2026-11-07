@@ -201,27 +201,36 @@ class GeminiAnswerer:
         loop = asyncio.get_running_loop()
         deadline = loop.time() + timeout
         first_error: LlmUnavailable | None = None
+        stop = False
         for answerer in (self, self.fallback):
-            remaining = deadline - loop.time()
-            if answerer is None or remaining <= 0:
-                continue
-            try:
-                async with asyncio.timeout(remaining):
-                    response = await answerer.client.aio.models.generate_content(
-                        model=answerer.model, contents=contents, config=config
-                    )
-                return (response.text or "").strip()
-            except TimeoutError:
-                logger.warning("json request timed out on %s", answerer.model)
-                first_error = first_error or LlmTimeout()
-            except errors.APIError as exc:
-                error = _translate(exc, answerer.model)
-                first_error = first_error or error
-                if isinstance(error, LlmAuthFailed):
+            # Found live: a photo got 503 ("high demand") from both models at once. A brief 500/503 is retried,
+            # like the chat does, before moving on.
+            for attempt in range(1, MAX_ATTEMPTS + 1):
+                remaining = deadline - loop.time()
+                if answerer is None or remaining <= 0 or stop:
                     break
-            except httpx.HTTPError as exc:
-                logger.warning("json request failed on %s (%s)", answerer.model, type(exc).__name__)
-                first_error = first_error or LlmUnavailable()
+                try:
+                    async with asyncio.timeout(remaining):
+                        response = await answerer.client.aio.models.generate_content(
+                            model=answerer.model, contents=contents, config=config
+                        )
+                    return (response.text or "").strip()
+                except TimeoutError:
+                    logger.warning("json request timed out on %s", answerer.model)
+                    first_error = first_error or LlmTimeout()
+                    break
+                except (errors.APIError, httpx.HTTPError) as exc:
+                    if _is_transient(exc) and attempt < MAX_ATTEMPTS:
+                        await asyncio.sleep(RETRY_DELAY_SECONDS * attempt)
+                        continue
+                    if isinstance(exc, errors.APIError):
+                        error = _translate(exc, answerer.model)
+                        stop = isinstance(error, LlmAuthFailed)
+                    else:
+                        logger.warning("json request failed on %s (%s)", answerer.model, type(exc).__name__)
+                        error = LlmUnavailable()
+                    first_error = first_error or error
+                    break
         complete_elsewhere = getattr(self.external, "complete_text", None)
         remaining = deadline - loop.time()
         if image is None and complete_elsewhere is not None and remaining > 1:

@@ -6,9 +6,18 @@ must not depend on what an AI thinks.
 
 import re
 
-# Cyrillic letters that look like Latin ones. OCR and people mix them up in codes like "6205-2RS" / "6205-2РС".
-LOOKALIKES = str.maketrans("АВЕКМНОРСТХУаеорсху", "ABEKMHOPCTXYaeopcxy")
+# Cyrillic letters that look like Latin ones (OCR and people mix them up: "NU 207 ЕСР"), and hyphen look-alikes.
+# Found live: PyMuPDF reads the hyphen of "6205-2RS" in some PDFs as a soft hyphen (U+00AD), invisible on screen.
+# Every mapping is one character to one character, so positions in the mapped text are positions in the original.
+DASH_LIKE = "­‐‑−"
+LOOKALIKES = str.maketrans("АВЕКМНОРСТХУаеорсху" + DASH_LIKE, "ABEKMHOPCTXYaeopcxy" + "-" * len(DASH_LIKE))
+DASHES = str.maketrans(DASH_LIKE, "-" * len(DASH_LIKE))
 SEPARATORS = re.compile(r"[\s\-‐-―./_]+")
+
+
+def clean_code(code: str) -> str:
+    """A part number for display: hyphen look-alikes (a soft hyphen) become "-", letters stay as written."""
+    return code.translate(DASHES).strip()
 
 
 def normalize_code(code: str) -> str:
@@ -92,10 +101,16 @@ def standard_bearing_specs(designation: str) -> list[dict]:
     return specs
 
 
+UNIT_AFTER = re.compile(
+    r"^\s*(?:г\.|год|жыл|₸|тг|тенге|руб|%|°|об\s*/|rpm|квт|kw|вт\b|w\b|мм|mm|см|cm|кг|kg|в\b|v\b|гц|hz|ч\b|час|мин|сек|шт)",
+    re.IGNORECASE,
+)
+
+
 def _looks_like_amount(text: str, start: int, end: int) -> bool:
-    """12 450 000, 2026 года, 1 200.50: numbers that are not designations."""
-    before, after = text[max(0, start - 2):start], text[end:end + 5]
-    return bool(re.match(r"^[\s  ]\d{3}\b", after) or re.search(r"\d[\s  ]$", before) or re.match(r"^\s*(?:г\.|год|жыл|₸|тг|тенге|руб|%)", after))
+    """12 450 000, 2026 года, 1500 об/мин, 4 кВт: numbers that are not designations."""
+    before, after = text[max(0, start - 2):start], text[end:end + 8]
+    return bool(re.match(r"^[\s  ]\d{3}\b", after) or re.search(r"\d[\s  ]$", before) or UNIT_AFTER.match(after))
 
 
 def find_bearings(text: str) -> list[tuple[str, int, int]]:
@@ -117,7 +132,8 @@ def find_bearings(text: str) -> list[tuple[str, int, int]]:
         if not prefix and not suffix.strip(" -"):
             if len(number) < 4 or number[0] not in "1234567" or (len(number) == 4 and 1950 <= int(number) <= 2099):
                 continue  # 2026 next to "bearing" is a year, not a designation
-            window = text[max(0, start - 120):end + 60]  # the original letters: "подшипник" has Cyrillic о, н
+            # The bearing word comes before the number ("подшипник 6205"), or right after it in a table cell.
+            window = text[max(0, start - 100):end + 15]  # the original letters: "подшипник" has Cyrillic о, н
             if not BEARING_WORD.search(window):
                 continue
         elif not prefix and number[0] not in "1234567":

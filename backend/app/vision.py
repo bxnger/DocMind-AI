@@ -28,6 +28,13 @@ def image_type(data: bytes) -> str:
     raise AppError(415, "UNSUPPORTED_IMAGE", "Send a JPEG, PNG or WebP photo")
 
 
+def is_json_object(answer: str) -> bool:
+    try:
+        return isinstance(parse_json(answer), dict)
+    except ValueError:
+        return False
+
+
 def recognized_from(answer: str) -> dict:
     try:
         data = parse_json(answer)

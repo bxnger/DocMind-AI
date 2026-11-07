@@ -22,7 +22,7 @@ from app.pricing import (
     offers_for, public_price_list, to_csv, to_xlsx,
 )
 from app.store import Store
-from app.vision import MAX_IMAGE_BYTES, MESSAGES, PROMPT as PHOTO_PROMPT, decide, image_type, recognized_from
+from app.vision import MAX_IMAGE_BYTES, MESSAGES, PROMPT as PHOTO_PROMPT, decide, image_type, is_json_object, recognized_from
 
 router = APIRouter(tags=["procurement"])
 logger = logging.getLogger("app.procurement")
@@ -152,6 +152,10 @@ async def identify_part(
     budget(request, store, session)()
     try:
         answer = await answerer.complete_json(PHOTO_PROMPT, image=data, mime_type=mime)
+        if not is_json_object(answer):
+            # Found live: once in a few runs the answer was not JSON and a clear photo came back "unreadable".
+            logger.warning("photo identify: the answer was not JSON, asking once more")
+            answer = await answerer.complete_json(PHOTO_PROMPT, image=data, mime_type=mime)
     except LlmRateLimited:
         raise AppError(429, "RATE_LIMITED", "The AI provider's rate limit was reached", retryable=True)
     except LlmTimeout:

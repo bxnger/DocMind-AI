@@ -13,7 +13,7 @@ import re
 
 from app.chunking import SENTENCE_END
 from app.citations import is_verbatim, unsupported_numbers
-from app.codes import code_match, find_bearings, normalize_code, quantity_near, standard_bearing_specs
+from app.codes import DASHES, clean_code, code_base, code_match, find_bearings, normalize_code, quantity_near, standard_bearing_specs
 from app.errors import AppError
 from app.highlights import quote_highlights
 from app.llm import LlmUnavailable
@@ -96,7 +96,7 @@ def bearing_parts(store: Store, doc: dict, segments: list[dict]) -> list[dict]:
             parts.append({
                 "category": "bearing",
                 "name": "Подшипник",
-                "partNumber": designation,
+                "partNumber": clean_code(designation),
                 "manufacturer": None,
                 "quantity": quantity,
                 "unit": "шт" if quantity is not None else None,
@@ -123,11 +123,13 @@ def checked_ai_part(store: Store, doc: dict, item: dict, excerpts: list[dict]) -
     except (TypeError, ValueError, IndexError):
         return None
     name = str(item.get("name") or "").strip()[:200]
-    code = str(item.get("partNumber") or "").strip()[:80] or None
+    code = clean_code(str(item.get("partNumber") or ""))[:80] or None
     if not name and not code:
         return None
     text, segment_text = excerpt["text"], excerpt["segmentText"]
-    verified = bool(code) and (is_verbatim(code, text) or is_verbatim(code, segment_text))
+    # Compared with hyphen look-alikes made plain on both sides: a soft hyphen in the PDF is the same part number.
+    plain_text = text.translate(DASHES)
+    verified = bool(code) and (is_verbatim(code, plain_text) or is_verbatim(code, segment_text.translate(DASHES)))
     quantity = item.get("quantity")
     quantity = int(quantity) if isinstance(quantity, (int, float)) and quantity > 0 and _number_supported(int(quantity), text) else None
     specs = []
@@ -139,7 +141,7 @@ def checked_ai_part(store: Store, doc: dict, item: dict, excerpts: list[dict]) -
     if category == "bearing" and code:
         known = {normalize_code(s["name"]) for s in specs}
         specs += [s for s in standard_bearing_specs(code) if normalize_code(s["name"]) not in known]
-    position = text.find(code) if code and code in text else -1
+    position = plain_text.find(code) if code else -1  # same length as `text`, so the position holds there too
     quote = _sentence_around(text, position, position + len(code)) if position >= 0 else text
     return {
         "category": category,
@@ -163,8 +165,8 @@ def checked_equipment(store: Store, doc: dict, item: object, excerpts: list[dict
     except (TypeError, ValueError, IndexError):
         return None
     name = str(item["name"]).strip()[:200]
-    model = (str(item.get("model")).strip()[:80] or None) if item.get("model") else None
-    if model and not is_verbatim(model, excerpt["segmentText"]):
+    model = clean_code(str(item.get("model")))[:80] or None if item.get("model") else None
+    if model and not is_verbatim(model, excerpt["segmentText"].translate(DASHES)):
         model = None  # a model name not in the document is not shown
     words = [word for word in re.findall(r"\w{4,}", name.lower()) if word in excerpt["segmentText"].lower()]
     if not words and not model:
@@ -196,6 +198,22 @@ def merge(parts: list[dict]) -> list[dict]:
     by_code: dict[str, dict] = {}
     for part in parts:
         key = normalize_code(part["partNumber"]) if part["partNumber"] else None
+        if key and key not in by_code:
+            # "6210" found by code and "6210-2RS" from the AI on the same page are one part: keep the full number.
+            page = part["sources"][0]["page"]
+            same = next(
+                (other for other_key, other in by_code.items()
+                 if other["sources"][0]["page"] == page and code_base(other["partNumber"]) == code_base(part["partNumber"])
+                 and (other_key.startswith(key) or key.startswith(other_key))),
+                None,
+            )
+            if same is not None:
+                if len(key) > len(normalize_code(same["partNumber"])):
+                    del by_code[normalize_code(same["partNumber"])]
+                    same["partNumber"], same["verified"] = part["partNumber"], part["verified"]
+                    same["sources"] = part["sources"]
+                    by_code[key] = same
+                key = normalize_code(same["partNumber"])
         if key and key in by_code:
             kept = by_code[key]
             if kept["name"] == "Подшипник" and part["name"] and part["name"] != part["partNumber"]:
