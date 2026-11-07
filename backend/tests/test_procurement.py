@@ -96,6 +96,22 @@ def test_a_soft_hyphen_from_the_pdf_is_the_same_part_number():
     assert find_bearings("Электродвигатель 4 кВт, 1500 об/мин — 1 шт. Замена подшипников раз в 2 года.") == []
 
 
+def test_the_pdf_text_and_its_quotes_show_an_ordinary_hyphen():
+    """Found in the joint run: sources[].quote held "6205\xad2RS" and the model was given the same text. The demo
+    manual is such a PDF (its font maps the hyphen glyph to U+00AD); the quote is still highlighted on the page."""
+    from pathlib import Path
+
+    from app.extraction import extract_pdf
+    from app.highlights import quote_highlights
+
+    manual = Path(__file__).resolve().parent.parent / "demo" / "procurement" / "tv320_manual.pdf"
+    pages = extract_pdf(manual)
+    assert all("­" not in page.text for page in pages)
+    assert "подшипник 6205-2RS — 4 шт." in pages[1].text
+    assert "токарно-винторезный ТВ-320" in pages[0].text
+    assert len(quote_highlights(manual, 2, "подшипник 6205-2RS — 4 шт.")) == 1
+
+
 def test_bearings_are_found_but_amounts_and_years_are_not():
     assert [found[0] for found in find_bearings(MANUAL[1])] == ["6205-2RS", "NU 210 ECP"]
     assert find_bearings(MANUAL[3]) == []  # a bearing word nearby, but an amount and a year
@@ -230,7 +246,8 @@ def test_a_photo_is_read_by_the_model_and_matched_by_code(client, read, status, 
 def test_photo_errors(client):
     use(client, JsonAnswerer({"equipment": None, "parts": []}))
     document_id = ready(client)
-    assert photo(client, document_id).json()["error"]["code"] == "PARTS_NOT_STARTED"
+    not_started = photo(client, document_id)
+    assert not_started.status_code == 404 and not_started.json()["error"]["code"] == "PARTS_NOT_STARTED"
     parts_of(client, document_id)
     assert photo(client, document_id, b"GIF89a....").status_code == 415
     assert photo(client, document_id, b"\xff\xd8\xff" + b"0" * (8 * 1024 * 1024)).status_code == 413

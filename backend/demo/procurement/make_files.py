@@ -68,6 +68,8 @@ def price_lists() -> None:
 
 
 def marking(name: str, lines: list[str], blur: bool = False) -> None:
+    """With `blur`, the marking is shrunk to a few dozen pixels and blown back up: a smear with no strokes left, so
+    nobody (a model included) can read it, and the answer has to be `unreadable`."""
     img = fitz.open()
     page = img.new_page(width=420, height=220)
     page.draw_rect(page.rect, color=(0.55, 0.57, 0.6), fill=(0.72, 0.74, 0.77))
@@ -76,7 +78,14 @@ def marking(name: str, lines: list[str], blur: bool = False) -> None:
     for line in lines:
         page.insert_text((120, y), line, fontsize=26, color=(0.1, 0.1, 0.12))
         y += 36
-    page.get_pixmap(dpi=40 if blur else 144).save(OUT / name)
+    if not blur:
+        page.get_pixmap(dpi=144).save(OUT / name)
+        return
+    tiny = page.get_pixmap(dpi=7)
+    smear = fitz.open()
+    canvas = smear.new_page(width=420, height=220)
+    canvas.insert_image(canvas.rect, pixmap=tiny)
+    canvas.get_pixmap(dpi=144).save(OUT / name)
 
 
 if __name__ == "__main__":

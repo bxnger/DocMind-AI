@@ -119,7 +119,12 @@
 
 ### `POST /documents/{documentId}/parts/identify` → `200` `PhotoMatch`
 `multipart/form-data`: поле `image` (JPEG, PNG или WebP, до 8 МБ), необязательное `language`.
-Фото **не сохраняется** на сервере. Требует, чтобы детали документа уже были извлечены (`409 PARTS_NOT_READY`).
+Фото **не сохраняется** на сервере. Требует, чтобы детали документа уже были извлечены:
+- `404 PARTS_NOT_STARTED` — `POST /documents/{documentId}/parts` для этого документа ещё не вызывали;
+- `409 PARTS_NOT_READY` — извлечение запущено, но список не `ready` (ещё `processing` или `failed`).
+
+Обе ошибки возвращаются до вызова модели и не тратят дневной лимит ИИ. Те же два ответа дают
+`POST /procurement/offers`, `/procurement/quote` и `/procurement/quote/export`.
 ```json
 {
   "matchStatus": "needs_confirmation",

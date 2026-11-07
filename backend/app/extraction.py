@@ -34,6 +34,15 @@ def normalize(text: str) -> str:
     return WHITESPACE.sub(" ", text).strip()
 
 
+SOFT_HYPHEN = "­"
+
+
+def visible_hyphens(text: str) -> str:
+    """A PDF holds only drawn glyphs, so a soft hyphen in its text is a hyphen on the page: some fonts map the hyphen
+    glyph to U+00AD ("6205­2RS"). Quotes, codes and the model then see the ordinary "-"."""
+    return text.replace(SOFT_HYPHEN, "-")
+
+
 # Tesseract reads the Latin letters of a code like "QA-2027-041" as Cyrillic ones ("ОА-2027-041") when Kazakh or Russian
 # is listed before English, and "Q" has no Cyrillic look-alike to translate back. So a page that holds such a code is read
 # once more with English only, and the code is taken from that reading.
@@ -142,7 +151,7 @@ def extract_pdf(path: Path, languages: str | None = None, only_pages: set[int] |
                     text = repair_codes(text, page.get_text("text", textpage=english))
             else:
                 text = page.get_text("text")
-            segments.append(Segment(page=number, location=None, text=normalize(text)))
+            segments.append(Segment(page=number, location=None, text=normalize(visible_hyphens(text))))
         return segments
     except ExtractionError:
         raise
