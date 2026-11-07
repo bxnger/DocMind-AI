@@ -149,7 +149,7 @@ export function ProcurementPanel({ doc, pdfText, initialStep, onOpenSource, onOp
           <OffersStep adapter={adapter} parts={parts} lines={lines} lists={priceLists.data} offers={offers.data} quoteItems={items.length ? quote.data?.items : undefined} showExamples={isDemoDoc} onChange={update} onChangeMany={updateMany} />
         </div>
         <div hidden={step !== 'sheet'} data-testid="step-panel-sheet">
-          <SheetStep adapter={adapter} documentName={doc.name} parts={parts} lines={lines} lists={priceLists.data} quote={quote.data} items={items} withoutQuantity={withoutQuantity} onChange={update} onOpenSource={onOpenSource} />
+          <SheetStep adapter={adapter} documentName={doc.name} parts={parts} lines={lines} lists={priceLists.data} offers={offers.data} quote={quote.data} items={items} withoutQuantity={withoutQuantity} onChange={update} onOpenSource={onOpenSource} />
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">

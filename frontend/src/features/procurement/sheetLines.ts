@@ -50,6 +50,12 @@ export function chooseExactOffers(offers: readonly PartOffers[], lines: Record<s
   return chosen;
 }
 
+/** Exact offers exist, but the file says none is in stock, so the button left the line for the person to decide. */
+export function onlyOutOfStock(offers: PartOffers | undefined): boolean {
+  const exact = offers?.offers.filter((offer) => offer.match === 'exact' && offer.price !== null) ?? [];
+  return exact.length > 0 && exact.every((offer) => offer.stockStatus === 'unavailable');
+}
+
 /** "Full" only when nothing is open: every included line has a quantity and a price. */
 export const isSheetComplete = (quote: { unpriced: number; totals: readonly unknown[] } | undefined, withoutQuantity: number): boolean =>
   quote !== undefined && quote.totals.length > 0 && quote.unpriced === 0 && withoutQuantity === 0;

@@ -58,8 +58,9 @@ export function MarkingCheck({ adapter, parts, maxImageBytes, showExamples, onDe
   const show = (match: PhotoMatch) => {
     setResult(match);
     setText(match.recognized.partNumber ?? '');
-    // Sharing a kind of part is no reason to suggest one of them: the person picks.
-    setPartId(match.matchStatus === 'type_only' ? '' : (match.matches[0]?.partId ?? ''));
+    // One candidate can be suggested. Several, or a mere kind of part, are for the person to pick.
+    const only = match.matches.length === 1 ? match.matches[0]?.partId : undefined;
+    setPartId(match.matchStatus === 'type_only' ? '' : (only ?? ''));
   };
   const upload = useMutation({ mutationFn: (file: File) => adapter.identify(file), onSuccess: show });
   const typed = useMutation({

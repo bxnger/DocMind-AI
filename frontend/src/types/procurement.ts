@@ -91,7 +91,7 @@ export interface Confirmation {
   createdAt: string;
 }
 
-export type CheckedAtOrigin = 'file' | 'upload_form' | 'import_date';
+export type CheckedAtOrigin = 'file' | 'upload_form' | 'import_date' | 'site';
 
 export interface PriceList {
   id: string;

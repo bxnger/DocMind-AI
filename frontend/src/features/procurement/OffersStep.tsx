@@ -7,7 +7,7 @@ import type { ProcurementAdapter } from '@/services/procurement/types';
 import type { Part, PartOffers, PriceList, QuoteItem } from '@/types/procurement';
 import { OfferRow } from './OfferRow';
 import { PriceListsCard } from './PriceListsCard';
-import { chooseExactOffers, type SheetLine } from './sheetLines';
+import { chooseExactOffers, onlyOutOfStock, type SheetLine } from './sheetLines';
 
 interface Props {
   adapter: ProcurementAdapter;
@@ -60,6 +60,7 @@ export function OffersStep({ adapter, parts, lines, lists, offers, quoteItems, s
                   <ul className="space-y-1.5">{item?.similar.map((offer) => <OfferRow key={offer.id} offer={offer} chosen={offer.id === line?.offerId} lists={lists} onSelect={select} />)}</ul>
                 </>
               )}
+              {!line?.offerId && onlyOutOfStock(item) && <p data-testid="out-of-stock-note" className="mt-1 text-xs text-warning">{t('procurement.outOfStockNote')}</p>}
               {quote?.status === 'offer_missing' && <p data-testid="offer-missing" className="mt-1 text-xs text-warning">{t('procurement.offerMissing')}</p>}
               {quote?.matchWarning && <p data-testid="match-warning" className="mt-1 text-xs text-warning">{t('procurement.matchWarning')}</p>}
             </li>

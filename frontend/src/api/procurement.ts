@@ -9,7 +9,7 @@ const num = (value: unknown): number | null => (typeof value === 'number' ? valu
 const list = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
 const oneOf = <T extends string>(value: unknown, options: readonly T[], fallback: T): T => options.find((option) => option === value) ?? fallback;
 const CATEGORIES: readonly PartCategory[] = ['bearing', 'seal', 'belt', 'filter', 'fastener', 'motor', 'electrical', 'hydraulic', 'other'];
-const ORIGINS: readonly CheckedAtOrigin[] = ['file', 'upload_form', 'import_date'];
+const ORIGINS: readonly CheckedAtOrigin[] = ['file', 'upload_form', 'import_date', 'site'];
 
 function sources(value: unknown): EvidenceSource[] {
   return list(value).flatMap((item) => {

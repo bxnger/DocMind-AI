@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { fromMinor, toMinor } from '@/lib/money';
 import { toHttpUrl, toOffer, toPart, toPartList, toPhotoMatch, toPriceList, toQuote } from '@/api/procurement';
-import { chooseExactOffers, isSheetComplete, quoteItems, readableQuote } from '@/features/procurement/sheetLines';
+import { chooseExactOffers, isSheetComplete, onlyOutOfStock, quoteItems, readableQuote } from '@/features/procurement/sheetLines';
 import { DEMO_SUPPLIER, createDemoAdapter, csvCell, findParts, fixtureParts, parsePriceCsv } from './demoAdapter';
 import { compareCode, demoIdentify, normalizeCode } from './matching';
 
@@ -131,6 +131,18 @@ describe('choosing exact offers for the person', () => {
   });
 });
 
+describe('saying why a line stayed open', () => {
+  const offer = (stockStatus: string, price: string | null = '1.00') => ({ id: 'o', price, match: 'exact', stockStatus }) as never;
+  const of = (offers: never[]) => ({ partId: 'a', partNumber: 'x', offers, similar: [] });
+  it('names out of stock only when that is the reason', () => {
+    expect(onlyOutOfStock(of([offer('unavailable')]))).toBe(true);
+    expect(onlyOutOfStock(of([offer('unavailable'), offer('available')]))).toBe(false);
+    expect(onlyOutOfStock(of([offer('unknown')]))).toBe(false);
+    expect(onlyOutOfStock(of([]))).toBe(false);
+    expect(onlyOutOfStock(undefined)).toBe(false);
+  });
+});
+
 describe('calling a sum complete', () => {
   it('needs every line priced', () => {
     expect(isSheetComplete({ unpriced: 0, totals: [{}] }, 0)).toBe(true);
@@ -220,6 +232,11 @@ describe('answers of the real API, revision 2', () => {
     expect(toHttpUrl('javascript:alert(1)')).toBeNull();
     expect(toHttpUrl('data:text/html,x')).toBeNull();
     expect(toHttpUrl(null)).toBeNull();
+  });
+  it('keeps the date of a check on the supplier site apart from an import date', () => {
+    const offer = { id: 'pl1:1', priceListId: 'pl1', sourceRow: 1, checkedAt: '2026-11-08T10:30:00+00:00', checkedAtOrigin: 'site', priceOrigin: 'site_checked' };
+    expect(toOffer(offer)[0]?.checkedAtOrigin).toBe('site');
+    expect(toOffer({ ...offer, checkedAtOrigin: undefined })[0]?.checkedAtOrigin).toBe('import_date');
   });
   it('reads a price list', () => {
     expect(toPriceList({ id: 'pl1', supplier: 'S', fileName: 'f', rows: 3, skipped: [{ row: 17, reason: 'Нет цены' }], checkedAt: '2026-11-08', checkedAtOrigin: 'upload_form', demo: true, importedAt: 't' })).toMatchObject({ rows: 3, demo: true, checkedAtOrigin: 'upload_form' });

@@ -10,11 +10,11 @@ import { formatDate } from '@/lib/format';
 import { formatMoney, fromMinor, toMinor } from '@/lib/money';
 import type { ProcurementAdapter } from '@/services/procurement/types';
 import type { EvidenceSource } from '@/types/chat';
-import type { Part, PriceList, Quote, QuoteItem, QuoteRequestItem } from '@/types/procurement';
+import type { Part, PartOffers, PriceList, Quote, QuoteItem, QuoteRequestItem } from '@/types/procurement';
 import { ProductLink, useOfferOrigin } from './OfferRow';
 import { sourcePlace } from './PartRow';
 import { QuantityInput } from './QuantityInput';
-import { isSheetComplete, type SheetLine } from './sheetLines';
+import { isSheetComplete, onlyOutOfStock, type SheetLine } from './sheetLines';
 
 /** A table needs more room than the panel has on a phone or beside the chat on a small laptop. */
 const CARDS_QUERY = '(max-width: 1179px)';
@@ -34,6 +34,7 @@ interface Props {
   parts: readonly Part[];
   lines: Record<string, SheetLine>;
   lists: readonly PriceList[] | undefined;
+  offers: readonly PartOffers[] | undefined;
   quote: Quote | undefined;
   items: readonly QuoteRequestItem[];
   withoutQuantity: number;
@@ -94,7 +95,7 @@ function Totals({ quote, withoutQuantity, excluded, usesDemo, usesSimilar }: { q
   );
 }
 
-export function SheetStep({ adapter, documentName, parts, lines, lists, quote, items, withoutQuantity, onChange, onOpenSource }: Props) {
+export function SheetStep({ adapter, documentName, parts, lines, lists, offers, quote, items, withoutQuantity, onChange, onOpenSource }: Props) {
   const { t, i18n } = useTranslation();
   const errorMessage = useErrorMessage();
   const cards = useMediaQuery(CARDS_QUERY);
@@ -159,7 +160,7 @@ export function SheetStep({ adapter, documentName, parts, lines, lists, quote, i
           {included.map((part) => {
             const item = itemOf(part.id);
             const quantity = lines[part.id]?.quantity ?? part.quantity;
-            const lineStatus = status(quantity, item);
+            const lineStatus = quantity !== null && !item?.offer && item?.status !== 'offer_missing' && onlyOutOfStock(offers?.find((candidate) => candidate.partId === part.id)) ? t('procurement.lineStatus.outOfStock') : status(quantity, item);
             return (
               <li key={part.id} data-testid="sheet-row" data-part={part.id} data-status={item?.status ?? 'no_quantity'} className="rounded-panel border border-line bg-card p-3">
                 <div className="flex items-start gap-3">
@@ -193,7 +194,7 @@ export function SheetStep({ adapter, documentName, parts, lines, lists, quote, i
               {included.map((part) => {
                 const item = itemOf(part.id);
                 const quantity = lines[part.id]?.quantity ?? part.quantity;
-                const lineStatus = status(quantity, item);
+                const lineStatus = quantity !== null && !item?.offer && item?.status !== 'offer_missing' && onlyOutOfStock(offers?.find((candidate) => candidate.partId === part.id)) ? t('procurement.lineStatus.outOfStock') : status(quantity, item);
                 return (
                   <tr key={part.id} data-testid="sheet-row" data-part={part.id} data-status={item?.status ?? 'no_quantity'} className="border-b border-line align-top last:border-b-0">
                     <td className="p-2">{partCell(part)}</td>

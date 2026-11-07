@@ -846,7 +846,8 @@
     "checked": {
       "file": "price date in the file: {{date}}",
       "upload_form": "price date from upload: {{date}}",
-      "import_date": "imported {{date}}, no price date given"
+      "import_date": "imported {{date}}, no price date given",
+      "site": "checked on the supplier's page: {{date}}"
     },
     "stock": {
       "available": "in stock",
@@ -892,7 +893,7 @@
       "uploadPhoto": "Upload a photo",
       "notStored": "The photo stays on this device and isn't stored on the server.",
       "manufacturer": "Manufacturer",
-      "markings": "Other markings",
+      "markings": "Inscriptions on the photo",
       "readabilityLabel": "Readability",
       "candidates": "Possible parts in the document",
       "examplesTitle": "Prepared pictures with a marking drawn on them",
@@ -1000,14 +1001,16 @@
     "lineStatus": {
       "noQuantity": "No quantity: type it to include this line.",
       "offerMissing": "The chosen offer no longer exists.",
-      "noOffer": "No offer chosen: not in the total."
+      "noOffer": "No offer chosen: not in the total.",
+      "outOfStock": "Out of stock according to the file: not chosen automatically and not in the total."
     },
     "sheet": {
       "part": "Part",
       "unitPrice": "Unit price",
       "lineTotal": "Line total",
       "supplier": "Supplier and source"
-    }
+    },
+    "outOfStockNote": "An offer exists, but the file says it's out of stock, so it wasn't chosen automatically. You can choose it yourself."
   },
   "hr": {
     "title": "Resume and vacancy",
