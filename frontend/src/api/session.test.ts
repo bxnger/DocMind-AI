@@ -6,6 +6,7 @@ import { AppError, parseRetryAfter } from './transport';
 import { pdfUrlSource, isUnauthorized } from '@/features/viewer/pdfSource';
 import { uploadDocument } from './documents';
 import { sendMessage } from './conversations';
+import { getCapabilities } from './system';
 
 type Call = { url: string; method: string; auth: string | null };
 
@@ -325,5 +326,21 @@ describe('upload', () => {
     FakeXhr.status = 429;
     FakeXhr.body = { error: { code: 'QUOTA_EXCEEDED', message: 'x', retryable: false } };
     await expect(go()).rejects.toMatchObject({ code: 'QUOTA_EXCEEDED', retryable: false, retryAfter: 9 });
+  });
+});
+
+describe('capabilities', () => {
+  const body = { version: '1', limits: { maxFileSizeBytes: 1, maxPages: 1, maxDocumentsPerConversation: 1 } };
+  it('reads the flags from features, as the contract has them', async () => {
+    handler = () => json(200, { ...body, procurement: true, features: { parts: true, photoIdentify: false, priceLists: true, procurement: true, hr: true, claimCheck: false }, limits: { ...body.limits, maxImageBytes: 8 } });
+    const capabilities = await getCapabilities();
+    expect(capabilities.features).toEqual({ parts: true, photoIdentify: false, priceLists: true, procurement: true, hr: true, claimCheck: false });
+    expect(capabilities.limits.maxImageBytes).toBe(8);
+  });
+  it('a flag outside features turns nothing on', async () => {
+    handler = () => json(200, { ...body, procurement: true, hr: true });
+    const { features } = await getCapabilities();
+    expect(features.procurement).toBe(false);
+    expect(features.hr).toBe(false);
   });
 });

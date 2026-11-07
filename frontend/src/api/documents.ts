@@ -143,6 +143,8 @@ export interface TextBlock {
   index: number;
   kind: TextBlockKind;
   section: string | null;
+  /** PDF only. */
+  page?: number | null;
   text: string;
 }
 
@@ -155,6 +157,7 @@ export async function getDocumentText(id: string, signal?: AbortSignal): Promise
       index: block.index,
       kind: oneOf(block.kind, ['heading', 'paragraph', 'table_row', 'page'] as const) ?? 'paragraph',
       section: typeof block.section === 'string' ? block.section : null,
+      page: typeof block.page === 'number' ? block.page : null,
       text: block.text,
     };
   });

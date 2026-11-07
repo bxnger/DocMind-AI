@@ -18,6 +18,7 @@ export async function getCapabilities(signal?: AbortSignal): Promise<Capabilitie
   ) {
     throw new AppError({ code: ERROR_BAD_RESPONSE, message: 'Unexpected capabilities response' });
   }
+  const features = isRecord(body.features) ? body.features : {};
   return {
     version: body.version,
     languages: Array.isArray(body.languages) ? body.languages.filter((l) => typeof l === 'string') : [],
@@ -25,11 +26,19 @@ export async function getCapabilities(signal?: AbortSignal): Promise<Capabilitie
     docxPreview: body.docxPreview === 'pdf' ? 'pdf' : 'none',
     comparison: body.comparison === true,
     highlights: body.highlights === true,
-    procurement: body.procurement === true,
+    features: {
+      claimCheck: features.claimCheck === true,
+      parts: features.parts === true,
+      photoIdentify: features.photoIdentify === true,
+      priceLists: features.priceLists === true,
+      procurement: features.procurement === true,
+      hr: features.hr === true,
+    },
     limits: {
       maxFileSizeBytes: limits.maxFileSizeBytes,
       maxPages: limits.maxPages,
       maxDocumentsPerConversation: limits.maxDocumentsPerConversation,
+      maxImageBytes: typeof limits.maxImageBytes === 'number' ? limits.maxImageBytes : null,
     },
   };
 }

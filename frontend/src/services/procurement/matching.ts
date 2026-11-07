@@ -1,13 +1,12 @@
-import type { MarkingCandidate, MarkingStatus, Part } from '@/types/procurement';
+import type { Part, PhotoCandidate, PhotoMatch } from '@/types/procurement';
 
-/** The rules of docs/api-contract.md, for the demonstration adapter. With the real API the server decides. */
+/** For the demonstration only. With the real API the server's code decides. */
 const LOOK_ALIKE: Record<string, string> = { А: 'A', В: 'B', Е: 'E', К: 'K', М: 'M', Н: 'H', О: 'O', Р: 'R', С: 'S', Т: 'T', Х: 'X', У: 'Y' };
 const CONFUSABLE: Record<string, string> = { O: '0', I: '1', L: '1', S: '5', B: '8' };
 const BRAND = /^([A-ZА-Я]{2,10})\s+(?=\S*\d)/;
 const MIN_CODE = 3;
 const MAX_EDITS = 2;
 
-/** Р in a code usually stands for a printed R, but in Russian markings it reads as Р: both forms count as the same. */
 export const normalizeCode = (code: string): string =>
   [...code.toUpperCase()].map((char) => LOOK_ALIKE[char] ?? char).join('').replace(/[\s\-./_]/g, '');
 
@@ -29,32 +28,33 @@ function edits(a: string, b: string): number {
   return row[b.length] ?? 0;
 }
 
-const tailOf = (code: string) => code.split(/[\s\-./_]/).slice(1).join('-') || code;
-
-export function compareMarking(marking: string, part: Pick<Part, 'rawCode' | 'brand'>): MarkingCandidate['status'] {
+/** exact, close (a different designation of the same family), partial (one is the start of the other), or nothing. */
+export function compareCode(marking: string, part: Pick<Part, 'partNumber' | 'manufacturer'>): PhotoCandidate['match'] | null {
   const seen = splitBrand(marking);
-  const wanted = splitBrand(part.rawCode);
+  const wanted = splitBrand(part.partNumber);
   const a = normalizeCode(seen.code);
   const b = normalizeCode(wanted.code);
-  if (a.length < MIN_CODE) return 'insufficient';
-  const wantedBrand = wanted.brand ?? part.brand?.toUpperCase() ?? null;
-  const sameCode = a === b;
-  if (sameCode) return seen.brand && wantedBrand && seen.brand !== wantedBrand ? 'conflict' : 'exact';
-  if (a.startsWith(b) || b.startsWith(a) || blur(a) === blur(b)) return 'possible';
+  if (a.length < MIN_CODE) return null;
+  const brand = wanted.brand ?? part.manufacturer?.toUpperCase() ?? null;
+  if (a === b) return seen.brand && brand && seen.brand !== brand ? 'close' : 'exact';
+  if (a.startsWith(b) || b.startsWith(a)) return 'partial';
+  if (blur(a) === blur(b)) return 'close';
   const base = (code: string) => normalizeCode(code.split(/[\s\-./_]/)[0] ?? '');
   const sameBase = base(seen.code).length >= MIN_CODE && base(seen.code) === base(wanted.code);
-  return sameBase || edits(a, b) <= MAX_EDITS ? 'conflict' : 'insufficient';
+  return sameBase || edits(a, b) <= MAX_EDITS ? 'close' : null;
 }
 
-const RANK: Record<MarkingStatus, number> = { exact: 3, possible: 2, conflict: 1, insufficient: 0 };
+const RANK = { exact: 3, partial: 2, close: 1 };
 
-export function matchMarking(marking: string, parts: readonly Part[]): { status: MarkingStatus; matchedPartId: string | null; candidates: MarkingCandidate[] } {
-  const candidates = parts.flatMap((part): MarkingCandidate[] => {
-    const status = compareMarking(marking, part);
-    if (status === 'insufficient') return [];
-    const differences = status === 'conflict' ? [{ document: tailOf(splitBrand(part.rawCode).code), marking: tailOf(splitBrand(marking).code) }] : [];
-    return [{ partId: part.id, status, differences }];
-  }).sort((x, y) => RANK[y.status] - RANK[x.status]);
-  const best = candidates[0];
-  return { status: best?.status ?? 'insufficient', matchedPartId: best?.partId ?? null, candidates };
+export function demoIdentify(text: string, parts: readonly Part[]): PhotoMatch {
+  const { brand, code } = splitBrand(text);
+  const recognized = { text, partNumber: code || null, manufacturer: brand, markings: [], readability: null };
+  if (normalizeCode(code).length < MIN_CODE) return { matchStatus: 'unreadable', recognized, matches: [], message: null };
+  const matches = parts.flatMap((part): PhotoCandidate[] => {
+    const match = compareCode(text, part);
+    return match ? [{ partId: part.id, partNumber: part.partNumber, name: part.name, match, difference: match === 'exact' ? null : `${code} ≠ ${splitBrand(part.partNumber).code}`, sources: part.sources }] : [];
+  }).sort((x, y) => RANK[y.match] - RANK[x.match]);
+  const exact = matches.filter((match) => match.match === 'exact');
+  const matchStatus = exact.length === 1 ? 'matched' : matches.length ? 'needs_confirmation' : 'no_match';
+  return { matchStatus, recognized, matches, message: null };
 }

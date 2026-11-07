@@ -1,147 +1,183 @@
-import type { Marking, MarkingCandidate, MarkingStatus, Offer, Part, PartPatch, PriceList, Sheet, SheetItem } from '@/types/procurement';
+import type { EvidenceSource } from '@/types/chat';
+import type { CheckedAtOrigin, Confirmation, ConfirmationInput, MatchStatus, Offer, Part, PartCategory, PartList, PartOffers, PhotoCandidate, PhotoMatch, PriceList, PriceListInput, Quote, QuoteItem, QuoteRequestItem } from '@/types/procurement';
 import { AppError, ERROR_BAD_RESPONSE, getJson, isRecord, postJson, send } from './client';
+import { toSource } from './conversations';
 
 const bad = () => new AppError({ code: ERROR_BAD_RESPONSE, message: 'Unexpected response from the backend' });
 const text = (value: unknown): string | null => (typeof value === 'string' ? value : null);
-const count = (value: unknown): number | null => (typeof value === 'number' ? value : null);
-const STATUSES: readonly MarkingStatus[] = ['exact', 'possible', 'conflict', 'insufficient'];
-const toStatus = (value: unknown): MarkingStatus | null => STATUSES.find((status) => status === value) ?? null;
+const num = (value: unknown): number | null => (typeof value === 'number' ? value : null);
 const list = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+const oneOf = <T extends string>(value: unknown, options: readonly T[], fallback: T): T => options.find((option) => option === value) ?? fallback;
+const CATEGORIES: readonly PartCategory[] = ['bearing', 'seal', 'belt', 'filter', 'fastener', 'motor', 'electrical', 'hydraulic', 'other'];
+const ORIGINS: readonly CheckedAtOrigin[] = ['file', 'upload_form', 'import_date'];
 
-/** A part without a verbatim quote is refused here too: the contract promises one for every real part. */
+function sources(value: unknown): EvidenceSource[] {
+  return list(value).flatMap((item) => {
+    try {
+      return [toSource(item)];
+    } catch {
+      return [];
+    }
+  });
+}
+
+/** `verified` counts only when the server says so: anything else gets the warning. */
 export function toPart(value: unknown): Part {
-  if (!isRecord(value) || typeof value.id !== 'string' || typeof value.rawCode !== 'string' || typeof value.quote !== 'string' || !value.quote) throw bad();
+  if (!isRecord(value) || typeof value.id !== 'string' || typeof value.partNumber !== 'string') throw bad();
   return {
     id: value.id,
-    rawCode: value.rawCode,
-    normalizedCode: text(value.normalizedCode) ?? '',
-    brand: text(value.brand),
-    description: text(value.description),
-    quantity: count(value.quantity),
+    category: oneOf(value.category, CATEGORIES, 'other'),
+    name: text(value.name) ?? '',
+    partNumber: value.partNumber,
+    manufacturer: text(value.manufacturer),
+    quantity: num(value.quantity),
     unit: text(value.unit),
-    quantityStatus: value.quantityStatus === 'found' ? 'found' : 'missing',
-    quantitySource: value.quantitySource === 'user' ? 'user' : 'document',
-    included: value.included !== false,
-    note: text(value.note) ?? '',
-    page: count(value.page),
+    specs: list(value.specs).flatMap((spec) => (isRecord(spec) && typeof spec.name === 'string' && typeof spec.value === 'string' ? [{ name: spec.name, value: spec.value, unit: text(spec.unit), origin: spec.origin === 'document' ? 'document' as const : 'standard' as const }] : [])),
     location: text(value.location),
-    paragraph: count(value.paragraph),
-    quote: value.quote,
-    highlights: list(value.highlights).flatMap((rect) => (isRecord(rect) && typeof rect.x === 'number' && typeof rect.y === 'number' && typeof rect.w === 'number' && typeof rect.h === 'number' ? [{ x: rect.x, y: rect.y, w: rect.w, h: rect.h }] : [])),
-    extraction: text(value.extraction) ?? '',
+    verified: value.verified === true,
+    sources: sources(value.sources),
   };
 }
 
-function toCandidate(value: unknown): MarkingCandidate[] {
-  if (!isRecord(value) || typeof value.partId !== 'string') return [];
-  const status = toStatus(value.status);
-  if (!status) return [];
-  return [{
-    partId: value.partId,
-    status,
-    differences: list(value.differences).flatMap((item) => (isRecord(item) ? [{ document: text(item.document) ?? '', marking: text(item.marking) ?? '' }] : [])),
-  }];
-}
-
-export function toMarking(value: unknown): Marking {
-  if (!isRecord(value) || typeof value.id !== 'string') throw bad();
+export function toPartList(value: unknown): PartList {
+  if (!isRecord(value) || typeof value.documentId !== 'string') throw bad();
+  const parts = list(value.parts).map(toPart);
+  const equipment = isRecord(value.equipment) ? { name: text(value.equipment.name), model: text(value.equipment.model), manufacturer: text(value.equipment.manufacturer), sources: sources(value.equipment.sources) } : null;
   return {
-    id: value.id,
-    readText: text(value.readText),
-    readBy: value.readBy === 'model' ? 'model' : null,
-    confirmed: value.confirmed === true,
-    confirmedText: text(value.confirmedText),
-    status: value.confirmed === true ? toStatus(value.status) : null,
-    matchedPartId: text(value.matchedPartId),
-    candidates: list(value.candidates).flatMap(toCandidate),
+    documentId: value.documentId,
+    status: oneOf(value.status, ['processing', 'ready', 'failed'] as const, 'failed'),
+    progress: num(value.progress),
+    errorCode: isRecord(value.error) ? text(value.error.code) : null,
+    equipment,
+    parts,
+    summary: { total: isRecord(value.summary) ? (num(value.summary.total) ?? parts.length) : parts.length, unverified: parts.filter((part) => !part.verified).length },
   };
+}
+
+function toCandidate(value: unknown): PhotoCandidate[] {
+  if (!isRecord(value) || typeof value.partId !== 'string') return [];
+  return [{ partId: value.partId, partNumber: text(value.partNumber) ?? '', name: text(value.name) ?? '', match: oneOf(value.match, ['exact', 'close', 'partial'] as const, 'partial'), difference: text(value.difference), sources: sources(value.sources) }];
+}
+
+const MATCH_STATUSES: readonly MatchStatus[] = ['matched', 'needs_confirmation', 'no_match', 'unreadable'];
+
+export function toPhotoMatch(value: unknown): PhotoMatch {
+  if (!isRecord(value)) throw bad();
+  const recognized = isRecord(value.recognized) ? value.recognized : {};
+  return {
+    matchStatus: oneOf(value.matchStatus, MATCH_STATUSES, 'unreadable'),
+    recognized: { text: text(recognized.text), partNumber: text(recognized.partNumber), manufacturer: text(recognized.manufacturer), markings: list(recognized.markings).flatMap((item) => (typeof item === 'string' ? [item] : [])), readability: text(recognized.readability) },
+    matches: list(value.matches).flatMap(toCandidate),
+    message: text(value.message),
+  };
+}
+
+export function toConfirmation(value: unknown): Confirmation {
+  if (!isRecord(value) || typeof value.id !== 'string' || typeof value.partId !== 'string') throw bad();
+  return { id: value.id, partId: value.partId, decision: value.decision === 'confirmed' ? 'confirmed' : 'rejected', recognizedPartNumber: text(value.recognizedPartNumber) ?? '', documentPartNumber: text(value.documentPartNumber) ?? '', confirmedBy: text(value.confirmedBy) ?? '', createdAt: text(value.createdAt) ?? '' };
 }
 
 export function toPriceList(value: unknown): PriceList {
   if (!isRecord(value) || typeof value.id !== 'string') throw bad();
   return {
     id: value.id,
-    fileName: text(value.fileName) ?? '',
     supplier: text(value.supplier) ?? '',
-    sourceNote: text(value.sourceNote) ?? '',
-    uploadedAt: text(value.uploadedAt) ?? '',
-    rowCount: count(value.rowCount) ?? 0,
-    skippedRows: list(value.skippedRows).flatMap((row) => (isRecord(row) && typeof row.row === 'number' ? [{ row: row.row, reason: text(row.reason) ?? '' }] : [])),
+    fileName: text(value.fileName) ?? '',
+    rows: num(value.rows) ?? 0,
+    skipped: list(value.skipped).flatMap((row) => (isRecord(row) && typeof row.row === 'number' ? [{ row: row.row, reason: text(row.reason) ?? '' }] : [])),
+    checkedAt: text(value.checkedAt),
+    checkedAtOrigin: oneOf(value.checkedAtOrigin, ORIGINS, 'import_date'),
+    demo: value.demo === true,
+    importedAt: text(value.importedAt) ?? '',
   };
 }
 
-/** A price with no price list, source row, currency or date is no offer at all. */
+/** An offer must say which row of which file it came from. Otherwise it is no offer at all. */
 export function toOffer(value: unknown): Offer[] {
-  if (!isRecord(value) || typeof value.id !== 'string' || typeof value.priceListId !== 'string' || typeof value.unitPrice !== 'string' || typeof value.currency !== 'string' || typeof value.checkedAt !== 'string' || typeof value.sourceRow !== 'number') return [];
+  if (!isRecord(value) || typeof value.id !== 'string' || typeof value.priceListId !== 'string' || typeof value.sourceRow !== 'number') return [];
   return [{
     id: value.id,
-    priceListId: value.priceListId,
     supplier: text(value.supplier) ?? '',
-    sku: text(value.sku) ?? '',
-    sourceRow: value.sourceRow,
-    unitPrice: value.unitPrice,
-    currency: value.currency,
-    checkedAt: value.checkedAt,
-    stock: count(value.stock),
+    title: text(value.title) ?? '',
+    partNumber: text(value.partNumber) ?? '',
+    match: value.match === 'exact' ? 'exact' : 'close',
+    price: text(value.price),
+    currency: text(value.currency),
+    stockStatus: oneOf(value.stockStatus, ['available', 'unavailable', 'unknown'] as const, 'unknown'),
+    stockQuantity: num(value.stockQuantity),
     url: text(value.url),
-    match: value.match === 'exact' ? 'exact' : 'needs_review',
+    source: text(value.source) ?? 'price_list',
+    priceListId: value.priceListId,
+    sourceRow: value.sourceRow,
+    checkedAt: text(value.checkedAt),
+    checkedAtOrigin: oneOf(value.checkedAtOrigin, ORIGINS, 'import_date'),
+    demo: value.demo === true,
   }];
 }
 
-function toSheetItem(value: unknown): SheetItem[] {
+export function toPartOffers(value: unknown): PartOffers[] {
   if (!isRecord(value) || typeof value.partId !== 'string') return [];
+  return [{ partId: value.partId, partNumber: text(value.partNumber) ?? '', offers: list(value.offers).flatMap(toOffer), similar: list(value.similar).flatMap(toOffer) }];
+}
+
+function toQuoteItem(value: unknown): QuoteItem[] {
+  if (!isRecord(value) || typeof value.partId !== 'string') return [];
+  const identification = isRecord(value.identification) ? value.identification : {};
   return [{
     partId: value.partId,
-    markingStatus: toStatus(value.markingStatus),
-    markingId: text(value.markingId),
-    selectedOfferId: text(value.selectedOfferId),
+    quantity: num(value.quantity) ?? 0,
+    offer: toOffer(value.offer)[0] ?? null,
+    unitPrice: text(value.unitPrice),
+    currency: text(value.currency),
     lineTotal: text(value.lineTotal),
-    offers: list(value.offers).flatMap(toOffer),
+    status: oneOf(value.status, ['priced', 'no_price', 'offer_missing'] as const, 'no_price'),
+    matchWarning: value.matchWarning === true,
+    identification: { status: oneOf(identification.status, ['user_confirmed', 'user_rejected', 'document_only'] as const, 'document_only'), confirmationId: text(identification.confirmationId) },
   }];
 }
 
-export function toSheet(value: unknown): Sheet {
+export function toQuote(value: unknown): Quote {
   if (!isRecord(value) || !Array.isArray(value.items)) throw bad();
   return {
-    items: value.items.flatMap(toSheetItem),
-    totals: list(value.totals).flatMap((total) => (isRecord(total) && typeof total.currency === 'string' && typeof total.amount === 'string' ? [{ currency: total.currency, amount: total.amount, lines: count(total.lines) ?? 0 }] : [])),
-    unpricedParts: count(value.unpricedParts) ?? 0,
-    complete: value.complete === true,
+    items: value.items.flatMap(toQuoteItem),
+    totals: list(value.totals).flatMap((total) => (isRecord(total) && typeof total.currency === 'string' && typeof total.amount === 'string' ? [{ currency: total.currency, amount: total.amount, items: num(total.items) ?? 0 }] : [])),
+    unpriced: num(value.unpriced) ?? 0,
+    warnings: list(value.warnings).flatMap((item) => (typeof item === 'string' ? [item] : [])),
+    calculatedAt: text(value.calculatedAt) ?? '',
   };
 }
 
 const doc = (id: string) => `/documents/${encodeURIComponent(id)}`;
 
-async function form(path: string, fields: Record<string, string | Blob>): Promise<unknown> {
+export async function startParts(documentId: string, language: string): Promise<void> {
+  await postJson(`${doc(documentId)}/parts`, { language });
+}
+
+export async function getParts(documentId: string, signal?: AbortSignal): Promise<PartList> {
+  return toPartList(await getJson(`${doc(documentId)}/parts`, signal));
+}
+
+export async function identifyPart(documentId: string, image: File, language: string): Promise<PhotoMatch> {
   const body = new FormData();
-  for (const [name, value] of Object.entries(fields)) body.append(name, value);
-  const response = await send(path, { method: 'POST', body });
-  return response.json();
+  body.append('image', image);
+  body.append('language', language);
+  const response = await send(`${doc(documentId)}/parts/identify`, { method: 'POST', body });
+  return toPhotoMatch(await response.json());
 }
 
-export async function extractParts(documentId: string): Promise<Part[]> {
-  const response = await postJson(`${doc(documentId)}/parts`, {});
-  const body: unknown = await response.json();
-  if (!isRecord(body) || !Array.isArray(body.items)) throw bad();
-  return body.items.map(toPart);
+export async function confirmPart(documentId: string, partId: string, input: ConfirmationInput): Promise<Confirmation> {
+  const response = await postJson(`${doc(documentId)}/parts/${encodeURIComponent(partId)}/confirmations`, input);
+  return toConfirmation(await response.json());
 }
 
-export async function patchPart(id: string, patch: PartPatch): Promise<Part> {
-  const response = await send(`/parts/${encodeURIComponent(id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) });
-  return toPart(await response.json());
-}
-
-export async function uploadMarking(documentId: string, file: File): Promise<Marking> {
-  return toMarking(await form(`${doc(documentId)}/markings`, { file }));
-}
-
-export async function confirmMarking(id: string, confirmedText: string): Promise<Marking> {
-  const response = await postJson(`/markings/${encodeURIComponent(id)}/confirm`, { text: confirmedText });
-  return toMarking(await response.json());
-}
-
-export async function uploadPriceList(file: File, supplier: string): Promise<PriceList> {
-  return toPriceList(await form('/price-lists', { file, supplier, sourceNote: '' }));
+export async function uploadPriceList(file: File, input: PriceListInput): Promise<PriceList> {
+  const body = new FormData();
+  body.append('file', file);
+  if (input.supplier) body.append('supplier', input.supplier);
+  if (input.checkedAt) body.append('checkedAt', input.checkedAt);
+  if (input.demo) body.append('demo', 'true');
+  const response = await send('/price-lists', { method: 'POST', body });
+  return toPriceList(await response.json());
 }
 
 export async function listPriceLists(signal?: AbortSignal): Promise<PriceList[]> {
@@ -150,19 +186,23 @@ export async function listPriceLists(signal?: AbortSignal): Promise<PriceList[]>
   return body.items.map(toPriceList);
 }
 
-const withList = (priceListId: string | null) => (priceListId ? `priceListId=${encodeURIComponent(priceListId)}` : '');
-
-export async function getSheet(documentId: string, priceListId: string | null, signal?: AbortSignal): Promise<Sheet> {
-  const query = withList(priceListId);
-  return toSheet(await getJson(`${doc(documentId)}/procurement${query ? `?${query}` : ''}`, signal));
+export async function deletePriceList(id: string): Promise<void> {
+  await send(`/price-lists/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
 
-export async function selectOffer(partId: string, offerId: string | null): Promise<void> {
-  await send(`/parts/${encodeURIComponent(partId)}/offer`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ offerId }) });
+export async function getOffers(documentId: string, partIds: string[]): Promise<PartOffers[]> {
+  const response = await postJson('/procurement/offers', { documentId, partIds });
+  const body: unknown = await response.json();
+  if (!isRecord(body) || !Array.isArray(body.items)) throw bad();
+  return body.items.flatMap(toPartOffers);
 }
 
-export async function exportSheet(documentId: string, priceListId: string | null, format: 'csv' | 'xlsx'): Promise<Blob> {
-  const query = [withList(priceListId), `format=${format}`].filter(Boolean).join('&');
-  const response = await send(`${doc(documentId)}/procurement/export?${query}`);
+export async function getQuote(documentId: string, items: QuoteRequestItem[]): Promise<Quote> {
+  const response = await postJson('/procurement/quote', { documentId, items });
+  return toQuote(await response.json());
+}
+
+export async function exportQuote(documentId: string, items: QuoteRequestItem[], format: 'csv' | 'xlsx'): Promise<Blob> {
+  const response = await postJson(`/procurement/quote/export?format=${format}`, { documentId, items });
   return response.blob();
 }

@@ -6,72 +6,78 @@ import { Button } from '@/components/ui/Button';
 import { useErrorMessage } from '@/features/system/useErrorMessage';
 import { cn } from '@/lib/cn';
 import type { ProcurementAdapter } from '@/services/procurement/types';
-import type { Marking, MarkingStatus, Part } from '@/types/procurement';
+import type { Confirmation, Decision, MatchStatus, Part, PhotoMatch } from '@/types/procurement';
 
-export const STATUS_LOOK: Record<MarkingStatus, { Icon: typeof CircleCheck; tone: string }> = {
-  exact: { Icon: CircleCheck, tone: 'bg-success-tint text-success' },
-  possible: { Icon: CircleHelp, tone: 'bg-warning-tint text-warning' },
-  conflict: { Icon: TriangleAlert, tone: 'bg-danger-tint text-danger' },
-  insufficient: { Icon: CircleAlert, tone: 'bg-hover text-muted' },
+const LOOK: Record<MatchStatus, { Icon: typeof CircleCheck; tone: string }> = {
+  matched: { Icon: CircleCheck, tone: 'bg-success-tint text-success' },
+  needs_confirmation: { Icon: CircleHelp, tone: 'bg-warning-tint text-warning' },
+  no_match: { Icon: TriangleAlert, tone: 'bg-danger-tint text-danger' },
+  unreadable: { Icon: CircleAlert, tone: 'bg-hover text-muted' },
 };
-
-export function MarkingBadge({ status }: { status: MarkingStatus }) {
-  const { t } = useTranslation();
-  const { Icon, tone } = STATUS_LOOK[status];
-  return (
-    <span data-status={status} className={cn('inline-flex min-h-5 items-center gap-1 rounded-full px-2 text-xs font-medium', tone)}>
-      <Icon size={12} className="shrink-0" aria-hidden />
-      {t(`procurement.marking.status.${status}`)}
-    </span>
-  );
-}
 
 interface Props {
   adapter: ProcurementAdapter;
   parts: readonly Part[];
-  onChecked: () => void;
+  maxImageBytes: number | null;
+  onDecided: (confirmation: Confirmation) => void;
 }
 
-/** The model may propose text. The status comes only from what a person has confirmed against the photo. */
-export function MarkingCheck({ adapter, parts, onChecked }: Props) {
+/** The server's match is automatic. "Confirmed" appears only after this person's own decision, even for an exact match. */
+export function MarkingCheck({ adapter, parts, maxImageBytes, onDecided }: Props) {
   const { t } = useTranslation();
   const errorMessage = useErrorMessage();
   const input = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [marking, setMarking] = useState<Marking | null>(null);
+  const [result, setResult] = useState<PhotoMatch | null>(null);
   const [text, setText] = useState('');
+  const [partId, setPartId] = useState('');
+  const [decided, setDecided] = useState<Confirmation | null>(null);
+  const [tooLarge, setTooLarge] = useState(false);
 
   useEffect(() => () => {
     if (preview) URL.revokeObjectURL(preview);
   }, [preview]);
 
-  const upload = useMutation({
-    mutationFn: (file: File) => adapter.uploadMarking(file),
-    onSuccess: (created) => {
-      setMarking(created);
-      setText(created.readText ?? '');
+  const show = (match: PhotoMatch) => {
+    setResult(match);
+    setText(match.recognized.partNumber ?? '');
+    setPartId(match.matches[0]?.partId ?? '');
+  };
+  const upload = useMutation({ mutationFn: (file: File) => adapter.identify(file), onSuccess: show });
+  const typed = useMutation({
+    mutationFn: async () => {
+      if (!adapter.identifyText) throw new Error('Not available');
+      return adapter.identifyText(text.trim());
     },
+    onSuccess: show,
   });
-  const confirm = useMutation({
-    mutationFn: () => {
-      if (!marking) throw new Error('No marking');
-      return adapter.confirmMarking(marking.id, text.trim());
-    },
-    onSuccess: (done) => {
-      setMarking(done);
-      onChecked();
+  const decide = useMutation({
+    mutationFn: (decision: Decision) => adapter.confirm(partId, { recognizedText: result?.recognized.text ?? text.trim(), recognizedPartNumber: text.trim(), decision }),
+    onSuccess: (confirmation) => {
+      setDecided(confirmation);
+      onDecided(confirmation);
     },
   });
   const reset = () => {
-    setMarking(null);
+    setResult(null);
     setPreview(null);
     setText('');
+    setPartId('');
+    setDecided(null);
+    setTooLarge(false);
     upload.reset();
-    confirm.reset();
+    typed.reset();
+    decide.reset();
   };
 
-  const matched = parts.find((part) => part.id === marking?.matchedPartId);
-  const differences = marking?.candidates.find((candidate) => candidate.partId === marking.matchedPartId)?.differences ?? [];
+  if (!adapter.canReadPhotos) {
+    return <p data-testid="photo-unavailable" className="rounded-panel border border-line bg-card p-3 text-sm text-muted">{t('procurement.marking.unavailable')}</p>;
+  }
+
+  const status = result?.matchStatus;
+  const look = status ? LOOK[status] : null;
+  const failure = upload.error ?? typed.error ?? decide.error;
+  const choices = result?.matches.length ? result.matches.map((match) => ({ id: match.partId, label: match.partNumber, difference: match.difference })) : parts.map((part) => ({ id: part.id, label: part.partNumber, difference: null }));
 
   return (
     <section data-testid="marking-check" aria-labelledby="marking-title" className="rounded-panel border border-line bg-card p-3">
@@ -90,42 +96,69 @@ export function MarkingCheck({ adapter, parts, onChecked }: Props) {
           event.target.value = '';
           if (!file) return;
           reset();
+          if (maxImageBytes !== null && file.size > maxImageBytes) {
+            setTooLarge(true);
+            return;
+          }
           setPreview(URL.createObjectURL(file));
           upload.mutate(file);
         }}
       />
       {!preview && <Button className="mt-2" icon={<Camera size={14} aria-hidden />} onClick={() => input.current?.click()}>{t('procurement.marking.add')}</Button>}
+      {tooLarge && <p role="alert" className="mt-1 text-sm text-danger">{t('errors.codes.IMAGE_TOO_LARGE')}</p>}
       {preview && (
         <div className="mt-2 flex flex-wrap gap-3">
           <img src={preview} alt={t('procurement.marking.photo')} className="h-28 max-w-full rounded-control border border-line object-contain" />
-          <div className="min-w-0 flex-1 basis-52">
-            {marking && !marking.confirmed && <p role="status" className="mb-1 text-xs text-muted">{t(marking.readText ? 'procurement.marking.read' : 'procurement.marking.notRead')}</p>}
-            {marking && (
-              <form
-                className="flex flex-wrap items-end gap-2"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  if (text.trim()) confirm.mutate();
-                }}
-              >
-                <label className="min-w-0 flex-1 basis-40 text-xs text-muted">
+          <div className="min-w-0 flex-1 basis-56 space-y-2">
+            {upload.isPending && <p role="status" className="text-sm text-muted">{t('procurement.marking.reading')}</p>}
+            {status && look && (
+              <div data-testid="match-result" role="status">
+                <span data-status={status} className={cn('inline-flex min-h-5 items-center gap-1 rounded-full px-2 text-xs font-medium', look.tone)}>
+                  <look.Icon size={12} className="shrink-0" aria-hidden />
+                  {t(`procurement.marking.status.${status}`)}
+                </span>
+                <p className="mt-1 text-xs text-muted">{t(`procurement.marking.explain.${status}`)}</p>
+              </div>
+            )}
+            {result && !decided && (
+              <>
+                <label className="block text-xs text-muted">
                   {t('procurement.marking.field')}
                   <input value={text} onChange={(event) => setText(event.target.value)} data-testid="marking-text" className="mt-0.5 h-9 w-full rounded-control border border-line bg-bg px-2 text-sm text-fg outline-none focus:border-accent" />
                 </label>
-                <Button type="submit" variant="primary" loading={confirm.isPending} disabled={!text.trim()}>{t('procurement.marking.confirm')}</Button>
-              </form>
+                {adapter.identifyText && <Button size="sm" data-testid="marking-compare" loading={typed.isPending} disabled={!text.trim()} onClick={() => typed.mutate()}>{t('procurement.marking.compare')}</Button>}
+                <fieldset>
+                  <legend className="text-xs text-muted">{t('procurement.marking.which')}</legend>
+                  <ul className="mt-1 max-h-40 space-y-1 overflow-y-auto">
+                    {choices.map((choice) => (
+                      <li key={choice.id}>
+                        <label className="flex min-h-8 cursor-pointer items-start gap-2 rounded-lg px-1 py-1 text-sm hover:bg-hover pointer-coarse:min-h-10">
+                          <input type="radio" name="marking-part" checked={partId === choice.id} onChange={() => setPartId(choice.id)} className="mt-1 size-4 accent-[var(--color-accent)]" />
+                          <span className="min-w-0 break-words [overflow-wrap:anywhere]">
+                            <strong className="font-semibold">{choice.label}</strong>
+                            {choice.difference && <span data-testid="marking-difference" className="block text-xs text-warning">{choice.difference}</span>}
+                          </span>
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                </fieldset>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="primary" size="sm" data-testid="marking-confirm" disabled={!partId || !text.trim()} loading={decide.isPending && decide.variables === 'confirmed'} onClick={() => decide.mutate('confirmed')}>{t('procurement.marking.confirm')}</Button>
+                  <Button size="sm" data-testid="marking-reject" disabled={!partId || !text.trim()} loading={decide.isPending && decide.variables === 'rejected'} onClick={() => decide.mutate('rejected')}>{t('procurement.marking.reject')}</Button>
+                  <Button size="sm" variant="ghost" onClick={() => input.current?.click()}>{t('procurement.marking.retake')}</Button>
+                </div>
+              </>
             )}
-            {marking?.confirmed && marking.status && (
-              <div data-testid="marking-result" className="mt-2 space-y-1 text-sm" role="status">
-                <MarkingBadge status={marking.status} />
-                <p className="text-muted">{t(`procurement.marking.explain.${marking.status}`)}</p>
-                {matched && <p className="break-words [overflow-wrap:anywhere]"><span className="text-muted">{t('procurement.marking.document')}:</span> <strong className="font-semibold">{matched.rawCode}</strong></p>}
-                {marking.confirmedText && <p className="break-words [overflow-wrap:anywhere]"><span className="text-muted">{t('procurement.marking.found')}:</span> <strong className="font-semibold">{marking.confirmedText}</strong></p>}
-                {differences.map((difference) => <p key={`${difference.document}-${difference.marking}`} data-testid="marking-difference" className="tabular text-danger">{difference.document} ≠ {difference.marking}</p>)}
-                <Button size="sm" onClick={reset}>{t('procurement.marking.another')}</Button>
+            {decided && (
+              <div data-testid="marking-decided" role="status" className="space-y-1 text-sm">
+                <p className={decided.decision === 'confirmed' ? 'font-medium text-success' : 'font-medium text-danger'}>{t(`procurement.identification.${decided.decision === 'confirmed' ? 'user_confirmed' : 'user_rejected'}`)}</p>
+                <p className="break-words [overflow-wrap:anywhere]"><span className="text-muted">{t('procurement.marking.document')}:</span> <strong className="font-semibold">{decided.documentPartNumber}</strong></p>
+                <p className="break-words [overflow-wrap:anywhere]"><span className="text-muted">{t('procurement.marking.found')}:</span> <strong className="font-semibold">{decided.recognizedPartNumber}</strong></p>
+                <Button size="sm" onClick={() => { reset(); input.current?.click(); }}>{t('procurement.marking.another')}</Button>
               </div>
             )}
-            {(upload.isError || confirm.isError) && <p role="alert" className="mt-1 text-sm text-danger">{errorMessage(upload.error ?? confirm.error)}</p>}
+            {failure && <p role="alert" className="text-sm text-danger">{errorMessage(failure)}</p>}
           </div>
         </div>
       )}

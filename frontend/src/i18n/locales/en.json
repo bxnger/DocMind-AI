@@ -23,7 +23,8 @@
     "expand": "Expand sidebar",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
-    "compare": "Compare"
+    "compare": "Compare",
+    "hr": "Resume and vacancy"
   },
   "system": {
     "online": "Server online",
@@ -81,7 +82,13 @@
       "AI_BUDGET_EXCEEDED": "AI answers are unavailable for now. They renew within a day. Reading documents still works.",
       "STORAGE_FULL": "The server has no room for more documents right now. Try again later.",
       "DOCUMENT_TOO_COMPLEX": "This file needs too much time or memory to read.",
-      "DOCX_TOO_LARGE": "This DOCX is too large once unpacked."
+      "DOCX_TOO_LARGE": "This DOCX is too large once unpacked.",
+      "PARTS_NOT_READY": "Parts are still being extracted. Try again in a moment.",
+      "IMAGE_TOO_LARGE": "This image is too large. The limit is 8 MB.",
+      "UNSUPPORTED_IMAGE": "Use a JPEG, PNG or WebP image.",
+      "VISION_UNAVAILABLE": "Reading photos isn't available right now.",
+      "PRICE_LIST_INVALID": "This file couldn't be read. It needs at least a part number or name, and a price.",
+      "PRICE_LIST_TOO_LARGE": "This price list is too large. The limit is 5 MB."
     },
     "noTextWithOcr": "No text could be read from this file, even with text recognition (OCR).",
     "rateLimitedWait": "Too many requests. Try again in {{seconds}} s.",
@@ -748,13 +755,11 @@
     "errorTitle": "Parts couldn't be loaded",
     "emptyTitle": "No parts found",
     "emptyBody": "No part numbers were recognized in this document.",
-    "code": "Part number",
     "qty": "Quantity",
-    "unit": "Unit",
     "include": "Include {{code}} in the sheet",
     "note": "Note",
     "notePlaceholder": "Note for this line",
-    "noQty": "Not stated in the document",
+    "noQty": "Not stated in the document. Type it to include this line.",
     "userQty": "Changed by you",
     "source": "Open the source: {{place}}",
     "noSource": "No source",
@@ -764,53 +769,10 @@
     "chooseOffer": "Choose",
     "chosen": "Chosen",
     "clearOffer": "Clear choice",
-    "needsReview": "Different designation: check before choosing",
-    "exact": "Same part number",
     "row": "row {{row}}",
-    "checked": "checked {{date}}",
-    "stock": "in stock: {{count}}",
     "open": "supplier's page",
-    "unit_price": "{{price}} per unit",
     "line": "Line total",
     "back": "Back to the sheet",
-    "marking": {
-      "title": "Check a part or its marking",
-      "hint": "Take a photo or choose one, then confirm the part number yourself. Only confirmed text is compared.",
-      "photo": "Photo of the part or marking",
-      "add": "Add a photo",
-      "read": "Read from the photo. Check it against the image.",
-      "notRead": "The text couldn't be read automatically. Type it from the photo.",
-      "field": "Part number on the marking",
-      "confirm": "Confirm and compare",
-      "another": "Check another",
-      "document": "In the document",
-      "found": "On the marking",
-      "status": {
-        "exact": "Exact match",
-        "possible": "Possible match",
-        "conflict": "Conflict",
-        "insufficient": "Not enough data"
-      },
-      "explain": {
-        "exact": "The whole part number matches the document.",
-        "possible": "Part of the number matches. Check the full marking before relying on it.",
-        "conflict": "This is a different designation from the document's. It isn't a confirmed substitute.",
-        "insufficient": "Not enough to compare with the document."
-      }
-    },
-    "prices": {
-      "title": "Price list",
-      "select": "Offers from",
-      "builtIn": "Demo prices (invented)",
-      "upload": "Upload a price list",
-      "supplier": "Supplier",
-      "supplierPlaceholder": "Supplier's name",
-      "file": "CSV or XLSX. Required columns: {{columns}}.",
-      "demoFile": "In demonstration mode only CSV can be read.",
-      "invalid": "This file couldn't be read. Check the format and the required columns.",
-      "skipped_one": "{{count}} row skipped: price, date or part number is wrong.",
-      "skipped_other": "{{count}} rows skipped: price, date or part number is wrong."
-    },
     "budget": {
       "title": "Budget",
       "total": "Total",
@@ -827,6 +789,110 @@
     "export": {
       "csv": "Export CSV",
       "xlsx": "Export XLSX"
+    },
+    "equipment": "Equipment",
+    "byStandard": "by standard",
+    "notVerified": "This part number was not found word for word in the document. Check it against the source.",
+    "noPrice": "No price",
+    "similar": "Similar part numbers. Check compatibility: these are not confirmed substitutes.",
+    "offerMissing": "The chosen offer no longer exists, so this line has no price.",
+    "matchWarning": "You chose a similar part number. Check that it fits.",
+    "checked": {
+      "file": "price date in the file: {{date}}",
+      "upload_form": "price date from upload: {{date}}",
+      "import_date": "imported {{date}}, no price date given"
+    },
+    "stock": {
+      "available": "in stock",
+      "unavailable": "not in stock",
+      "unknown": "stock unknown",
+      "count": "in stock: {{count}}"
+    },
+    "identification": {
+      "user_confirmed": "Confirmed by you",
+      "user_rejected": "Rejected by you",
+      "document_only": "From the document"
+    },
+    "marking": {
+      "title": "Check a part or its marking",
+      "hint": "Take a photo or choose one. The match below is automatic: only your decision counts as confirmation.",
+      "photo": "Photo of the part or marking",
+      "add": "Add a photo",
+      "reading": "Reading the marking…",
+      "field": "Part number on the marking",
+      "compare": "Compare with the document",
+      "which": "Which part of the document is this?",
+      "confirm": "Yes, this is the part",
+      "reject": "No, it isn't",
+      "retake": "Choose another photo",
+      "another": "Check another",
+      "document": "In the document",
+      "found": "On the marking",
+      "unavailable": "Reading photos isn't set up on this server, so this step is hidden.",
+      "status": {
+        "matched": "Same as the document",
+        "needs_confirmation": "Needs your decision",
+        "no_match": "Not in the document",
+        "unreadable": "Couldn't be read"
+      },
+      "explain": {
+        "matched": "The part number matches one part exactly. Compare with the photo and confirm.",
+        "needs_confirmation": "Not an exact match, or several candidates. A similar designation is not a confirmed substitute.",
+        "no_match": "This designation isn't among the document's parts.",
+        "unreadable": "Take a clearer photo, or type the part number if you can read it."
+      }
+    },
+    "prices": {
+      "title": "Price lists",
+      "fromFile": "Prices, dates and stock are what the file says, not a live check of a website.",
+      "supplier": "Supplier",
+      "supplierPlaceholder": "If the file doesn't say",
+      "date": "Price date",
+      "upload": "Upload a price list",
+      "test": "This is a test file: mark its prices as DEMO",
+      "rows_one": "{{count}} row",
+      "rows_other": "{{count}} rows",
+      "remove": "Remove {{name}}",
+      "file": "CSV or XLSX, up to 5 MB, with a part number and a price.",
+      "demoFile": "In demonstration mode only CSV can be read.",
+      "skipped_one": "{{count}} row skipped.",
+      "skipped_other": "{{count}} rows skipped."
+    }
+  },
+  "hr": {
+    "title": "Resume and vacancy",
+    "subtitle": "See which requirements of a vacancy a resume supports, with the quote from each document.",
+    "resume": "Resume",
+    "vacancy": "Vacancy",
+    "start": "Compare",
+    "new": "New comparison",
+    "running": "Comparing the documents…",
+    "failed": "The comparison failed",
+    "gone": "This result is no longer available.",
+    "back": "Back to the comparison",
+    "notice": "This matches skills with requirements. A person makes the hiring decision. There is no score or recommendation, and age, gender, family status, nationality, health and photos are not considered.",
+    "needTwo": "Two ready documents are needed",
+    "needTwoBody": "Upload a resume and a vacancy, and wait until both are ready.",
+    "demoTitle": "Demonstration mode.",
+    "demoBody": "The server has no resume comparison yet. This only compares words in the two documents and understands nothing. Quotes are real, but statuses are rough.",
+    "emptyTitle": "No requirements found",
+    "emptyBody": "No requirements were recognized in the vacancy.",
+    "notFoundHint": "Not found in the resume, which doesn't mean the person lacks it.",
+    "skills": "Skills with evidence",
+    "filter": "Filter by status",
+    "all": "All",
+    "status": {
+      "confirmed": "Confirmed",
+      "partial": "Partly",
+      "not_found": "Not found"
+    },
+    "kind": {
+      "must": "Required",
+      "nice": "Desirable"
+    },
+    "kindPlural": {
+      "must": "Required",
+      "nice": "Desirable"
     }
   }
 }

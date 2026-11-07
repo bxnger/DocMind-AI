@@ -15,6 +15,7 @@ import { clearUserData } from '@/services/userData';
 import { ComparePage } from '@/pages/ComparePage';
 import { DocumentsPage } from '@/pages/DocumentsPage';
 import { HomePage } from '@/pages/HomePage';
+import { HrPage } from '@/pages/HrPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { RecentPage } from '@/pages/RecentPage';
 import { SettingsPage } from '@/pages/SettingsPage';
@@ -85,6 +86,7 @@ export function App() {
                     }
                   />
                   <Route path="compare" element={<ComparePage />} />
+                  <Route path="hr" element={<HrPage />} />
                   <Route path="recent" element={<RecentPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                   <Route path="*" element={<NotFoundPage />} />

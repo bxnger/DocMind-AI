@@ -98,3 +98,7 @@ src/
 
 - Design tokens are in `src/styles/index.css`.
 - UI strings are in `src/i18n/locales/` (`en`, `ru`, `kk`). A unit test fails if a key or placeholder is missing.
+
+## Procurement and HR
+
+The Procurement tab (in the Production and procurement mode) and `/hr` follow `backend/docs/API-PROCUREMENT.md`, revision 2, on the `backend/procurement-mvp` branch. Each turns on from `capabilities.features`: `procurement`, `parts`, `priceLists`, `photoIdentify` and `hr`. Until the server reports them, a demonstration adapter is used and says so on screen: its prices are invented, and it reads no photos. Its quotes are real text of the document. The HR result has no score and no hiring recommendation.

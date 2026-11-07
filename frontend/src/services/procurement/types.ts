@@ -1,18 +1,22 @@
-import type { Marking, Part, PartPatch, PriceList, Sheet } from '@/types/procurement';
+import type { Confirmation, ConfirmationInput, PartList, PartOffers, PhotoMatch, PriceList, PriceListInput, Quote, QuoteRequestItem } from '@/types/procurement';
 
 /** What the panel needs. The real API and the labelled demonstration data both provide it. */
 export interface ProcurementAdapter {
-  /** True: nothing from this adapter may be presented as a real offer. */
+  /** True: nothing from this adapter may be presented as real. */
   readonly isDemo: boolean;
-  parts(): Promise<Part[]>;
-  updatePart(id: string, patch: PartPatch): Promise<Part>;
-  uploadMarking(file: File): Promise<Marking>;
-  confirmMarking(id: string, text: string): Promise<Marking>;
+  /** False hides the photo step: the server has no vision configured. */
+  readonly canReadPhotos: boolean;
+  parts(signal?: AbortSignal): Promise<PartList>;
+  identify(image: File): Promise<PhotoMatch>;
+  /** Only the demonstration has it: it reads no photos, so a person types the marking. */
+  identifyText?(text: string): Promise<PhotoMatch>;
+  confirm(partId: string, input: ConfirmationInput): Promise<Confirmation>;
   priceLists(signal?: AbortSignal): Promise<PriceList[]>;
-  uploadPriceList(file: File, supplier: string): Promise<PriceList>;
-  sheet(priceListId: string | null, signal?: AbortSignal): Promise<Sheet>;
-  selectOffer(partId: string, offerId: string | null): Promise<void>;
-  exportSheet(priceListId: string | null, format: 'csv' | 'xlsx'): Promise<Blob>;
+  uploadPriceList(file: File, input: PriceListInput): Promise<PriceList>;
+  deletePriceList(id: string): Promise<void>;
+  offers(partIds: string[]): Promise<PartOffers[]>;
+  quote(items: QuoteRequestItem[]): Promise<Quote>;
+  exportQuote(items: QuoteRequestItem[], format: 'csv' | 'xlsx'): Promise<Blob>;
 }
 
 /** The document's real text, wherever it comes from. */

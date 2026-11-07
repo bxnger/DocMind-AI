@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence } from 'motion/react';
 import { AppError, isRecord } from '@/api/client';
+import { toSource } from '@/api/conversations';
 import { Button, buttonClasses } from '@/components/ui/Button';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { IconButton } from '@/components/ui/IconButton';
@@ -172,7 +173,8 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
   const picksExtra = selection?.messageId === mapEvidence?.id;
   const fromFacts = picksExtra && Boolean(mapEvidence?.id.startsWith('facts:'));
   const fromProcurement = picksExtra && Boolean(mapEvidence?.id.startsWith('procurement:'));
-  const fromMap = picksExtra && !fromFacts && !fromProcurement;
+  const fromHr = picksExtra && Boolean(mapEvidence?.id.startsWith('hr:'));
+  const fromMap = picksExtra && !fromFacts && !fromProcurement && !fromHr;
 
   const openFact = (factSource: EvidenceSource, prefix = 'facts') => {
     const message = factMessage(factSource, prefix);
@@ -182,6 +184,13 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
     setView('document');
     setPane('document');
   };
+
+  // A source handed over from the resume and vacancy page opens as usual, and "back" returns there.
+  useEffect(() => {
+    // Only once, when the document opens. It reuses the hook that highlights a source, so it can't be initial state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (isRecord(startState) && isRecord(startState.source)) openFact(toSource(startState.source), 'hr');
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Only fills the composer, for the user to edit and send. Prompts are for the AI, so demo mode gives way to it.
   const askSuggested = (question: string) => {
@@ -338,8 +347,8 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
                 onStep={evidence.step}
                 onRefocus={evidence.refocus}
                 onClose={evidence.close}
-                onBack={fromMap ? () => setView('map') : fromFacts ? () => setView('facts') : fromProcurement ? () => setView('procurement') : split ? null : () => setPane('assistant')}
-                backLabel={fromMap ? t('map.back') : fromFacts ? t('facts.back') : fromProcurement ? t('procurement.back') : undefined}
+                onBack={fromMap ? () => setView('map') : fromFacts ? () => setView('facts') : fromProcurement ? () => setView('procurement') : fromHr ? () => void navigate(-1) : split ? null : () => setPane('assistant')}
+                backLabel={fromMap ? t('map.back') : fromFacts ? t('facts.back') : fromProcurement ? t('procurement.back') : fromHr ? t('hr.back') : undefined}
                 ocrUsed={doc.ocrUsed === true}
               />
             )}

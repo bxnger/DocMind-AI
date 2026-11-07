@@ -1,4 +1,4 @@
-import { FolderOpen, GitCompareArrows, History, Home, PanelLeftClose, PanelLeftOpen, Search, Settings, Upload, X } from 'lucide-react';
+import { FolderOpen, GitCompareArrows, History, Home, PanelLeftClose, PanelLeftOpen, Search, Settings, Upload, X, UserSearch } from 'lucide-react';
 import { NavLink, Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
@@ -25,6 +25,7 @@ const NAV = [
   { to: '/', key: 'nav.home', Icon: Home, end: true },
   { to: '/documents', key: 'nav.documents', Icon: FolderOpen, end: true },
   { to: '/compare', key: 'nav.compare', Icon: GitCompareArrows, end: false },
+  { to: '/hr', key: 'nav.hr', Icon: UserSearch, end: false },
   { to: '/recent', key: 'nav.recent', Icon: History, end: false },
   { to: '/settings', key: 'nav.settings', Icon: Settings, end: false },
 ] as const;
