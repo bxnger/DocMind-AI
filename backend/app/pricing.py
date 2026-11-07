@@ -7,7 +7,7 @@ Currencies are never added together or converted. Nothing here calls a model.
 import csv
 import io
 import re
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 from app.codes import code_match, normalize_code
@@ -310,7 +310,32 @@ def calculate(items: list[dict]) -> tuple[list[dict], list[dict], int]:
 # New columns go last, so the old ones keep their places.
 EXPORT_COLUMNS = ("№", "Позиция", "Артикул", "Кол-во", "Ед.", "Цена", "Валюта", "Сумма", "Поставщик", "Ссылка",
                   "Дата цены", "Страница документа", "Идентификация", "Статус", "Источник цены",
-                  "Откуда дата", "Производитель", "Совпадение артикула", "Файл прайса", "Строка прайса", "DEMO")
+                  "Откуда дата", "Производитель", "Совпадение артикула", "Файл прайса", "Строка прайса", "DEMO",
+                  "Наличие", "Проверено (время Казахстана, UTC+5)")
+STOCK_NAMES = {"available": "есть у поставщика", "unavailable": "нет в наличии", "unknown": "не указано"}
+KAZAKHSTAN = timezone(timedelta(hours=5))  # one time zone for the whole country since 1 March 2024
+
+
+def kazakhstan_time(value: str | None) -> str:
+    """"2026-11-07T19:41:39+00:00" -> "08.11.2026 00:41". A plain date (no time) or nothing stays empty."""
+    if not value or "T" not in value:
+        return ""
+    try:
+        moment = datetime.fromisoformat(value)
+    except ValueError:
+        return ""
+    if moment.tzinfo is None:
+        return ""
+    return moment.astimezone(KAZAKHSTAN).strftime("%d.%m.%Y %H:%M")
+
+
+def stock_text(offer: dict) -> str:
+    if not offer:
+        return ""
+    text = STOCK_NAMES.get(offer.get("stockStatus"), "")
+    if offer.get("stockQuantity") is not None:
+        text = f"{text}, {offer['stockQuantity']} шт."
+    return text
 PRICE_ORIGIN_NAMES = {"file": "прайс-лист", "site_checked": "проверено на сайте"}
 DATE_ORIGIN_NAMES = {"file": "дата из прайса", "upload_form": "дата указана при загрузке прайса",
                      "import_date": "дата загрузки прайса, не дата цены", "site": "проверено на сайте поставщика"}
@@ -333,7 +358,8 @@ def export_rows(quote: dict) -> list[list]:
                      offer.get("url") or "", price_date, pages, item["identification"]["status"], item["status"],
                      PRICE_ORIGIN_NAMES.get(offer.get("priceOrigin"), ""), date_note, offer.get("manufacturer") or "",
                      MATCH_NAMES.get(offer.get("match"), ""), offer.get("priceListFile") or "",
-                     offer.get("sourceRow", ""), ("да" if offer.get("demo") else "нет") if offer else ""])
+                     offer.get("sourceRow", ""), ("да" if offer.get("demo") else "нет") if offer else "",
+                     stock_text(offer), kazakhstan_time(offer.get("checkedAt"))])
     rows.append([])
     for total in quote["totals"]:
         rows.append(["", "Итого", "", "", "", "", total["currency"], total["amount"]] + [""] * (len(EXPORT_COLUMNS) - 8))

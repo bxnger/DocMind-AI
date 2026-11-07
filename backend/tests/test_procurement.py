@@ -137,9 +137,19 @@ def test_the_sheet_says_where_each_price_and_date_came_from(client):
     assert "дата загрузки прайса, не дата цены" in row["Откуда дата"]
     assert (row["Источник цены"], row["Производитель"], row["Совпадение артикула"], row["Файл прайса"], row["Строка прайса"],
             row["DEMO"]) == ("прайс-лист", "SKF", "точный", "prices.csv", 2, "нет")
+    assert row["Наличие"] == "не указано" and row["Проверено (время Казахстана, UTC+5)"] is None  # no stock column, no check
     missing = dict(zip(header, [cell.value for cell in sheet[3]]))
     assert missing["Статус"] == "offer_missing" and missing["Цена"] is None and missing["DEMO"] is None
     assert plain["id"] != dated["id"]
+
+
+def test_the_check_time_is_shown_in_kazakhstan_time_and_stock_in_words():
+    from app.pricing import kazakhstan_time, stock_text
+
+    assert kazakhstan_time("2026-11-07T19:41:39+00:00") == "08.11.2026 00:41"
+    assert kazakhstan_time("2026-11-08") == "" and kazakhstan_time(None) == "" and kazakhstan_time("2026-11-08T10:00") == ""
+    assert stock_text({"stockStatus": "available", "stockQuantity": 40}) == "есть у поставщика, 40 шт."
+    assert stock_text({"stockStatus": "unknown", "stockQuantity": None}) == "не указано" and stock_text({}) == ""
 
 
 def test_a_price_row_without_a_code_column_is_matched_by_the_code_in_its_title():

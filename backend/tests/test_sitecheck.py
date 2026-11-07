@@ -256,7 +256,9 @@ def test_a_checked_price_replaces_the_file_price_and_reaches_the_quote(client, s
     assert quote["items"][0]["unitPrice"] == "4650.00" and quote["totals"] == [{"currency": "KZT", "amount": "9300.00", "items": 1}]
     sheet = client.post("/api/v1/procurement/quote/export?format=csv", json={"documentId": document_id, "items": [
         {"partId": bearing_id, "offerId": after["id"]}]})
-    assert "проверено на сайте" in sheet.content.decode("utf-8-sig")
+    text = sheet.content.decode("utf-8-sig")
+    assert "проверено на сайте" in text and "есть у поставщика" in text
+    assert after["checkedAt"] in text  # the original check time is kept next to the Kazakhstan one
 
 
 def test_a_failed_recheck_falls_back_to_the_file_price(client, shop):
