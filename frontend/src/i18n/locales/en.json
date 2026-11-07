@@ -894,7 +894,7 @@
       "manufacturer": "Manufacturer",
       "markings": "Other markings",
       "readabilityLabel": "Readability",
-      "candidates": "Possible matches in the document",
+      "candidates": "Possible parts in the document",
       "examplesTitle": "Prepared pictures with a marking drawn on them",
       "example": {
         "exact": "Same as the document",

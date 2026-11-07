@@ -202,7 +202,7 @@ export function MarkingCheck({ adapter, parts, maxImageBytes, showExamples, onDe
                           <span className="min-w-0 break-words [overflow-wrap:anywhere]">
                             <strong className="font-semibold">{choice.label}</strong>
                             {choice.name && <span className="text-muted"> · {choice.name}</span>}
-                            {choice.kind && <span className="block text-xs text-muted">{t(`procurement.marking.kind.${choice.kind}`)}</span>}
+                            {choice.kind && !(choice.kind === 'type' && choice.difference) && <span className="block text-xs text-muted">{t(`procurement.marking.kind.${choice.kind}`)}</span>}
                             {choice.difference && <span data-testid="marking-difference" className="block text-xs text-warning">{choice.difference}</span>}
                           </span>
                         </label>
