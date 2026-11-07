@@ -16,6 +16,8 @@ import type { TextBlock } from '@/api/documents';
 import { useDocumentBlocks, useDocumentFacts } from '@/features/documents/useDocumentContent';
 import { blocksToMapText } from '@/features/knowledgeMap/docxText';
 import { FactsPanel, factMessage } from '@/features/facts/FactsPanel';
+import { ProcurementPanel } from '@/features/procurement/ProcurementPanel';
+import { useUserMode } from '@/features/userModes/useUserMode';
 import { DeleteDocumentDialog } from '@/features/documents/DeleteDocumentDialog';
 import { StatusBadge } from '@/features/documents/StatusBadge';
 import { isStaleProcessing, useDocument } from '@/features/documents/useDocuments';
@@ -116,6 +118,8 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
   const docxMapText = useMemo(() => (docxBlocks.data ? blocksToMapText(docxBlocks.data) : undefined), [docxBlocks.data]);
   const placeOfBlock = (fragment: Fragment) => docxBlocks.data?.[fragment.page - 1]?.section ?? t('compare.inText');
   const isSampleDoc = isSampleDocument(doc.id);
+  const userMode = useUserMode();
+  const leftViews = LEFT_VIEWS(isSampleDoc, userMode);
   useEffect(() => {
     if (prefill) composer.current?.insert(prefill);
     // Only once, when the document opens.
@@ -165,11 +169,13 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
     setView('document');
     setPane('document');
   };
-  const fromMap = selection?.messageId === mapEvidence?.id && !mapEvidence?.id.startsWith('facts:');
-  const fromFacts = selection?.messageId === mapEvidence?.id && Boolean(mapEvidence?.id.startsWith('facts:'));
+  const picksExtra = selection?.messageId === mapEvidence?.id;
+  const fromFacts = picksExtra && Boolean(mapEvidence?.id.startsWith('facts:'));
+  const fromProcurement = picksExtra && Boolean(mapEvidence?.id.startsWith('procurement:'));
+  const fromMap = picksExtra && !fromFacts && !fromProcurement;
 
-  const openFact = (factSource: EvidenceSource) => {
-    const message = factMessage(factSource);
+  const openFact = (factSource: EvidenceSource, prefix = 'facts') => {
+    const message = factMessage(factSource, prefix);
     setMapEvidence(message);
     setRouteJump(null);
     openEvidence(message.id, factSource);
@@ -199,7 +205,7 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
 
   const viewSwitch = (
     <div role="group" aria-label={t('map.views')} className="inline-flex shrink-0 rounded-[10px] border border-line bg-card p-0.5">
-      {LEFT_VIEWS(isSampleDoc).map((value) => (
+      {leftViews.map((value) => (
         <button
           key={value}
           type="button"
@@ -244,7 +250,7 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
         )}
         {!split && (
           <div role="tablist" aria-label={t('workspace.panes')} className="order-last flex w-full rounded-[10px] border border-line bg-card p-0.5 [@media(max-height:500px)]:order-none [@media(max-height:500px)]:w-64">
-            {SEGMENTS.filter((value) => value === 'assistant' || LEFT_VIEWS(isSampleDoc).includes(value)).map((value) => (
+            {SEGMENTS.filter((value) => value === 'assistant' || (leftViews.includes(value) && !(value === 'facts' && userMode === 'procurement'))).map((value) => (
               <button
                 key={value}
                 role="tab"
@@ -315,6 +321,13 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
               </ErrorBoundary>
             </div>
           )}
+          {view === 'procurement' && leftViews.includes('procurement') && (
+            <div className="absolute inset-0 bg-bg">
+              <ErrorBoundary fallback={(reset) => <RegionCrash reset={reset} />}>
+                <ProcurementPanel doc={doc} pdfText={text} onOpenSource={(partSource) => openFact(partSource, 'procurement')} />
+              </ErrorBoundary>
+            </div>
+          )}
           <AnimatePresence>
             {view === 'document' && selection && status && (
               <EvidenceInspector
@@ -325,8 +338,8 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
                 onStep={evidence.step}
                 onRefocus={evidence.refocus}
                 onClose={evidence.close}
-                onBack={fromMap ? () => setView('map') : fromFacts ? () => setView('facts') : split ? null : () => setPane('assistant')}
-                backLabel={fromMap ? t('map.back') : fromFacts ? t('facts.back') : undefined}
+                onBack={fromMap ? () => setView('map') : fromFacts ? () => setView('facts') : fromProcurement ? () => setView('procurement') : split ? null : () => setPane('assistant')}
+                backLabel={fromMap ? t('map.back') : fromFacts ? t('facts.back') : fromProcurement ? t('procurement.back') : undefined}
                 ocrUsed={doc.ocrUsed === true}
               />
             )}

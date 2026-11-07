@@ -35,6 +35,16 @@ export const MODE_SAMPLE_QUESTIONS = {
     { key: 'businessCap', source: 'cap' },
     { key: 'businessNotice', source: 'notice' },
   ],
+  procurement: [
+    { key: 'procurementInterest', source: 'interest' },
+    { key: 'procurementNotice', source: 'notice' },
+    { key: 'procurementCap', source: 'cap' },
+  ],
+  hr: [
+    { key: 'hrLeave', source: 'leave' },
+    { key: 'hrNotice', source: 'notice' },
+    { key: 'hrCap', source: 'cap' },
+  ],
 } as const satisfies Record<UserMode, readonly SampleQuestion[]>;
 
 /** Keeps demo evidence retrieval grounded when a professional question is phrased differently. */

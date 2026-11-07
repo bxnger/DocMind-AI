@@ -12,8 +12,8 @@ const lookup = (locale: object, action: string) => {
 };
 
 describe('modes', () => {
-  it('has exactly the five modes, General by default', () => {
-    expect(USER_MODES).toEqual(['general', 'student', 'teacher', 'legal', 'business']);
+  it('has exactly these modes, General by default', () => {
+    expect(USER_MODES).toEqual(['general', 'student', 'teacher', 'legal', 'business', 'procurement', 'hr']);
     expect(DEFAULT_USER_MODE).toBe('general');
     expect(isUserMode('legal')).toBe(true);
     expect(isUserMode('admin')).toBe(false);

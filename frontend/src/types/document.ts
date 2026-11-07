@@ -33,6 +33,8 @@ export interface Capabilities {
   docxPreview: 'pdf' | 'none';
   comparison: boolean;
   highlights: boolean;
+  /** The backend has the procurement routes. */
+  procurement: boolean;
   limits: {
     maxFileSizeBytes: number;
     maxPages: number;

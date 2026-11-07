@@ -64,6 +64,7 @@ export function ModeBar({ state, hasMessages, composer }: Props) {
             </ul>
           )}
           {!note && mode === 'legal' && <p className="mt-1.5 text-xs text-muted">{t('userModes.legalNote')}</p>}
+          {!note && mode === 'hr' && <p data-testid="hr-note" className="mt-1.5 text-xs text-muted">{t('userModes.hrNote')}</p>}
           <p role="status" className="text-xs text-warning empty:hidden">{feedback}</p>
         </div>
       )}

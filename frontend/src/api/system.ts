@@ -25,6 +25,7 @@ export async function getCapabilities(signal?: AbortSignal): Promise<Capabilitie
     docxPreview: body.docxPreview === 'pdf' ? 'pdf' : 'none',
     comparison: body.comparison === true,
     highlights: body.highlights === true,
+    procurement: body.procurement === true,
     limits: {
       maxFileSizeBytes: limits.maxFileSizeBytes,
       maxPages: limits.maxPages,

@@ -115,7 +115,13 @@
       "legalInterest": "What late-payment interest does the agreement establish?",
       "businessInterest": "What is the contractual cost of late payment?",
       "businessCap": "How does the agreement limit financial liability?",
-      "businessNotice": "What notice period affects termination planning?"
+      "businessNotice": "What notice period affects termination planning?",
+      "procurementInterest": "What interest applies if a supplier's invoice is paid late?",
+      "procurementNotice": "How much notice is needed to end the supply agreement?",
+      "procurementCap": "Is the supplier's liability capped?",
+      "hrLeave": "Does this agreement cover parental leave?",
+      "hrNotice": "What notice period does the agreement set?",
+      "hrCap": "Is there a limit on liability in this agreement?"
     },
     "tryLabel": "Try it on the sample"
   },
@@ -189,7 +195,8 @@
       "document": "Document",
       "map": "Map",
       "assistant": "Assistant",
-      "facts": "Facts"
+      "facts": "Facts",
+      "procurement": "Procurement"
     },
     "ocrNotice": "This document was read with text recognition (OCR). Quotes may contain recognition errors, and passages may not be highlighted exactly: check them against the page."
   },
@@ -480,7 +487,8 @@
     "view": {
       "document": "Document",
       "map": "Map",
-      "facts": "Facts"
+      "facts": "Facts",
+      "procurement": "Procurement"
     },
     "views": "Document or map",
     "canvas": "Map of the document's topics. Arrow keys move the map, plus and minus zoom. On a topic, Enter opens it, arrow keys move it and P pins it.",
@@ -553,6 +561,14 @@
       "business": {
         "name": "Business",
         "description": "Pull out figures, decisions and risks."
+      },
+      "procurement": {
+        "name": "Production and procurement",
+        "description": "Parts, markings, supplier offers and budget."
+      },
+      "hr": {
+        "name": "HR",
+        "description": "Compare a resume with what a vacancy requires."
       }
     },
     "actions": {
@@ -657,8 +673,41 @@
           "label": "Risks and action items",
           "prompt": "List the risks, decisions, action items and responsible parties stated in this document. Cite the supporting passages."
         }
+      },
+      "procurement": {
+        "parts": {
+          "label": "Parts and quantities",
+          "prompt": "List every part, material and full part number this document requires, with quantities. Copy part numbers exactly and cite each one. If a quantity isn't stated, say so."
+        },
+        "specs": {
+          "label": "Technical requirements",
+          "prompt": "List the technical requirements for parts in this document, such as sizes, standards and tolerances. Cite each one. Don't suggest substitutes."
+        },
+        "conditions": {
+          "label": "Delivery and acceptance",
+          "prompt": "What does this document say about delivery, acceptance and warranty? Cite each point."
+        }
+      },
+      "hr": {
+        "requirements": {
+          "label": "Vacancy requirements",
+          "prompt": "List the requirements stated in this document: experience, skills, education and duties. Separate required from desirable, and cite each one."
+        },
+        "experience": {
+          "label": "Experience and skills",
+          "prompt": "List the work experience, skills and qualifications stated in this document, with periods where given. Cite each one and don't infer anything that isn't written."
+        },
+        "gaps": {
+          "label": "What isn't stated",
+          "prompt": "Which common details for assessing professional fit, such as dates, duties or qualifications, are not stated in this document? Say only what is missing, and don't evaluate the person. Cite the document for each point."
+        },
+        "questions": {
+          "label": "Interview questions",
+          "prompt": "Using only the professional experience and duties written here, suggest interview questions that check them. Cite the source of each. Avoid personal topics such as age, family, health or origin."
+        }
       }
-    }
+    },
+    "hrNote": "Helps to read documents. It doesn't rank or judge people: the decision stays with a person, and only professional criteria should count."
   },
   "facts": {
     "title": "Facts",
@@ -688,5 +737,96 @@
     "loading": "Loading the text…",
     "emptyTitle": "This document has no text to show",
     "errorTitle": "The text couldn't be loaded"
+  },
+  "procurement": {
+    "title": "Procurement sheet",
+    "demoTitle": "Demonstration data.",
+    "demoBody": "The server has no procurement yet. Prices marked DEMO are invented and are not real offers. Photos aren't read. Quotes and pages are real where a part was found in this document.",
+    "demoFixtures": "No part numbers were found in this document, so these are example lines with no source.",
+    "demoBadge": "DEMO",
+    "loading": "Looking for parts…",
+    "errorTitle": "Parts couldn't be loaded",
+    "emptyTitle": "No parts found",
+    "emptyBody": "No part numbers were recognized in this document.",
+    "code": "Part number",
+    "qty": "Quantity",
+    "unit": "Unit",
+    "include": "Include {{code}} in the sheet",
+    "note": "Note",
+    "notePlaceholder": "Note for this line",
+    "noQty": "Not stated in the document",
+    "userQty": "Changed by you",
+    "source": "Open the source: {{place}}",
+    "noSource": "No source",
+    "inText": "in text",
+    "offers": "Offers",
+    "noOffers": "No matching offers",
+    "chooseOffer": "Choose",
+    "chosen": "Chosen",
+    "clearOffer": "Clear choice",
+    "needsReview": "Different designation: check before choosing",
+    "exact": "Same part number",
+    "row": "row {{row}}",
+    "checked": "checked {{date}}",
+    "stock": "in stock: {{count}}",
+    "open": "supplier's page",
+    "unit_price": "{{price}} per unit",
+    "line": "Line total",
+    "back": "Back to the sheet",
+    "marking": {
+      "title": "Check a part or its marking",
+      "hint": "Take a photo or choose one, then confirm the part number yourself. Only confirmed text is compared.",
+      "photo": "Photo of the part or marking",
+      "add": "Add a photo",
+      "read": "Read from the photo. Check it against the image.",
+      "notRead": "The text couldn't be read automatically. Type it from the photo.",
+      "field": "Part number on the marking",
+      "confirm": "Confirm and compare",
+      "another": "Check another",
+      "document": "In the document",
+      "found": "On the marking",
+      "status": {
+        "exact": "Exact match",
+        "possible": "Possible match",
+        "conflict": "Conflict",
+        "insufficient": "Not enough data"
+      },
+      "explain": {
+        "exact": "The whole part number matches the document.",
+        "possible": "Part of the number matches. Check the full marking before relying on it.",
+        "conflict": "This is a different designation from the document's. It isn't a confirmed substitute.",
+        "insufficient": "Not enough to compare with the document."
+      }
+    },
+    "prices": {
+      "title": "Price list",
+      "select": "Offers from",
+      "builtIn": "Demo prices (invented)",
+      "upload": "Upload a price list",
+      "supplier": "Supplier",
+      "supplierPlaceholder": "Supplier's name",
+      "file": "CSV or XLSX. Required columns: {{columns}}.",
+      "demoFile": "In demonstration mode only CSV can be read.",
+      "invalid": "This file couldn't be read. Check the format and the required columns.",
+      "skipped_one": "{{count}} row skipped: price, date or part number is wrong.",
+      "skipped_other": "{{count}} rows skipped: price, date or part number is wrong."
+    },
+    "budget": {
+      "title": "Budget",
+      "total": "Total",
+      "none": "Choose offers to see a total.",
+      "incomplete_one": "Not final: {{count}} line has no offer or quantity.",
+      "incomplete_other": "Not final: {{count}} lines have no offer or quantity.",
+      "complete": "All included lines are priced.",
+      "limit": "Budget limit",
+      "over": "Over the limit by {{amount}}",
+      "within": "Within the limit, {{amount}} left",
+      "separate": "Amounts in different currencies are not added up or converted.",
+      "noOrder": "Nothing is ordered from here: this sheet is for a person to decide."
+    },
+    "export": {
+      "csv": "Export CSV",
+      "xlsx": "Export XLSX"
+    }
   }
 }
