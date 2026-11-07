@@ -4,6 +4,7 @@ Contract: docs/API-PROCUREMENT.md (revision 2). Money is computed by code (app.p
 """
 
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from typing import Literal
 
@@ -19,8 +20,9 @@ from app.llm import LlmAuthFailed, LlmMisconfigured, LlmRateLimited, LlmTimeout,
 from app.parts import CATEGORIES, KIND as PART_LIST, empty_list, filtered, find_part, run_extraction
 from app.pricing import (
     MAX_PRICE_LIST_BYTES, MAX_PRICE_LISTS, MAX_QUANTITY, calculate, export_rows, find_offer, new_price_list,
-    offers_for, public_price_list, to_csv, to_xlsx,
+    offer_from, offers_for, public_price_list, to_csv, to_xlsx,
 )
+from app.sitecheck import allowed_domains, check_offer
 from app.store import Store
 from app.vision import MAX_IMAGE_BYTES, PROMPT as PHOTO_PROMPT, identify, image_type, is_json_object, recognized_from
 
@@ -29,6 +31,8 @@ logger = logging.getLogger("app.procurement")
 
 PRICE_LIST = "price_list"
 CONFIRMATION = "confirmation"
+MAX_CHECKS = 10
+CHECK_WORKERS = 4
 CAMEL = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
@@ -49,6 +53,11 @@ class OffersRequest(BaseModel):
     model_config = CAMEL
     document_id: str
     part_ids: list[str] = Field(min_length=1, max_length=200)
+
+
+class CheckOffers(BaseModel):
+    model_config = CAMEL
+    offer_ids: list[str] = Field(min_length=1, max_length=MAX_CHECKS)
 
 
 class QuoteItem(BaseModel):
@@ -249,6 +258,42 @@ def procurement_offers(body: OffersRequest, store: Store = Depends(get_store), s
             raise AppError(404, "PART_NOT_FOUND", f"No part {part_id[:20]} in this document")
         offers, similar = offers_for(part, price_lists)
         items.append({"partId": part_id, "partNumber": part["partNumber"], "offers": offers, "similar": similar})
+    return {"items": items}
+
+
+@router.post("/procurement/offers/check")
+def check_offers(body: CheckOffers, store: Store = Depends(get_store), session: Session = Depends(limited("compare"))) -> dict:
+    """Read each offer's price on the supplier's page (app.sitecheck). The result is kept on the price list row, so
+    later offers and quotes use it; a failed check keeps the file's price and says why."""
+    price_lists = store.list_records(PRICE_LIST, session.owner_id)
+    targets = []
+    for offer_id in dict.fromkeys(body.offer_ids):
+        found = find_offer(offer_id, price_lists)
+        if found is None:
+            raise AppError(404, "OFFER_NOT_FOUND", f"No offer {offer_id[:40]}")
+        targets.append((offer_id, *found))
+    domains = allowed_domains()
+
+    def run(target):
+        _offer_id, price_list, row = target
+        if price_list["demo"]:
+            return {"status": "failed", "reason": "demo_price_list", "price": None, "currency": None,
+                    "stockStatus": "unknown", "checkedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"), "url": None}
+        return check_offer(row["url"], row["partNumber"], domains)
+
+    with ThreadPoolExecutor(max_workers=CHECK_WORKERS) as pool:
+        results = list(pool.map(run, targets))
+    changed = {}
+    items = []
+    for (offer_id, price_list, row), result in zip(targets, results):
+        row["siteCheck"] = result
+        changed[price_list["id"]] = price_list
+        logger.info("price check %s status=%s reason=%s", offer_id, result["status"], result["reason"])
+        offer = offer_from(price_list, row, "exact")  # the match to a part is not known here: only price fields are sent
+        items.append({"offerId": offer_id, "siteCheck": result, "priceOrigin": offer["priceOrigin"],
+                      "price": offer["price"], "currency": offer["currency"], "filePrice": offer["filePrice"]})
+    for price_list in changed.values():
+        store.put_record(PRICE_LIST, price_list["id"], session.owner_id, price_list)
     return {"items": items}
 
 

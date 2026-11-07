@@ -112,6 +112,16 @@ def test_the_pdf_text_and_its_quotes_show_an_ordinary_hyphen():
     assert len(quote_highlights(manual, 2, "подшипник 6205-2RS — 4 шт.")) == 1
 
 
+def test_a_price_row_without_a_code_column_is_matched_by_the_code_in_its_title():
+    from app.pricing import row_match
+
+    title = lambda text: {"partNumber": None, "title": text}  # noqa: E731
+    assert row_match("6205-2RS", title("Подшипник 6205-2RS")) == "exact"
+    assert row_match("NU 210 ECP", title("Подшипник NU 210 ECP, SKF")) == "exact"
+    assert row_match("6205-2RS", title("Подшипник 6205-2RSH")) is None
+    assert row_match("6205", title("Подшипник 6205-2RS")) is None
+
+
 def test_bearings_are_found_but_amounts_and_years_are_not():
     assert [found[0] for found in find_bearings(MANUAL[1])] == ["6205-2RS", "NU 210 ECP"]
     assert find_bearings(MANUAL[3]) == []  # a bearing word nearby, but an amount and a year
@@ -462,7 +472,8 @@ def test_capabilities_only_add_fields(client):
     use(client, JsonAnswerer())
     body = client.get("/api/v1/capabilities").json()
     assert {"version", "languages", "ocr", "docxPreview", "comparison", "highlights", "limits"} <= set(body)
-    assert body["features"] == {"claimCheck": True, "parts": True, "photoIdentify": True, "priceLists": True, "procurement": True, "hr": False}
+    assert body["features"] == {"claimCheck": True, "parts": True, "photoIdentify": True, "priceLists": True, "procurement": True, "hr": False,
+                                "priceCheck": False}  # added 8 Nov: on only when PRICE_CHECK_DOMAINS is set
     assert body["limits"]["maxImageBytes"] == 8 * 1024 * 1024
     use(client, FakeAnswerer())
     assert client.get("/api/v1/capabilities").json()["features"]["photoIdentify"] is False

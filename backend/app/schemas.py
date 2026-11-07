@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 from app.config import MAX_DOCUMENTS_PER_CONVERSATION, MAX_FILE_SIZE_BYTES, MAX_PAGES
+from app.sitecheck import allowed_domains
 
 CAMEL = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
@@ -72,6 +73,7 @@ class Features(BaseModel):
     price_lists: bool
     procurement: bool
     hr: bool
+    price_check: bool = False  # POST /procurement/offers/check: on when PRICE_CHECK_DOMAINS lists at least one shop
 
 
 class Capabilities(BaseModel):
@@ -98,7 +100,8 @@ def build_capabilities(version: str, ocr: bool, vision: bool = False) -> Capabil
         docx_preview="none",
         comparison=True,
         highlights=True,
-        features=Features(claim_check=True, parts=True, photo_identify=vision, price_lists=True, procurement=True, hr=False),
+        features=Features(claim_check=True, parts=True, photo_identify=vision, price_lists=True, procurement=True, hr=False,
+                          price_check=bool(allowed_domains())),
         limits=Limits(
             max_file_size_bytes=MAX_FILE_SIZE_BYTES,
             max_pages=MAX_PAGES,

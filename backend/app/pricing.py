@@ -211,7 +211,9 @@ def public_price_list(record: dict) -> dict:
 
 
 def offer_from(price_list: dict, row: dict, match: str) -> dict:
-    return {
+    """An offer. Its price is the file's (priceOrigin "file") unless the supplier's page was really read and gave a
+    price (priceOrigin "site_checked"): a link alone, or a failed check, never changes it."""
+    offer = {
         "id": f"{price_list['id']}:{row['row']}",
         "supplier": row["supplier"] or price_list["supplier"],
         "title": row["title"],
@@ -228,7 +230,17 @@ def offer_from(price_list: dict, row: dict, match: str) -> dict:
         "checkedAt": row["checkedAt"] or price_list["checkedAt"],
         "checkedAtOrigin": "file" if row["checkedAt"] else price_list["checkedAtOrigin"],
         "demo": price_list["demo"],
+        "priceOrigin": "file",
+        "filePrice": row["price"],
+        "siteCheck": row.get("siteCheck"),
     }
+    check = row.get("siteCheck")
+    if check and check["status"] == "checked" and not price_list["demo"]:
+        offer.update(price=check["price"], currency=check["currency"], priceOrigin="site_checked",
+                     checkedAt=check["checkedAt"], checkedAtOrigin="site", url=check["url"])
+        if check["stockStatus"] != "unknown":
+            offer.update(stockStatus=check["stockStatus"], stockQuantity=None)
+    return offer
 
 
 def row_match(part_number: str, row: dict) -> str | None:
@@ -236,8 +248,11 @@ def row_match(part_number: str, row: dict) -> str | None:
     if row["partNumber"]:
         return code_match(part_number, row["partNumber"])
     key = normalize_code(part_number)
-    tokens = re.findall(r"[\w\-./]+(?:\s[\w\-./]+){0,2}", row["title"] or "")
-    if key and any(normalize_code(token) == key for token in tokens):
+    words = re.findall(r"[\w\-./]+", row["title"] or "")
+    # Every run of 1-3 words: "Подшипник 6205-2RS" holds "6205-2RS", and "NU 210 ECP" spans three words. (Found while
+    # adding the price check: one greedy pass took "Подшипник 6205-2RS" as one token and never saw the code alone.)
+    windows = (" ".join(words[start:start + size]) for size in (1, 2, 3) for start in range(len(words) - size + 1))
+    if key and any(normalize_code(window) == key for window in windows):
         return "exact"
     return None
 
@@ -289,7 +304,8 @@ def calculate(items: list[dict]) -> tuple[list[dict], list[dict], int]:
 
 
 EXPORT_COLUMNS = ("№", "Позиция", "Артикул", "Кол-во", "Ед.", "Цена", "Валюта", "Сумма", "Поставщик", "Ссылка",
-                  "Дата цены", "Страница документа", "Идентификация", "Статус")
+                  "Дата цены", "Страница документа", "Идентификация", "Статус", "Источник цены")  # new columns go last
+PRICE_ORIGIN_NAMES = {"file": "прайс-лист", "site_checked": "проверено на сайте"}
 
 
 def export_rows(quote: dict) -> list[list]:
@@ -299,10 +315,11 @@ def export_rows(quote: dict) -> list[list]:
         pages = ", ".join(str(source["page"]) for source in item.get("sources", []) if source.get("page") is not None)
         rows.append([number, item["name"], item["partNumber"] or "", item["quantity"], item["unit"] or "",
                      item["unitPrice"] or "", item["currency"] or "", item["lineTotal"] or "", offer.get("supplier", ""),
-                     offer.get("url") or "", offer.get("checkedAt", ""), pages, item["identification"]["status"], item["status"]])
+                     offer.get("url") or "", offer.get("checkedAt", ""), pages, item["identification"]["status"], item["status"],
+                     PRICE_ORIGIN_NAMES.get(offer.get("priceOrigin"), "")])
     rows.append([])
     for total in quote["totals"]:
-        rows.append(["", "Итого", "", "", "", "", total["currency"], total["amount"], "", "", "", "", "", ""])
+        rows.append(["", "Итого", "", "", "", "", total["currency"], total["amount"], "", "", "", "", "", "", ""])
     if quote["unpriced"]:
         rows.append(["", f"Без цены: {quote['unpriced']} поз. (не входят в итог)"])
     return rows

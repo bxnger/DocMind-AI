@@ -197,8 +197,8 @@
 
 ## 3. Поставщики и цены
 
-MVP: **импорт прайсов CSV/XLSX**. Поиск по сайтам магазинов — только по источникам, которые разрешают это (открытый API
-или разрешение владельца); в MVP не входит, поле `source: "web"` зарезервировано.
+MVP: **импорт прайсов CSV/XLSX**. Поиска по сайтам магазинов нет (поле `source: "web"` зарезервировано). С 8 ноября
+есть **проверка цены по ссылке из прайса** на сайтах из разрешённого списка (`POST /procurement/offers/check`, ниже).
 
 ### `POST /price-lists` → `201` `PriceList`
 `multipart/form-data`: `file` (CSV или XLSX, до 5 МБ), необязательно `supplier`, `currency` (по умолчанию `KZT`),
@@ -270,6 +270,46 @@ MVP: **импорт прайсов CSV/XLSX**. Поиск по сайтам ма
 - `url` — только если ссылка есть в файле; иначе `null`. `sourceRow` — номер строки в файле (для проверки).
 - `id` предложения = `<priceListId>:<строка>`: стабилен, пока прайс не удалён.
 - Пустые `offers` и `similar` — «предложений нет».
+- **Новые поля (8 ноября, необязательные для клиента):** `priceOrigin` (`file` | `site_checked`), `filePrice`
+  (цена из файла, всегда), `siteCheck` (`null`, пока не проверяли, или `SiteCheck` ниже). При `site_checked` поля
+  `price`, `currency`, `checkedAt` (дата-время проверки), `url` (итоговый адрес страницы) и `stockStatus` (если сайт его
+  указал) — **с сайта**, `checkedAtOrigin: "site"`. Во всех остальных случаях — как раньше, из файла.
+
+### `POST /procurement/offers/check` → `200` (новое, 8 ноября)
+Проверка цены предложения на странице поставщика (ссылка из прайса). Тело: `{"offerIds": ["pl1:17", "pl1:18"]}`, до 10.
+```json
+{
+  "items": [
+    {"offerId": "pl1:17", "priceOrigin": "site_checked", "price": "4650.00", "currency": "KZT", "filePrice": "4850.00",
+     "siteCheck": {"status": "checked", "reason": null, "price": "4650.00", "currency": "KZT", "stockStatus": "available",
+                   "checkedAt": "2026-11-08T10:30:00+00:00", "url": "https://shop.kz/p/6205-2rs"}},
+    {"offerId": "pl1:18", "priceOrigin": "file", "price": "5100.00", "currency": "KZT", "filePrice": "5100.00",
+     "siteCheck": {"status": "failed", "reason": "no_product_data", "price": null, "currency": null,
+                   "stockStatus": "unknown", "checkedAt": "2026-11-08T10:30:01+00:00", "url": "https://shop.kz/p/6205-2rsh"}}
+  ]
+}
+```
+- **`site_checked` ставится только после успешной реальной проверки**: страница открыта, на ней опубликованы данные товара
+  (schema.org `Product`/`Offer` в JSON-LD или микроразметке, либо `product:price:*`), товар назван **тем же артикулом**
+  (точное совпадение после нормализации), цена одна, больше нуля и с валютой. Ссылка сама по себе ничего не меняет.
+- При любой неудаче цена остаётся из файла (`priceOrigin: "file"`), в `siteCheck.reason` причина:
+  `check_disabled` (не настроен список сайтов) · `no_url` · `no_part_number` · `demo_price_list` · `not_https` · `bad_url` ·
+  `bad_port` · `ip_address_host` · `domain_not_allowed` · `dns_failed` · `private_address` · `unverified_connection` ·
+  `bad_redirect` · `too_many_redirects` · `timeout` · `connection_failed` · `http_<код>` · `not_html` · `page_too_large` ·
+  `no_product_data` · `part_number_not_on_page` · `several_prices` · `no_price` · `no_currency`.
+- Результат хранится в строке прайса: дальше `/procurement/offers`, `quote` и `export` берут его сами.
+  Новая неудачная проверка возвращает цену из файла.
+- Текст страницы не передаётся модели и не выполняется: читаются только поля данных о товаре.
+- **Безопасность адреса** (адрес пришёл из файла пользователя): только `https` и порт 443; без `user:password@`; хост —
+  только из списка `PRICE_CHECK_DOMAINS` (или его поддомен), не IP-адрес; **все** IP, в которые резолвится имя, должны быть
+  публичными — запрещены localhost, частные сети, `169.254.0.0/16` (metadata облаков), `100.64.0.0/10`, IPv6 loopback,
+  link-local и ULA, multicast, зарезервированные; соединение должно прийти на один из проверенных адресов (защита от DNS
+  rebinding); каждый редирект проверяется заново, не больше 3; прокси из окружения не используется; таймауты 4 с на
+  соединение, 8 с на чтение, 15 с на всю проверку; читается не больше 2 МБ; принимается только HTML.
+- Ошибки: `404 OFFER_NOT_FOUND` (нет такого предложения в этой сессии), `422` (больше 10 или пусто).
+  Лимит частоты — как у сравнения документов.
+- `GET /capabilities` → `features.priceCheck: true`, только если задан `PRICE_CHECK_DOMAINS`.
+  Список сайтов задаёт администратор сервера, пользователь его не меняет.
 
 ---
 
@@ -313,6 +353,7 @@ MVP: **импорт прайсов CSV/XLSX**. Поиск по сайтам ма
 
 ### `POST /procurement/quote/export?format=xlsx|csv` → файл
 То же тело, что у `quote`. Возвращает ведомость: позиция, артикул, кол-во, цена, валюта, сумма, поставщик, ссылка, дата цены, страница документа.
+Последняя колонка (с 8 ноября) — «Источник цены»: «прайс-лист» или «проверено на сайте». Прежние колонки не сдвигались.
 
 ---
 
