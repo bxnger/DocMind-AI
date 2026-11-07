@@ -25,7 +25,9 @@ from app.translate import translation_prompt
 logger = logging.getLogger("app.groq")
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_TIMEOUT_SECONDS = 25.0
+# Groq answers in one piece (no stream). The release QA run measured 0.5-3 s for the longest answers; a provider
+# that has said nothing for this long is stuck, and the user is already waiting behind the Gemini attempts.
+GROQ_TIMEOUT_SECONDS = 12.0
 MAX_TOKENS = 1024
 # Reasoning models put their working in <think>...</think> before the answer; it is not part of the answer.
 THINK_BLOCK = re.compile(r"<think>.*?</think>", re.DOTALL)

@@ -111,6 +111,83 @@ def test_the_prompt_answers_a_wrong_premise_instead_of_refusing():
     assert "say nothing that answers the question, reply with exactly NOT_FOUND" in SYSTEM_PROMPT
 
 
+def _mixed_pdf(path):
+    """Page 1 has text, page 2 is a picture of text (a scan), page 3 is blank."""
+    import pymupdf as fitz
+
+    source = fitz.open()
+    source.new_page().insert_text((72, 72), "Scanned appendix: the amount is 780 500 tenge.", fontsize=20)
+    picture = source[0].get_pixmap(dpi=200).tobytes("png")
+    doc = fitz.open()
+    doc.new_page().insert_text((72, 72), "Digital page: the budget is 12 450 000 tenge.")
+    doc.new_page().insert_image(fitz.Rect(0, 0, 595, 842), stream=picture)
+    doc.new_page()
+    doc.save(path)
+
+
+def test_a_scanned_page_inside_a_digital_pdf_is_read_with_ocr_and_a_blank_page_is_not(tmp_path):
+    """Found live: OCR ran only when no page had text, so a scanned page inside a digital PDF (a signed page, an
+    attachment) was dropped without a word, and questions about it were 'not found'."""
+    from app.extraction import Segment, read_document, scanned_pages
+
+    path = tmp_path / "mixed.pdf"
+    _mixed_pdf(path)
+    assert scanned_pages(path) == [2]
+    calls = []
+
+    def fake_read(file, languages=None, only_pages=None):
+        calls.append((languages, only_pages))
+        scan = "Scanned appendix: the amount is 780 500 tenge." if languages else ""
+        return [Segment(1, None, "Digital page."), Segment(2, None, scan), Segment(3, None, "")]
+
+    segments, ocr_used = read_document(path, "pdf", 300, 50, fake_read, lambda: "eng")
+    assert ocr_used and calls == [(None, None), ("eng", {2})] and "780 500" in segments[1].text
+
+    calls.clear()
+    segments, ocr_used = read_document(path, "pdf", 300, 50, fake_read, lambda: None)  # no OCR on this server
+    assert not ocr_used and segments[0].text == "Digital page." and calls == [(None, None)]
+    calls.clear()
+    read_document(path, "pdf", 300, 0, fake_read, lambda: "eng")  # more scanned pages than allowed: text pages only
+    assert calls == [(None, None)]
+
+
+def test_the_real_ocr_reads_a_scanned_page_inside_a_digital_pdf(tmp_path):
+    """Needs Tesseract with English data; skipped otherwise."""
+    from app.extraction import read_document
+
+    if not ocr_languages():
+        pytest.skip("Tesseract data is not available")
+    path = tmp_path / "mixed.pdf"
+    _mixed_pdf(path)
+    segments, ocr_used = read_document(path, "pdf", 300, 50)
+    assert ocr_used and "12 450 000" in segments[0].text and "780 500" in segments[1].text and segments[2].text == ""
+
+
+def test_a_model_that_sends_nothing_gives_way_early_but_a_started_answer_keeps_its_budget(monkeypatch):
+    """Found live with a provider that accepts the connection and never answers: the user waited 66 s (25 + 15 + 25)
+    for LLM_TIMEOUT. A model that has not sent its first chunk within FIRST_CHUNK_SECONDS now gives way."""
+    import asyncio
+    import time
+
+    from app.llm import LlmTimeout
+    from tests.test_gemini import FakeClient, FakeStream, answerer_for, collect
+
+    monkeypatch.setattr("app.llm_gemini.FIRST_CHUNK_SECONDS", 0.2)
+    monkeypatch.setattr("app.llm_gemini.REQUEST_TIMEOUT_SECONDS", 5.0)
+    started = time.monotonic()
+    with pytest.raises(LlmTimeout):
+        collect(answerer_for(FakeClient(FakeStream(["x"], delay=3))))
+    assert time.monotonic() - started < 1.5
+
+    class SlowAfterStart(FakeStream):
+        async def __anext__(self):
+            if len(self.pieces) < 3:  # the first chunk is quick, the rest are slow
+                await asyncio.sleep(0.3)
+            return await super().__anext__()
+
+    assert collect(answerer_for(FakeClient(SlowAfterStart(["a", "b", "c"])))) == ["a", "b", "c"]
+
+
 def test_a_session_may_process_as_many_files_at_once_as_it_may_upload_per_minute():
     """Found live: dropping five files at once gave 'Too many requests' for the fourth and fifth, because only three
     could be processing at once while the upload limit allows six a minute. The frontend promises that several files
