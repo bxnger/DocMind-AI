@@ -230,6 +230,15 @@ def photo(client, document_id, data=JPEG):
     ({"text": "6205-2RS", "partNumber": "6205-2RS", "readability": "low"}, "needs_confirmation", "exact"),
     ({"text": "6310", "partNumber": "6310", "readability": "high"}, "no_match", None),
     ({"text": "", "partNumber": None, "readability": "unreadable"}, "unreadable", None),
+    # The part itself (experimental): without a number only the kind is matched, and never as a match.
+    ({"partNumber": None, "readability": "unreadable", "partType": "bearing", "confidence": "high"}, "type_only", "type"),
+    ({"partNumber": None, "readability": "unreadable", "partType": "bearing", "confidence": "low"}, "unreadable", None),
+    ({"partNumber": None, "readability": "unreadable", "partType": "filter", "confidence": "high"}, "unreadable", None),
+    ({"partNumber": None, "readability": "unreadable", "partType": "spaceship", "confidence": "high"}, "unreadable", None),
+    # The same number, but the photo clearly shows another kind of part: a person has to look.
+    ({"partNumber": "6205-2RS", "readability": "high", "partType": "motor", "confidence": "high"},
+     "needs_confirmation", "exact"),
+    ({"partNumber": "6205-2RS", "readability": "high", "partType": "motor", "confidence": "medium"}, "matched", "exact"),
 ])
 def test_a_photo_is_read_by_the_model_and_matched_by_code(client, read, status, match):
     answerer = JsonAnswerer(lambda prompt, image: {"equipment": None, "parts": []} if image is None else read)
@@ -239,8 +248,63 @@ def test_a_photo_is_read_by_the_model_and_matched_by_code(client, read, status, 
     body = photo(client, document_id).json()
     assert body["matchStatus"] == status
     assert (body["matches"][0]["match"] if body["matches"] else None) == match
-    assert body["message"]
+    assert body["message"] and "{type}" not in body["message"]
     assert answerer.json_calls[-1][1] == JPEG
+    if status in ("type_only", "unreadable"):
+        assert body["recognized"]["partNumber"] is None  # never made up from the look of the part
+
+
+def test_the_old_fields_stay_and_the_new_ones_hold_only_what_was_read():
+    from app.vision import recognized_from
+
+    old = recognized_from(json.dumps({"text": "SKF 6205-2RS C3", "partNumber": "6205-2RS", "manufacturer": "SKF",
+                                      "markings": ["C3"], "readability": "high"}))
+    assert {key: old[key] for key in ("text", "partNumber", "manufacturer", "markings", "readability")} == {
+        "text": "SKF 6205-2RS C3", "partNumber": "6205-2RS", "manufacturer": "SKF", "markings": ["C3"], "readability": "high"}
+    assert old["visibleMarkings"] == ["6205-2RS", "SKF", "C3"]  # built from what was read, nothing added
+    assert (old["partType"], old["confidence"], old["issues"]) == ("unknown", "low", [])
+    listed = recognized_from(json.dumps({"partNumber": None, "visibleMarkings": ["FAG", " ", "FAG"], "partType": "other",
+                                         "confidence": "very"}))
+    assert listed["visibleMarkings"] == ["FAG"] and listed["confidence"] == "low"
+    # Found live: a clear marking of a bearing came back with "not_a_part"; the same answer contradicts it.
+    clear = recognized_from(json.dumps({"text": "SKF 6205-2RSH", "partNumber": "6205-2RSH", "readability": "high",
+                                        "partType": "bearing", "confidence": "high", "issues": ["not_a_part", "no_marking"]}))
+    assert clear["issues"] == []
+    empty = recognized_from(json.dumps({"partNumber": None, "readability": "unreadable", "issues": ["not_a_part"]}))
+    assert empty["issues"] == ["not_a_part"]
+
+
+def test_a_part_recognized_only_by_its_look_offers_candidates_to_confirm(client):
+    read = {"partNumber": None, "readability": "unreadable", "partType": "bearing", "confidence": "medium",
+            "issues": ["glare", "partial", "bogus"]}
+    use(client, JsonAnswerer(lambda prompt, image: {"equipment": None, "parts": []} if image is None else read))
+    document_id = ready(client)
+    parts_of(client, document_id)
+    body = photo(client, document_id).json()
+    assert body["matchStatus"] == "type_only"
+    assert {m["partNumber"] for m in body["matches"]} == {"6205-2RS", "NU 210 ECP"}
+    assert all(m["match"] == "type" and m["difference"] for m in body["matches"])
+    assert "подшипник" in body["message"] and "подтвердите" in body["message"]
+    assert body["recognized"]["issues"] == ["glare", "partial"]
+    assert len(body["tips"]) == 2 and "Блик" in body["tips"][0]
+
+
+def test_a_conflicting_look_is_named_and_an_unreadable_photo_gets_a_tip(client):
+    reads = iter([
+        {"partNumber": "6205-2RS", "readability": "high", "partType": "motor", "confidence": "high"},
+        {"partNumber": None, "readability": "unreadable"},
+        "not json at all",
+        "still not json",
+    ])
+    use(client, JsonAnswerer(lambda prompt, image: {"equipment": None, "parts": []} if image is None else next(reads)))
+    document_id = ready(client)
+    parts_of(client, document_id)
+    conflict = photo(client, document_id).json()
+    assert "электродвигатель" in conflict["matches"][0]["difference"]
+    plain = photo(client, document_id).json()
+    assert plain["matchStatus"] == "unreadable" and plain["tips"] and plain["recognized"]["partType"] == "unknown"
+    broken = photo(client, document_id).json()  # two answers that are not JSON: unreadable, nothing invented
+    assert broken["matchStatus"] == "unreadable" and broken["matches"] == [] and broken["recognized"]["partNumber"] is None
 
 
 def test_photo_errors(client):

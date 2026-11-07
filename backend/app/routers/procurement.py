@@ -16,13 +16,13 @@ from app.auth import Session, limited
 from app.deps import get_answerer, get_store
 from app.errors import AppError
 from app.llm import LlmAuthFailed, LlmMisconfigured, LlmRateLimited, LlmTimeout, LlmUnavailable
-from app.parts import CATEGORIES, KIND as PART_LIST, empty_list, filtered, find_part, match_photo, run_extraction
+from app.parts import CATEGORIES, KIND as PART_LIST, empty_list, filtered, find_part, run_extraction
 from app.pricing import (
     MAX_PRICE_LIST_BYTES, MAX_PRICE_LISTS, MAX_QUANTITY, calculate, export_rows, find_offer, new_price_list,
     offers_for, public_price_list, to_csv, to_xlsx,
 )
 from app.store import Store
-from app.vision import MAX_IMAGE_BYTES, MESSAGES, PROMPT as PHOTO_PROMPT, decide, image_type, is_json_object, recognized_from
+from app.vision import MAX_IMAGE_BYTES, PROMPT as PHOTO_PROMPT, identify, image_type, is_json_object, recognized_from
 
 router = APIRouter(tags=["procurement"])
 logger = logging.getLogger("app.procurement")
@@ -166,20 +166,12 @@ async def identify_part(
         raise AppError(503, "VISION_UNAVAILABLE", "Photo recognition is unavailable", retryable=True)
     finally:
         del data  # the photo is not kept
-    recognized = recognized_from(answer)
-    found = match_photo(record["parts"], recognized["partNumber"]) if recognized["readability"] != "unreadable" else []
-    status = decide(recognized, found)
-    matches = []
-    for item in found[:5]:
-        part = item["part"]
-        difference = None
-        if item["kind"] != "exact":
-            difference = f"На фото {recognized['partNumber']}, в документе {part['partNumber']}"
-        matches.append({"partId": part["id"], "partNumber": part["partNumber"], "name": part["name"], "match": item["kind"],
-                        "difference": difference, "sources": part["sources"]})
-    logger.info("photo identify status=%s readability=%s matches=%d", status, recognized["readability"], len(matches))
-    return {"matchStatus": status, "recognized": recognized, "matches": matches,
-            "message": MESSAGES[status][language or "ru"]}
+    result = identify(record["parts"], recognized_from(answer), language)
+    recognized = result["recognized"]
+    logger.info("photo identify status=%s readability=%s type=%s/%s issues=%s matches=%d", result["matchStatus"],
+                recognized["readability"], recognized["partType"], recognized["confidence"], recognized["issues"],
+                len(result["matches"]))
+    return result
 
 
 @router.post("/documents/{document_id}/parts/{part_id}/confirmations", status_code=201)
