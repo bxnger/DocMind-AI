@@ -9,7 +9,9 @@ import {
   frequentTerms,
   hasSearchableText,
 } from '@/services/chat';
-import { SAMPLE_QUESTION_KEYS, isSampleDocument } from '@/services/sampleDocument';
+import { isSampleDocument } from '@/services/sampleDocument';
+import { MODE_SAMPLE_QUESTIONS, sampleQuestionAliases } from '@/features/userModes/sampleQuestions';
+import { useUserMode } from '@/features/userModes/useUserMode';
 import type { ChatMode } from '@/types/chat';
 import type { DocumentModel } from '@/types/document';
 import type { DocumentSource } from './useDocumentSource';
@@ -17,6 +19,7 @@ import type { DocumentSource } from './useDocumentSource';
 /** Chooses the adapter: real AI through the backend, or the separate demo search. */
 export function useAssistant(doc: DocumentModel, source: DocumentSource, pdf: PdfState, requestedMode: ChatMode) {
   const { t, i18n: translator } = useTranslation();
+  const userMode = useUserMode();
   // The sample is not on the backend, so real AI cannot answer about it.
   const mode: ChatMode = isSampleDocument(doc.id) ? 'demo' : requestedMode;
 
@@ -28,8 +31,8 @@ export function useAssistant(doc: DocumentModel, source: DocumentSource, pdf: Pd
   // Real answers do not depend on the PDF's text, so finishing to read it must not touch them.
   const liveAdapter = useMemo(() => (liveReady ? createLiveChatAdapter(doc.id, doc.name) : null), [doc.id, doc.name, liveReady]);
   const demoAdapter = useMemo(
-    () => (mode === 'demo' && text && hasSearchableText(text) ? createDemoChatAdapter(doc.id, text, undefined) : null),
-    [doc.id, mode, text],
+    () => (mode === 'demo' && text && hasSearchableText(text) ? createDemoChatAdapter(doc.id, text, isSampleDocument(doc.id) ? sampleQuestionAliases((key) => t(key as never)) : undefined) : null),
+    [doc.id, mode, text, translator.language, t],
   );
   const adapter = mode === 'live' ? liveAdapter : demoAdapter;
 
@@ -48,9 +51,9 @@ export function useAssistant(doc: DocumentModel, source: DocumentSource, pdf: Pd
     if (!text) return { state: 'preparing', reason: 'text' };
     if (!adapter) return { state: 'unavailable', reason: 'no-text' };
     return isSampleDocument(doc.id)
-      ? { state: 'ready', suggestions: SAMPLE_QUESTION_KEYS.map((key) => t(`home.sample.${key}`)), suggestionLang: translator.language }
+      ? { state: 'ready', suggestions: MODE_SAMPLE_QUESTIONS[userMode].map(({ key }) => t(`home.sample.${key}`)), suggestionLang: translator.language }
       : { state: 'ready', suggestions: frequentTerms(text).map((term) => t('chat.suggestWhere', { term })), suggestionLang: translator.language };
-  }, [adapter, doc.id, doc.status, translator.language, mode, pdf.status, source, t, text, textQuery.isError]);
+  }, [adapter, doc.id, doc.status, translator.language, mode, pdf.status, source, t, text, textQuery.isError, userMode]);
 
   return { text, adapter, availability, mode };
 }

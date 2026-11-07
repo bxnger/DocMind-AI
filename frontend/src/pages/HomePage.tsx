@@ -10,7 +10,9 @@ import { EvidencePreview } from '@/features/documents/EvidencePreview';
 import { useDocuments } from '@/features/documents/useDocuments';
 import { useErrorMessage } from '@/features/system/useErrorMessage';
 import { useCapabilities } from '@/features/system/useSystem';
-import { SAMPLE_DOCUMENT_ID, SAMPLE_QUESTION_KEYS } from '@/services/sampleDocument';
+import { SAMPLE_DOCUMENT_ID } from '@/services/sampleDocument';
+import { MODE_SAMPLE_QUESTIONS } from '@/features/userModes/sampleQuestions';
+import { useUserMode } from '@/features/userModes/useUserMode';
 import { Dropzone } from '@/features/upload/Dropzone';
 import { HomeModeStrip } from '@/features/userModes/HomeModeStrip';
 import type { DocumentModel } from '@/types/document';
@@ -79,6 +81,7 @@ export function HomePage() {
   const { t } = useTranslation();
   const documents = useDocuments();
   const capabilities = useCapabilities();
+  const userMode = useUserMode();
   return (
     <div className="h-full overflow-y-auto">
       <div className="mx-auto w-full max-w-[1040px] px-4 py-6 md:px-8 md:py-10">
@@ -90,7 +93,7 @@ export function HomePage() {
             <section aria-label={t('home.tryLabel')} data-testid="home-try" className="mt-4">
               <h2 className="micro-label mb-1.5">{t('home.tryLabel')}</h2>
               <ul className="flex flex-wrap gap-1.5">
-                {SAMPLE_QUESTION_KEYS.slice(0, 3).map((key) => (
+                {MODE_SAMPLE_QUESTIONS[userMode].slice(0, 3).map(({ key }) => (
                   <li key={key} className="min-w-0">
                     <Link to={`/documents/${SAMPLE_DOCUMENT_ID}`} state={{ prefill: t(`home.sample.${key}`) }} className="pressable inline-flex min-h-8 max-w-full items-center rounded-full border border-line bg-card px-3 py-1 text-sm hover:border-line-strong hover:bg-card-raised pointer-coarse:min-h-10">
                       {t(`home.sample.${key}`)}
