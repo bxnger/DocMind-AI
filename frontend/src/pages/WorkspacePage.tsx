@@ -17,6 +17,7 @@ import type { TextBlock } from '@/api/documents';
 import { useDocumentBlocks, useDocumentFacts } from '@/features/documents/useDocumentContent';
 import { blocksToMapText } from '@/features/knowledgeMap/docxText';
 import { FactsPanel, factMessage } from '@/features/facts/FactsPanel';
+import { VerifyPanel } from '@/features/verify/VerifyPanel';
 import { ProcurementPanel } from '@/features/procurement/ProcurementPanel';
 import { useUserMode } from '@/features/userModes/useUserMode';
 import { DeleteDocumentDialog } from '@/features/documents/DeleteDocumentDialog';
@@ -174,7 +175,8 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
   const fromFacts = picksExtra && Boolean(mapEvidence?.id.startsWith('facts:'));
   const fromProcurement = picksExtra && Boolean(mapEvidence?.id.startsWith('procurement:'));
   const fromHr = picksExtra && Boolean(mapEvidence?.id.startsWith('hr:'));
-  const fromMap = picksExtra && !fromFacts && !fromProcurement && !fromHr;
+  const fromVerify = picksExtra && Boolean(mapEvidence?.id.startsWith('verify:'));
+  const fromMap = picksExtra && !fromFacts && !fromProcurement && !fromHr && !fromVerify;
 
   const openFact = (factSource: EvidenceSource, prefix = 'facts') => {
     const message = factMessage(factSource, prefix);
@@ -258,7 +260,7 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
           <IconButton label={t('common.delete')} icon={<Trash2 size={16} aria-hidden />} onClick={() => setDeleting(true)} />
         )}
         {!split && (
-          <div role="tablist" aria-label={t('workspace.panes')} className="order-last flex w-full rounded-[10px] border border-line bg-card p-0.5 [@media(max-height:500px)]:order-none [@media(max-height:500px)]:w-64">
+          <div role="tablist" aria-label={t('workspace.panes')} className="order-last flex w-full overflow-x-auto [scrollbar-width:none] rounded-[10px] border border-line bg-card p-0.5 [@media(max-height:500px)]:order-none [@media(max-height:500px)]:w-64">
             {SEGMENTS.filter((value) => value === 'assistant' || (leftViews.includes(value) && !(value === 'facts' && userMode === 'procurement'))).map((value) => (
               <button
                 key={value}
@@ -270,7 +272,7 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
                   setPane(next.pane);
                   setView(next.view);
                 }}
-                className={cn('pressable h-9 min-w-0 flex-1 truncate rounded-lg px-0.5 text-sm font-medium max-[400px]:text-xs', segmentOf(pane, view) === value ? 'bg-accent text-on-accent' : 'text-muted')}
+                className={cn('pressable h-9 shrink-0 grow whitespace-nowrap rounded-lg px-2 text-sm font-medium max-[400px]:text-xs', segmentOf(pane, view) === value ? 'bg-accent text-on-accent' : 'text-muted')}
               >
                 {t(`workspace.segments.${value}`)}
               </button>
@@ -337,6 +339,13 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
               </ErrorBoundary>
             </div>
           )}
+          {leftViews.includes('verify') && (
+            <div className={cn('absolute inset-0 bg-bg', view !== 'verify' && HIDDEN_PANE)}>
+              <ErrorBoundary fallback={(reset) => <RegionCrash reset={reset} />}>
+                <VerifyPanel doc={doc} onOpenSource={(claimSource) => openFact(claimSource, 'verify')} />
+              </ErrorBoundary>
+            </div>
+          )}
           <AnimatePresence>
             {view === 'document' && selection && status && (
               <EvidenceInspector
@@ -347,8 +356,8 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
                 onStep={evidence.step}
                 onRefocus={evidence.refocus}
                 onClose={evidence.close}
-                onBack={fromMap ? () => setView('map') : fromFacts ? () => setView('facts') : fromProcurement ? () => setView('procurement') : fromHr ? () => void navigate(-1) : split ? null : () => setPane('assistant')}
-                backLabel={fromMap ? t('map.back') : fromFacts ? t('facts.back') : fromProcurement ? t('procurement.back') : fromHr ? t('hr.back') : undefined}
+                onBack={fromMap ? () => setView('map') : fromFacts ? () => setView('facts') : fromProcurement ? () => setView('procurement') : fromVerify ? () => setView('verify') : fromHr ? () => void navigate(-1) : split ? null : () => setPane('assistant')}
+                backLabel={fromMap ? t('map.back') : fromFacts ? t('facts.back') : fromProcurement ? t('procurement.back') : fromVerify ? t('verify.back') : fromHr ? t('hr.back') : undefined}
                 ocrUsed={doc.ocrUsed === true}
               />
             )}

@@ -203,7 +203,8 @@
       "map": "Map",
       "assistant": "Assistant",
       "facts": "Facts",
-      "procurement": "Procurement"
+      "procurement": "Procurement",
+      "verify": "Verify"
     },
     "ocrNotice": "This document was read with text recognition (OCR). Quotes may contain recognition errors, and passages may not be highlighted exactly: check them against the page."
   },
@@ -495,7 +496,8 @@
       "document": "Document",
       "map": "Map",
       "facts": "Facts",
-      "procurement": "Procurement"
+      "procurement": "Procurement",
+      "verify": "Verify"
     },
     "views": "Document or map",
     "canvas": "Map of the document's topics. Arrow keys move the map, plus and minus zoom. On a topic, Enter opens it, arrow keys move it and P pins it.",
@@ -895,6 +897,29 @@
     "kindPlural": {
       "must": "Required",
       "nice": "Desirable"
+    }
+  },
+  "verify": {
+    "title": "Check a claim",
+    "subtitle": "Type a statement, and see whether this document supports it. The answer rests only on this document.",
+    "label": "Claim to check",
+    "placeholder": "For example: the bearing is fitted in a quantity of 4",
+    "submit": "Check",
+    "checking": "Checking against the document…",
+    "sources": "Sources",
+    "back": "Back to the check",
+    "limit": "This compares the claim with the document only. It says nothing about whether the document itself is right.",
+    "tooLong": "A claim can be up to {{max}} characters.",
+    "notFoundBody": "The document has no passage to support or refute this. That doesn't make the claim false.",
+    "unavailableTitle": "Claim checking isn't available",
+    "unavailableBody": "This server doesn't offer it right now, so no result is shown.",
+    "notReadyTitle": "The document isn't ready",
+    "notReadyBody": "A claim can be checked once the document has been processed.",
+    "verdict": {
+      "supported": "Supported by the document",
+      "partly": "Partly supported",
+      "contradicted": "Contradicts the document",
+      "not_found": "No evidence found"
     }
   }
 }
