@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
 import { useErrorMessage } from '@/features/system/useErrorMessage';
-import { DEMO_PRICE_LIST, VERIFIED_PRICE_LIST, fetchDemoFile } from '@/services/industryDemo';
+import { DEMO_PRICE_LIST, REAL_PRICE_LIST, VERIFIED_PRICE_LIST, fetchDemoFile } from '@/services/industryDemo';
 import type { ProcurementAdapter } from '@/services/procurement/types';
 import type { PriceList } from '@/types/procurement';
 
@@ -80,6 +80,7 @@ export function PriceListsCard({ api, lists, showExamples = false }: Props) {
         <div data-testid="price-examples" className="mt-2 rounded-control border border-line bg-sidebar p-2">
           <p className="text-xs font-medium">{t('procurement.prices.examplesTitle')}</p>
           <div className="mt-1 flex flex-wrap gap-2">
+            <Button size="sm" data-testid="add-real-prices" icon={<ShieldCheck size={14} aria-hidden />} disabled={upload.isPending || has(REAL_PRICE_LIST.name)} onClick={() => void addExample(REAL_PRICE_LIST, false)}>{t('procurement.prices.addReal')}</Button>
             <Button size="sm" data-testid="add-verified-prices" icon={<ShieldCheck size={14} aria-hidden />} disabled={upload.isPending || has(VERIFIED_PRICE_LIST.name)} onClick={() => void addExample(VERIFIED_PRICE_LIST, false)}>{t('procurement.prices.addVerified')}</Button>
             <Button size="sm" data-testid="add-demo-prices" icon={<FlaskConical size={14} aria-hidden />} disabled={upload.isPending || has(DEMO_PRICE_LIST.name)} onClick={() => void addExample(DEMO_PRICE_LIST, true)}>{t('procurement.prices.addDemo')}</Button>
           </div>

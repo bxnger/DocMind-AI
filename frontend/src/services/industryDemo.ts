@@ -6,6 +6,7 @@
 export const DEMO_DOCUMENT = { url: '/demo/industry/tv320_manual.pdf', name: 'tv320_manual.pdf' };
 
 export const DEMO_PRICE_LIST = { url: '/demo/industry/demo_prices.csv', name: 'demo_prices.csv' };
+export const REAL_PRICE_LIST = { url: '/demo/industry/real_prices_kz.csv', name: 'real_prices_kz.csv' };
 export const VERIFIED_PRICE_LIST = { url: '/demo/industry/verified_suppliers.csv', name: 'verified_suppliers.csv' };
 
 export const DEMO_PHOTOS = [

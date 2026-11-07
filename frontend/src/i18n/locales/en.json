@@ -850,7 +850,7 @@
       "site": "checked on the supplier's page: {{date}}"
     },
     "stock": {
-      "available": "in stock",
+      "available": "available from the supplier, check warehouse and lead time",
       "unavailable": "not in stock",
       "unknown": "stock unknown",
       "count": "in stock: {{count}}"
@@ -955,8 +955,9 @@
       "examplesTitle": "Prepared files for this demonstration",
       "addVerified": "Real supplier pages",
       "addDemo": "Made-up DEMO prices",
-      "examplesBody": "Real pages: prices copied by hand from two Kazakhstan suppliers' product pages on the date in the file, not a live check. They are for designations of the 6205 family other than the one in the document, so they show as similar. DEMO: invented prices and supplier.",
-      "demoSupplier": "DEMO supplier (made up)"
+      "examplesBody": "Real prices: copied from Kazakhstan suppliers' sites on the date in the file, including an exact match for 6203. Real pages: other designations of the 6205 family, shown as similar. Available from the supplier doesn't mean a local warehouse: it may ship from abroad. DEMO: invented prices and supplier, best not mixed with real ones.",
+      "demoSupplier": "DEMO supplier (made up)",
+      "addReal": "Real prices, including 6203"
     },
     "needsCheck": "Needs checking ({{count}})",
     "needsCheckHint": "These part numbers were not found word for word in the document. Open the source and check them.",
