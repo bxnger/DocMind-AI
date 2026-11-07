@@ -31,6 +31,7 @@ HEADERS = {
     "stock": ("наличие", "остаток", "в наличии", "кол-во на складе", "stock", "availability", "qty", "қоймада", "бар"),
     "url": ("ссылка", "url", "link", "сайт", "сілтеме"),
     "supplier": ("поставщик", "продавец", "supplier", "vendor", "жеткізуші"),
+    "manufacturer": ("производитель", "изготовитель", "бренд", "марка", "manufacturer", "brand", "maker", "өндіруші"),
     "checkedAt": ("дата", "дата цены", "date", "updated", "күні"),
 }
 YES = {"да", "есть", "в наличии", "yes", "true", "available", "in stock", "бар", "+"}
@@ -180,6 +181,7 @@ def parse_price_list(name: str, data: bytes, default_currency: str) -> tuple[lis
             "currency": currency, "stockStatus": stock, "stockQuantity": count,
             "url": url if url.startswith(("https://", "http://")) else None,
             "supplier": str(cell("supplier") or "").strip()[:120] or None, "checkedAt": parse_date(cell("checkedAt")),
+            "manufacturer": str(cell("manufacturer") or "").strip()[:120] or None,
         })
         if len(rows) >= MAX_ROWS:
             break
@@ -233,6 +235,8 @@ def offer_from(price_list: dict, row: dict, match: str) -> dict:
         "priceOrigin": "file",
         "filePrice": row["price"],
         "siteCheck": row.get("siteCheck"),
+        "manufacturer": row.get("manufacturer"),  # older stored lists have no such column: None
+        "priceListFile": price_list.get("fileName"),
     }
     check = row.get("siteCheck")
     if check and check["status"] == "checked" and not price_list["demo"]:
@@ -303,9 +307,14 @@ def calculate(items: list[dict]) -> tuple[list[dict], list[dict], int]:
     return items, [{"currency": c, "amount": money(v[0]), "items": v[1]} for c, v in sorted(totals.items())], unpriced
 
 
+# New columns go last, so the old ones keep their places.
 EXPORT_COLUMNS = ("№", "Позиция", "Артикул", "Кол-во", "Ед.", "Цена", "Валюта", "Сумма", "Поставщик", "Ссылка",
-                  "Дата цены", "Страница документа", "Идентификация", "Статус", "Источник цены")  # new columns go last
+                  "Дата цены", "Страница документа", "Идентификация", "Статус", "Источник цены",
+                  "Откуда дата", "Производитель", "Совпадение артикула", "Файл прайса", "Строка прайса", "DEMO")
 PRICE_ORIGIN_NAMES = {"file": "прайс-лист", "site_checked": "проверено на сайте"}
+DATE_ORIGIN_NAMES = {"file": "дата из прайса", "upload_form": "дата указана при загрузке прайса",
+                     "import_date": "дата загрузки прайса, не дата цены", "site": "проверено на сайте поставщика"}
+MATCH_NAMES = {"exact": "точный", "close": "похожий, проверьте совместимость"}
 
 
 def export_rows(quote: dict) -> list[list]:
@@ -313,13 +322,21 @@ def export_rows(quote: dict) -> list[list]:
     for number, item in enumerate(quote["items"], start=1):
         offer = item["offer"] or {}
         pages = ", ".join(str(source["page"]) for source in item.get("sources", []) if source.get("page") is not None)
+        date_origin = offer.get("checkedAtOrigin")
+        # The day a file was uploaded is not the day its prices were checked: it is not written as "Дата цены".
+        price_date = "" if date_origin == "import_date" else offer.get("checkedAt", "")
+        date_note = DATE_ORIGIN_NAMES.get(date_origin, "")
+        if date_origin == "import_date":
+            date_note = f"{date_note} ({offer.get('checkedAt', '')})"
         rows.append([number, item["name"], item["partNumber"] or "", item["quantity"], item["unit"] or "",
                      item["unitPrice"] or "", item["currency"] or "", item["lineTotal"] or "", offer.get("supplier", ""),
-                     offer.get("url") or "", offer.get("checkedAt", ""), pages, item["identification"]["status"], item["status"],
-                     PRICE_ORIGIN_NAMES.get(offer.get("priceOrigin"), "")])
+                     offer.get("url") or "", price_date, pages, item["identification"]["status"], item["status"],
+                     PRICE_ORIGIN_NAMES.get(offer.get("priceOrigin"), ""), date_note, offer.get("manufacturer") or "",
+                     MATCH_NAMES.get(offer.get("match"), ""), offer.get("priceListFile") or "",
+                     offer.get("sourceRow", ""), ("да" if offer.get("demo") else "нет") if offer else ""])
     rows.append([])
     for total in quote["totals"]:
-        rows.append(["", "Итого", "", "", "", "", total["currency"], total["amount"], "", "", "", "", "", "", ""])
+        rows.append(["", "Итого", "", "", "", "", total["currency"], total["amount"]] + [""] * (len(EXPORT_COLUMNS) - 8))
     if quote["unpriced"]:
         rows.append(["", f"Без цены: {quote['unpriced']} поз. (не входят в итог)"])
     return rows

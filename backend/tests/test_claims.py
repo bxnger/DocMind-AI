@@ -42,6 +42,15 @@ def test_a_part_that_is_right_and_a_part_that_is_not_is_partly(client, answerer,
     assert verify(client, conversation, "Registration closes on 5 November and teams have 10 members").json()["verdict"] == "partly"
 
 
+def test_a_marker_after_an_abbreviation_stays_with_its_sentence(client, answerer, conversation):
+    """Found by eval/procurement_quality.py: "… 3 шт. [1]." was split after "шт.", the sentence lost its marker and was
+    dropped, and the explanation shown was just "[1]."."""
+    answerer.reply = "PARTLY\nRegistration closes on 5 November 2026 approx. [1]."
+    body = verify(client, conversation, "Registration closes on 5 November and teams have 10 members").json()
+    assert body["verdict"] == "partly"
+    assert body["explanation"] == "Registration closes on 5 November 2026 approx. [1]."
+
+
 def test_a_statement_the_document_does_not_cover_is_not_found(client, answerer, conversation):
     answerer.reply = "NOT_FOUND"
     body = verify(client, conversation, "Registration closes on 5 November 2026").json()

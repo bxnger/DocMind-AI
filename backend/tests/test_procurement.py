@@ -112,6 +112,36 @@ def test_the_pdf_text_and_its_quotes_show_an_ordinary_hyphen():
     assert len(quote_highlights(manual, 2, "подшипник 6205-2RS — 4 шт.")) == 1
 
 
+def test_the_sheet_says_where_each_price_and_date_came_from(client):
+    from openpyxl import load_workbook
+
+    use(client, None)
+    document_id = ready(client)
+    parts = {p["partNumber"]: p for p in parts_of(client, document_id)["parts"]}
+    plain = price_list(client, "Артикул;Наименование;Производитель;Цена\n6205-2RS;Подшипник 6205-2RS;SKF;4 850\n")
+    dated = price_list(client, "Артикул;Наименование;Цена;Дата\n6205-2RSH;Подшипник 6205-2RSH;5 100;01.11.2026\n", demo="true")
+    offers = client.post("/api/v1/procurement/offers", json={"documentId": document_id, "partIds": [parts["6205-2RS"]["id"]]}).json()
+    exact, similar = offers["items"][0]["offers"][0], offers["items"][0]["similar"][0]
+    assert (exact["manufacturer"], exact["priceListFile"], exact["checkedAtOrigin"]) == ("SKF", "prices.csv", "import_date")
+    assert similar["manufacturer"] is None and similar["checkedAt"] == "2026-11-01"
+    body = {"documentId": document_id, "items": [
+        {"partId": parts["6205-2RS"]["id"], "offerId": exact["id"]},
+        {"partId": parts["NU 210 ECP"]["id"], "offerId": similar["id"]},  # another part's offer: offer_missing
+    ]}
+    sheet = load_workbook(io.BytesIO(client.post("/api/v1/procurement/quote/export", json=body).content)).active
+    header = [cell.value for cell in sheet[1]]
+    assert header[:14] == ["№", "Позиция", "Артикул", "Кол-во", "Ед.", "Цена", "Валюта", "Сумма", "Поставщик", "Ссылка",
+                           "Дата цены", "Страница документа", "Идентификация", "Статус"]  # old columns did not move
+    row = dict(zip(header, [cell.value for cell in sheet[2]]))
+    assert row["Дата цены"] is None  # the upload day is not the day the price was checked
+    assert "дата загрузки прайса, не дата цены" in row["Откуда дата"]
+    assert (row["Источник цены"], row["Производитель"], row["Совпадение артикула"], row["Файл прайса"], row["Строка прайса"],
+            row["DEMO"]) == ("прайс-лист", "SKF", "точный", "prices.csv", 2, "нет")
+    missing = dict(zip(header, [cell.value for cell in sheet[3]]))
+    assert missing["Статус"] == "offer_missing" and missing["Цена"] is None and missing["DEMO"] is None
+    assert plain["id"] != dated["id"]
+
+
 def test_a_price_row_without_a_code_column_is_matched_by_the_code_in_its_title():
     from app.pricing import row_match
 
@@ -249,6 +279,10 @@ def photo(client, document_id, data=JPEG):
     ({"partNumber": "6205-2RS", "readability": "high", "partType": "motor", "confidence": "high"},
      "needs_confirmation", "exact"),
     ({"partNumber": "6205-2RS", "readability": "high", "partType": "motor", "confidence": "medium"}, "matched", "exact"),
+    # Found by repeated runs: glare hid the "H" of 6205-2RSH, the model read 6205-2RS. Any doubt goes to a person.
+    ({"partNumber": "6205-2RS", "readability": "medium"}, "needs_confirmation", "exact"),
+    ({"partNumber": "6205-2RS", "readability": "high", "issues": ["glare"]}, "needs_confirmation", "exact"),
+    ({"partNumber": "6205-2RS", "readability": "high", "issues": ["partial"]}, "needs_confirmation", "exact"),
 ])
 def test_a_photo_is_read_by_the_model_and_matched_by_code(client, read, status, match):
     answerer = JsonAnswerer(lambda prompt, image: {"equipment": None, "parts": []} if image is None else read)

@@ -47,6 +47,7 @@ NOT_FOUND_MARKER = "NOT_FOUND"
 # A marker is [3]. Models sometimes group them as [1, 2], so those are read as well.
 CITATION = re.compile(r"\[(\d+(?:\s*[,;]\s*\d+)*)\]")
 DIGITS = re.compile(r"\d+")
+ONLY_MARKERS = re.compile(r"(?:\s*\[\d+(?:\s*[,;]\s*\d+)*\])+\s*[.!?]*")
 
 logger = logging.getLogger("app.chat")
 
@@ -407,7 +408,14 @@ def verify_answer(answer: str, excerpts: list[Excerpt], store: Store, question: 
     PDF sources also carry the quote's highlights when they can be located.
     """
     parts = re.split(r"(?<=[.!?])(\s+)", answer.strip())  # sentence, separator, sentence, ...
-    sentences = parts[0::2]
+    sentences = []
+    for piece in parts[0::2]:
+        # "… 3 шт. [1]." splits after "шт.": the lone "[1]." belongs to the sentence before it. Left alone, that sentence
+        # had no marker and was dropped, and the answer shown was just "[1]." (found by eval/procurement_quality.py).
+        if sentences and ONLY_MARKERS.fullmatch(piece):
+            sentences[-1] = f"{sentences[-1]} {piece}"
+        else:
+            sentences.append(piece)
     bad = [sentence_problem(sentence, excerpts) for sentence in sentences]
     shown = [sentence for sentence, is_bad in zip(sentences, bad) if not is_bad]
     text = " ".join(shown) if any(bad) else answer.strip()

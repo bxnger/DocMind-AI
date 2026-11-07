@@ -35,6 +35,25 @@ PAGES = [
     "Замену подшипников выполнять при плановом ремонте, не реже одного раза в 2 года.",
 ]
 
+# A second manual for the quality report: other kinds of parts, and numbers that are not parts or quantities.
+PUMP_PAGES = [
+    "УЧЕБНЫЙ ДОКУМЕНТ. Все данные вымышлены.\n\nАгрегат электронасосный КН-80/50\nПаспорт и перечень запасных частей\n"
+    "Год выпуска: 2025. Ориентировочная стоимость агрегата 1 250 000 тенге.\n"
+    "Подача 80 м3/ч, напор 50 м, частота вращения 2900 об/мин.",
+    "Раздел 4. Подшипники и уплотнения\n\n"
+    "Подшипник 6306-2Z (опора со стороны муфты) — 2 шт.\n"
+    "Подшипник 7208 BEP (радиально-упорный) — 1 шт.\n"
+    "Уплотнение торцевое ТУ-35 — 1 шт.\n"
+    "Кольцо уплотнительное 045-050-30 — 4 шт.\n\n"
+    "Межсервисный интервал замены подшипников 6000 ч.",
+    "Раздел 5. Привод и фильтрация\n\n"
+    "Муфта упругая втулочно-пальцевая МУВП-2 — 1 шт.\n"
+    "Электродвигатель АИР132M4, 11 кВт, 1450 об/мин — 1 шт.\n"
+    "Фильтр сетчатый ФС-50 — 2 шт.\n"
+    "Ремкомплект насоса РК-80 — 1 компл.\n\n"
+    "Гарантийный срок 18 месяцев.",
+]
+
 PRICES = [
     ("Артикул", "Наименование", "Цена", "Валюта", "Наличие"),
     ("6210-2RS", "Подшипник 6210-2RS", "9 450", "KZT", "12"),
@@ -46,15 +65,15 @@ PRICES = [
 ]
 
 
-def manual() -> None:
+def manual(pages: list[str] = PAGES, name: str = "tv320_manual.pdf") -> None:
     if FONT is None:
         sys.exit("No TrueType font with Cyrillic letters found")
     doc = fitz.open()
-    for text in PAGES:
+    for text in pages:
         page = doc.new_page()
         page.insert_font(fontname="cyr", fontfile=FONT)
         page.insert_textbox(fitz.Rect(56, 56, 540, 800), text, fontname="cyr", fontsize=12)
-    doc.save(OUT / "tv320_manual.pdf")
+    doc.save(OUT / name)
 
 
 def price_lists() -> None:
@@ -90,6 +109,7 @@ def marking(name: str, lines: list[str], blur: bool = False) -> None:
 
 if __name__ == "__main__":
     manual()
+    manual(PUMP_PAGES, "kn80_pump_passport.pdf")
     price_lists()
     marking("marking_6205.png", ["SKF", "6205-2RS", "C3"])
     marking("marking_6205h.png", ["SKF", "6205-2RSH"])

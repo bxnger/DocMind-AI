@@ -1,0 +1,1145 @@
+{
+ "date": "2026-11-08 00:05",
+ "commit": "d8e07a1+",
+ "model": "gemini-3.5-flash-lite (резерв gemini-3.5-flash)",
+ "runs": 2,
+ "parts": [
+  {
+   "document": "tv320_manual.pdf",
+   "status": "ready",
+   "seconds": 4.5,
+   "expected": [
+    {
+     "partNumber": "3182120",
+     "found": true,
+     "foundAs": "3182120",
+     "quantity": 1,
+     "quantityOk": true,
+     "expectedQuantity": 1,
+     "page": 2,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Шпиндель, передняя опора: подшипник 3182120 — 1 шт."
+    },
+    {
+     "partNumber": "6210-2RS",
+     "found": true,
+     "foundAs": "6210-2RS",
+     "quantity": 2,
+     "quantityOk": true,
+     "expectedQuantity": 2,
+     "page": 2,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Шпиндель, задняя опора: подшипник 6210-2RS — 2 шт."
+    },
+    {
+     "partNumber": "6205-2RS",
+     "found": true,
+     "foundAs": "6205-2RS",
+     "quantity": 4,
+     "quantityOk": true,
+     "expectedQuantity": 4,
+     "page": 2,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Коробка скоростей, вал II: подшипник 6205-2RS — 4 шт."
+    },
+    {
+     "partNumber": "6203",
+     "found": true,
+     "foundAs": "6203",
+     "quantity": 2,
+     "quantityOk": true,
+     "expectedQuantity": 2,
+     "page": 2,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Фартук: подшипник 6203 — 2 шт."
+    },
+    {
+     "partNumber": "NU 207 ECP",
+     "found": true,
+     "foundAs": "NU 207 ECP",
+     "quantity": 1,
+     "quantityOk": true,
+     "expectedQuantity": 1,
+     "page": 2,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Задняя бабка: подшипник NU 207 ECP — 1 шт."
+    },
+    {
+     "partNumber": "А-1250",
+     "found": true,
+     "foundAs": "А-1250",
+     "quantity": 3,
+     "quantityOk": true,
+     "expectedQuantity": 3,
+     "page": 3,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Прочие комплектующие Ремень приводной клиновой А-1250 — 3 шт."
+    },
+    {
+     "partNumber": "1.2-40x60-1",
+     "found": true,
+     "foundAs": "1.2-40x60-1",
+     "quantity": 2,
+     "quantityOk": true,
+     "expectedQuantity": 2,
+     "page": 3,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Манжета армированная 1.2-40x60-1 — 2 шт."
+    },
+    {
+     "partNumber": "ФМ-12",
+     "found": true,
+     "foundAs": "ФМ-12",
+     "quantity": 1,
+     "quantityOk": true,
+     "expectedQuantity": 1,
+     "page": 3,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Фильтр масляный ФМ-12 — 1 шт."
+    },
+    {
+     "partNumber": "АИР100L4",
+     "found": true,
+     "foundAs": "АИР100L4",
+     "quantity": 1,
+     "quantityOk": true,
+     "expectedQuantity": 1,
+     "page": 3,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Электродвигатель АИР100L4, 4 кВт, 1500 об/мин — 1 шт."
+    }
+   ],
+   "extra": [],
+   "equipment": {
+    "name": "Станок токарно-винторезный",
+    "model": "ТВ-320",
+    "manufacturer": "ТОО «Учебный станкозавод»",
+    "sources": [
+     {
+      "index": 1,
+      "documentId": "376df7c5067f4aefb02cd8dca1b6335c",
+      "documentName": "tv320_manual.pdf",
+      "page": 1,
+      "location": null,
+      "quote": "УЧЕБНЫЙ ДОКУМЕНТ.",
+      "highlights": [
+       {
+        "x": 0.0941,
+        "y": 0.0665,
+        "w": 0.2219,
+        "h": 0.0159
+       }
+      ],
+      "paragraph": null
+     }
+    ]
+   },
+   "documentId": "376df7c5067f4aefb02cd8dca1b6335c",
+   "run": 1
+  },
+  {
+   "document": "tv320_manual.pdf",
+   "status": "ready",
+   "seconds": 3.2,
+   "expected": [
+    {
+     "partNumber": "3182120",
+     "found": true,
+     "foundAs": "3182120",
+     "quantity": 1,
+     "quantityOk": true,
+     "expectedQuantity": 1,
+     "page": 2,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Шпиндель, передняя опора: подшипник 3182120 — 1 шт."
+    },
+    {
+     "partNumber": "6210-2RS",
+     "found": true,
+     "foundAs": "6210-2RS",
+     "quantity": 2,
+     "quantityOk": true,
+     "expectedQuantity": 2,
+     "page": 2,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Шпиндель, задняя опора: подшипник 6210-2RS — 2 шт."
+    },
+    {
+     "partNumber": "6205-2RS",
+     "found": true,
+     "foundAs": "6205-2RS",
+     "quantity": 4,
+     "quantityOk": true,
+     "expectedQuantity": 4,
+     "page": 2,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Коробка скоростей, вал II: подшипник 6205-2RS — 4 шт."
+    },
+    {
+     "partNumber": "6203",
+     "found": true,
+     "foundAs": "6203",
+     "quantity": 2,
+     "quantityOk": true,
+     "expectedQuantity": 2,
+     "page": 2,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Фартук: подшипник 6203 — 2 шт."
+    },
+    {
+     "partNumber": "NU 207 ECP",
+     "found": true,
+     "foundAs": "NU 207 ECP",
+     "quantity": 1,
+     "quantityOk": true,
+     "expectedQuantity": 1,
+     "page": 2,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Задняя бабка: подшипник NU 207 ECP — 1 шт."
+    },
+    {
+     "partNumber": "А-1250",
+     "found": true,
+     "foundAs": "А-1250",
+     "quantity": 3,
+     "quantityOk": true,
+     "expectedQuantity": 3,
+     "page": 3,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Прочие комплектующие Ремень приводной клиновой А-1250 — 3 шт."
+    },
+    {
+     "partNumber": "1.2-40x60-1",
+     "found": true,
+     "foundAs": "1.2-40x60-1",
+     "quantity": 2,
+     "quantityOk": true,
+     "expectedQuantity": 2,
+     "page": 3,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Манжета армированная 1.2-40x60-1 — 2 шт."
+    },
+    {
+     "partNumber": "ФМ-12",
+     "found": true,
+     "foundAs": "ФМ-12",
+     "quantity": 1,
+     "quantityOk": true,
+     "expectedQuantity": 1,
+     "page": 3,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Фильтр масляный ФМ-12 — 1 шт."
+    },
+    {
+     "partNumber": "АИР100L4",
+     "found": true,
+     "foundAs": "АИР100L4",
+     "quantity": 1,
+     "quantityOk": true,
+     "expectedQuantity": 1,
+     "page": 3,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Электродвигатель АИР100L4, 4 кВт, 1500 об/мин — 1 шт."
+    }
+   ],
+   "extra": [],
+   "equipment": {
+    "name": "Станок токарно-винторезный",
+    "model": "ТВ-320",
+    "manufacturer": "ТОО «Учебный станкозавод»",
+    "sources": [
+     {
+      "index": 1,
+      "documentId": "73696b72a13d4a33bdb65868336070dc",
+      "documentName": "tv320_manual.pdf",
+      "page": 1,
+      "location": null,
+      "quote": "УЧЕБНЫЙ ДОКУМЕНТ.",
+      "highlights": [
+       {
+        "x": 0.0941,
+        "y": 0.0665,
+        "w": 0.2219,
+        "h": 0.0159
+       }
+      ],
+      "paragraph": null
+     }
+    ]
+   },
+   "documentId": "73696b72a13d4a33bdb65868336070dc",
+   "run": 2
+  },
+  {
+   "document": "kn80_pump_passport.pdf",
+   "status": "ready",
+   "seconds": 2.2,
+   "expected": [
+    {
+     "partNumber": "6306-2Z",
+     "found": true,
+     "foundAs": "6306-2Z",
+     "quantity": 2,
+     "quantityOk": true,
+     "expectedQuantity": 2,
+     "page": 2,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Подшипники и уплотнения Подшипник 6306-2Z (опора со стороны муфты) — 2 шт."
+    },
+    {
+     "partNumber": "7208 BEP",
+     "found": true,
+     "foundAs": "7208 BEP",
+     "quantity": 1,
+     "quantityOk": true,
+     "expectedQuantity": 1,
+     "page": 2,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Подшипник 7208 BEP (радиально-упорный) — 1 шт."
+    },
+    {
+     "partNumber": "ТУ-35",
+     "found": true,
+     "foundAs": "ТУ-35",
+     "quantity": 1,
+     "quantityOk": true,
+     "expectedQuantity": 1,
+     "page": 2,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Уплотнение торцевое ТУ-35 — 1 шт."
+    },
+    {
+     "partNumber": "045-050-30",
+     "found": true,
+     "foundAs": "045-050-30",
+     "quantity": 4,
+     "quantityOk": true,
+     "expectedQuantity": 4,
+     "page": 2,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Кольцо уплотнительное 045-050-30 — 4 шт."
+    },
+    {
+     "partNumber": "МУВП-2",
+     "found": true,
+     "foundAs": "МУВП-2",
+     "quantity": 1,
+     "quantityOk": true,
+     "expectedQuantity": 1,
+     "page": 3,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Привод и фильтрация Муфта упругая втулочно-пальцевая МУВП-2 — 1 шт."
+    },
+    {
+     "partNumber": "АИР132M4",
+     "found": true,
+     "foundAs": "АИР132M4",
+     "quantity": 1,
+     "quantityOk": true,
+     "expectedQuantity": 1,
+     "page": 3,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Электродвигатель АИР132M4, 11 кВт, 1450 об/мин — 1 шт."
+    },
+    {
+     "partNumber": "ФС-50",
+     "found": true,
+     "foundAs": "ФС-50",
+     "quantity": 2,
+     "quantityOk": true,
+     "expectedQuantity": 2,
+     "page": 3,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Фильтр сетчатый ФС-50 — 2 шт."
+    },
+    {
+     "partNumber": "РК-80",
+     "found": true,
+     "foundAs": "РК-80",
+     "quantity": 1,
+     "quantityOk": true,
+     "expectedQuantity": 1,
+     "page": 3,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Ремкомплект насоса РК-80 — 1 компл."
+    }
+   ],
+   "extra": [],
+   "equipment": {
+    "name": "Агрегат электронасосный",
+    "model": "КН-80/50",
+    "manufacturer": null,
+    "sources": [
+     {
+      "index": 1,
+      "documentId": "00b74ad056dd47538a537d9f9161e39f",
+      "documentName": "kn80_pump_passport.pdf",
+      "page": 1,
+      "location": null,
+      "quote": "УЧЕБНЫЙ ДОКУМЕНТ.",
+      "highlights": [
+       {
+        "x": 0.0941,
+        "y": 0.0665,
+        "w": 0.2219,
+        "h": 0.0159
+       }
+      ],
+      "paragraph": null
+     }
+    ]
+   },
+   "documentId": "00b74ad056dd47538a537d9f9161e39f",
+   "run": 1
+  },
+  {
+   "document": "kn80_pump_passport.pdf",
+   "status": "ready",
+   "seconds": 2.3,
+   "expected": [
+    {
+     "partNumber": "6306-2Z",
+     "found": true,
+     "foundAs": "6306-2Z",
+     "quantity": 2,
+     "quantityOk": true,
+     "expectedQuantity": 2,
+     "page": 2,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Подшипники и уплотнения Подшипник 6306-2Z (опора со стороны муфты) — 2 шт."
+    },
+    {
+     "partNumber": "7208 BEP",
+     "found": true,
+     "foundAs": "7208 BEP",
+     "quantity": 1,
+     "quantityOk": true,
+     "expectedQuantity": 1,
+     "page": 2,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Подшипник 7208 BEP (радиально-упорный) — 1 шт."
+    },
+    {
+     "partNumber": "ТУ-35",
+     "found": true,
+     "foundAs": "ТУ-35",
+     "quantity": 1,
+     "quantityOk": true,
+     "expectedQuantity": 1,
+     "page": 2,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Уплотнение торцевое ТУ-35 — 1 шт."
+    },
+    {
+     "partNumber": "045-050-30",
+     "found": true,
+     "foundAs": "045-050-30",
+     "quantity": 4,
+     "quantityOk": true,
+     "expectedQuantity": 4,
+     "page": 2,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Кольцо уплотнительное 045-050-30 — 4 шт."
+    },
+    {
+     "partNumber": "МУВП-2",
+     "found": true,
+     "foundAs": "МУВП-2",
+     "quantity": 1,
+     "quantityOk": true,
+     "expectedQuantity": 1,
+     "page": 3,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Привод и фильтрация Муфта упругая втулочно-пальцевая МУВП-2 — 1 шт."
+    },
+    {
+     "partNumber": "АИР132M4",
+     "found": true,
+     "foundAs": "АИР132M4",
+     "quantity": 1,
+     "quantityOk": true,
+     "expectedQuantity": 1,
+     "page": 3,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Электродвигатель АИР132M4, 11 кВт, 1450 об/мин — 1 шт."
+    },
+    {
+     "partNumber": "ФС-50",
+     "found": true,
+     "foundAs": "ФС-50",
+     "quantity": 2,
+     "quantityOk": true,
+     "expectedQuantity": 2,
+     "page": 3,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Фильтр сетчатый ФС-50 — 2 шт."
+    },
+    {
+     "partNumber": "РК-80",
+     "found": true,
+     "foundAs": "РК-80",
+     "quantity": 1,
+     "quantityOk": true,
+     "expectedQuantity": 1,
+     "page": 3,
+     "pageOk": true,
+     "verified": true,
+     "quoteHasCode": true,
+     "highlighted": true,
+     "quote": "Ремкомплект насоса РК-80 — 1 компл."
+    }
+   ],
+   "extra": [],
+   "equipment": {
+    "name": "Агрегат электронасосный",
+    "model": "КН-80/50",
+    "manufacturer": null,
+    "sources": [
+     {
+      "index": 1,
+      "documentId": "15747b0035de445b94ad24a6c140d964",
+      "documentName": "kn80_pump_passport.pdf",
+      "page": 1,
+      "location": null,
+      "quote": "УЧЕБНЫЙ ДОКУМЕНТ.",
+      "highlights": [
+       {
+        "x": 0.0941,
+        "y": 0.0665,
+        "w": 0.2219,
+        "h": 0.0159
+       }
+      ],
+      "paragraph": null
+     }
+    ]
+   },
+   "documentId": "15747b0035de445b94ad24a6c140d964",
+   "run": 2
+  }
+ ],
+ "claims": [
+  {
+   "claim": "Подшипник 6205-2RS установлен в количестве 4 шт.",
+   "expected": "supported",
+   "verdict": "supported",
+   "ok": true,
+   "expectedPage": 2,
+   "pages": [
+    2
+   ],
+   "pageOk": true,
+   "explanation": "Подшипник 6205-2RS установлен на валу II коробки скоростей в количестве 4 штук [1].",
+   "reason": null,
+   "quotes": [
+    "Коробка скоростей, вал II: подшипник 6205-2RS — 4 шт."
+   ],
+   "highlighted": true
+  },
+  {
+   "claim": "На задней опоре шпинделя стоит подшипник 6210-2RS, 2 шт.",
+   "expected": "supported",
+   "verdict": "supported",
+   "ok": true,
+   "expectedPage": 2,
+   "pages": [
+    2
+   ],
+   "pageOk": true,
+   "explanation": "Шпиндель, задняя опора: подшипник 6210-2RS — 2 шт [1].",
+   "reason": null,
+   "quotes": [
+    "Шпиндель, задняя опора: подшипник 6210-2RS — 2 шт."
+   ],
+   "highlighted": true
+  },
+  {
+   "claim": "В фартуке установлено 2 подшипника 6203.",
+   "expected": "supported",
+   "verdict": "supported",
+   "ok": true,
+   "expectedPage": 2,
+   "pages": [
+    2
+   ],
+   "pageOk": true,
+   "explanation": "В фартуке установлено подшипников 6203 — 2 штуки [1].",
+   "reason": null,
+   "quotes": [
+    "Фартук: подшипник 6203 — 2 шт."
+   ],
+   "highlighted": true
+  },
+  {
+   "claim": "Ремень А-1250 нужен в количестве 3 шт.",
+   "expected": "supported",
+   "verdict": "supported",
+   "ok": true,
+   "expectedPage": 3,
+   "pages": [
+    3
+   ],
+   "pageOk": true,
+   "explanation": "Ремень приводной клиновой А-1250 требуется в количестве 3 штук [1].",
+   "reason": null,
+   "quotes": [
+    "Прочие комплектующие Ремень приводной клиновой А-1250 — 3 шт."
+   ],
+   "highlighted": true
+  },
+  {
+   "claim": "Мощность электродвигателя станка 4 кВт.",
+   "expected": "supported",
+   "verdict": "supported",
+   "ok": true,
+   "expectedPage": 3,
+   "pages": [
+    3
+   ],
+   "pageOk": true,
+   "explanation": "Мощность электродвигателя составляет 4 кВт [1].",
+   "reason": null,
+   "quotes": [
+    "Электродвигатель АИР100L4, 4 кВт, 1500 об/мин — 1 шт."
+   ],
+   "highlighted": true
+  },
+  {
+   "claim": "Двигатель станка 7,5 кВт.",
+   "expected": "contradicted",
+   "verdict": "contradicted",
+   "ok": true,
+   "expectedPage": 3,
+   "pages": [
+    3
+   ],
+   "pageOk": true,
+   "explanation": "Мощность электродвигателя составляет 4 кВт [3].",
+   "reason": null,
+   "quotes": [
+    "Электродвигатель АИР100L4, 4 кВт, 1500 об/мин — 1 шт."
+   ],
+   "highlighted": true
+  },
+  {
+   "claim": "В коробке скоростей стоят 2 подшипника 6205-2RS.",
+   "expected": "contradicted",
+   "verdict": "contradicted",
+   "ok": true,
+   "expectedPage": 2,
+   "pages": [
+    2
+   ],
+   "pageOk": true,
+   "explanation": "В коробке скоростей на валу II установлено 4 подшипника 6205-2RS [1].",
+   "reason": null,
+   "quotes": [
+    "Коробка скоростей, вал II: подшипник 6205-2RS — 4 шт."
+   ],
+   "highlighted": true
+  },
+  {
+   "claim": "Ремень А-1250 нужен в количестве 5 шт.",
+   "expected": "contradicted",
+   "verdict": "contradicted",
+   "ok": true,
+   "expectedPage": 3,
+   "pages": [
+    3
+   ],
+   "pageOk": true,
+   "explanation": "Требуется 3 штуки ремня приводного клинового А-1250 [1].",
+   "reason": null,
+   "quotes": [
+    "Прочие комплектующие Ремень приводной клиновой А-1250 — 3 шт."
+   ],
+   "highlighted": true
+  },
+  {
+   "claim": "Подшипники меняют не реже одного раза в 5 лет.",
+   "expected": "contradicted",
+   "verdict": "contradicted",
+   "ok": true,
+   "expectedPage": 3,
+   "pages": [
+    3
+   ],
+   "pageOk": true,
+   "explanation": "Замену подшипников необходимо выполнять не реже одного раза в 2 года [1].",
+   "reason": null,
+   "quotes": [
+    "Замену подшипников выполнять при плановом ремонте, не реже одного раза в 2 года."
+   ],
+   "highlighted": true
+  },
+  {
+   "claim": "Частота вращения двигателя 1500 об/мин.",
+   "expected": "supported",
+   "verdict": "supported",
+   "ok": true,
+   "expectedPage": 3,
+   "pages": [
+    3
+   ],
+   "pageOk": true,
+   "explanation": "Частота вращения электродвигателя составляет 1500 об/мин [1].",
+   "reason": null,
+   "quotes": [
+    "Электродвигатель АИР100L4, 4 кВт, 1500 об/мин — 1 шт."
+   ],
+   "highlighted": true
+  },
+  {
+   "claim": "Станок весит 2 тонны.",
+   "expected": "not_found",
+   "verdict": "not_found",
+   "ok": true,
+   "expectedPage": null,
+   "pages": [],
+   "pageOk": true,
+   "explanation": "",
+   "reason": "model_refused",
+   "quotes": [],
+   "highlighted": null
+  },
+  {
+   "claim": "Гарантия на станок 12 месяцев.",
+   "expected": "not_found",
+   "verdict": "not_found",
+   "ok": true,
+   "expectedPage": null,
+   "pages": [],
+   "pageOk": true,
+   "explanation": "",
+   "reason": "model_refused",
+   "quotes": [],
+   "highlighted": null
+  },
+  {
+   "claim": "Цена подшипника 6205-2RS — 4 850 тенге.",
+   "expected": "not_found",
+   "verdict": "not_found",
+   "ok": true,
+   "expectedPage": null,
+   "pages": [],
+   "pageOk": true,
+   "explanation": "",
+   "reason": "model_refused",
+   "quotes": [],
+   "highlighted": null
+  },
+  {
+   "claim": "Станок изготовлен в Караганде.",
+   "expected": "supported",
+   "verdict": "supported",
+   "ok": true,
+   "expectedPage": 1,
+   "pages": [
+    1
+   ],
+   "pageOk": true,
+   "explanation": "Изготовителем станка является ТОО «Учебный станкозавод», расположенное в городе Караганда [1].",
+   "reason": null,
+   "quotes": [
+    "Станок токарно-винторезный ТВ-320 Руководство по эксплуатации Изготовитель: ТОО «Учебный станкозавод», г."
+   ],
+   "highlighted": true
+  },
+  {
+   "claim": "Двигатель 4 кВт, а ремень А-1250 нужен в количестве 10 шт.",
+   "expected": "partly",
+   "verdict": "partly",
+   "ok": true,
+   "expectedPage": 3,
+   "pages": [
+    3
+   ],
+   "pageOk": true,
+   "explanation": "[1].",
+   "reason": null,
+   "quotes": [
+    "Прочие комплектующие Ремень приводной клиновой А-1250 — 3 шт."
+   ],
+   "highlighted": true
+  },
+  {
+   "claim": "Агрегат выпущен в 2025 году.",
+   "expected": "supported",
+   "verdict": "supported",
+   "ok": true,
+   "expectedPage": 1,
+   "pages": [
+    1
+   ],
+   "pageOk": true,
+   "explanation": "Агрегат выпущен в 2025 году [1].",
+   "reason": null,
+   "quotes": [
+    "Агрегат электронасосный КН-80/50 Паспорт и перечень запасных частей Год выпуска: 2025."
+   ],
+   "highlighted": true
+  },
+  {
+   "claim": "Подача насоса 80 м3/ч.",
+   "expected": "supported",
+   "verdict": "supported",
+   "ok": true,
+   "expectedPage": 1,
+   "pages": [
+    1
+   ],
+   "pageOk": true,
+   "explanation": "Подача агрегата составляет 80 м3/ч [1].",
+   "reason": null,
+   "quotes": [
+    "Подача 80 м3/ч, напор 50 м, частота вращения 2900 об/мин."
+   ],
+   "highlighted": true
+  },
+  {
+   "claim": "Подача насоса 120 м3/ч.",
+   "expected": "contradicted",
+   "verdict": "contradicted",
+   "ok": true,
+   "expectedPage": 1,
+   "pages": [
+    1
+   ],
+   "pageOk": true,
+   "explanation": "Подача агрегата составляет 80 м3/ч [1].",
+   "reason": null,
+   "quotes": [
+    "Подача 80 м3/ч, напор 50 м, частота вращения 2900 об/мин."
+   ],
+   "highlighted": true
+  },
+  {
+   "claim": "Подшипник 6306-2Z — 2 шт.",
+   "expected": "supported",
+   "verdict": "supported",
+   "ok": true,
+   "expectedPage": 2,
+   "pages": [
+    2
+   ],
+   "pageOk": true,
+   "explanation": "Подшипник 6306-2Z (опора со стороны муфты) в количестве 2 штук [1].",
+   "reason": null,
+   "quotes": [
+    "Подшипники и уплотнения Подшипник 6306-2Z (опора со стороны муфты) — 2 шт."
+   ],
+   "highlighted": true
+  },
+  {
+   "claim": "Кольцо уплотнительное 045-050-30 — 2 шт.",
+   "expected": "contradicted",
+   "verdict": "contradicted",
+   "ok": true,
+   "expectedPage": 2,
+   "pages": [
+    2
+   ],
+   "pageOk": true,
+   "explanation": "Кольцо уплотнительное 045-050-30 — 4 шт. [1]",
+   "reason": null,
+   "quotes": [
+    "Кольцо уплотнительное 045-050-30 — 4 шт."
+   ],
+   "highlighted": true
+  },
+  {
+   "claim": "Электродвигатель АИР132M4 мощностью 11 кВт.",
+   "expected": "supported",
+   "verdict": "supported",
+   "ok": true,
+   "expectedPage": 3,
+   "pages": [
+    3
+   ],
+   "pageOk": true,
+   "explanation": "Электродвигатель имеет модель АИР132M4 и мощность 11 кВт [1].",
+   "reason": null,
+   "quotes": [
+    "Электродвигатель АИР132M4, 11 кВт, 1450 об/мин — 1 шт."
+   ],
+   "highlighted": true
+  },
+  {
+   "claim": "Электродвигатель насоса 15 кВт.",
+   "expected": "contradicted",
+   "verdict": "contradicted",
+   "ok": true,
+   "expectedPage": 3,
+   "pages": [
+    3
+   ],
+   "pageOk": true,
+   "explanation": "Мощность электродвигателя составляет 11 кВт [1].",
+   "reason": null,
+   "quotes": [
+    "Электродвигатель АИР132M4, 11 кВт, 1450 об/мин — 1 шт."
+   ],
+   "highlighted": true
+  },
+  {
+   "claim": "Гарантийный срок 18 месяцев.",
+   "expected": "supported",
+   "verdict": "supported",
+   "ok": true,
+   "expectedPage": 3,
+   "pages": [
+    3
+   ],
+   "pageOk": true,
+   "explanation": "Гарантийный срок составляет 18 месяцев [1].",
+   "reason": null,
+   "quotes": [
+    "Гарантийный срок 18 месяцев."
+   ],
+   "highlighted": true
+  },
+  {
+   "claim": "Гарантийный срок 24 месяца.",
+   "expected": "contradicted",
+   "verdict": "contradicted",
+   "ok": true,
+   "expectedPage": 3,
+   "pages": [
+    3
+   ],
+   "pageOk": true,
+   "explanation": "Гарантийный срок составляет 18 месяцев [1].",
+   "reason": null,
+   "quotes": [
+    "Гарантийный срок 18 месяцев."
+   ],
+   "highlighted": true
+  },
+  {
+   "claim": "Подшипники меняют каждые 6000 часов.",
+   "expected": "supported",
+   "verdict": "supported",
+   "ok": true,
+   "expectedPage": 2,
+   "pages": [
+    2
+   ],
+   "pageOk": true,
+   "explanation": "Межсервисный интервал замены подшипников составляет 6000 ч [1].",
+   "reason": null,
+   "quotes": [
+    "Межсервисный интервал замены подшипников 6000 ч."
+   ],
+   "highlighted": true
+  },
+  {
+   "claim": "Насос весит 320 кг.",
+   "expected": "not_found",
+   "verdict": "not_found",
+   "ok": true,
+   "expectedPage": null,
+   "pages": [],
+   "pageOk": true,
+   "explanation": "",
+   "reason": "model_refused",
+   "quotes": [],
+   "highlighted": null
+  },
+  {
+   "claim": "Рабочее давление насоса 16 бар.",
+   "expected": "not_found",
+   "verdict": "not_found",
+   "ok": true,
+   "expectedPage": null,
+   "pages": [],
+   "pageOk": true,
+   "explanation": "",
+   "reason": "model_refused",
+   "quotes": [],
+   "highlighted": null
+  },
+  {
+   "claim": "Агрегат произведён в Германии.",
+   "expected": "not_found",
+   "verdict": "not_found",
+   "ok": true,
+   "expectedPage": null,
+   "pages": [],
+   "pageOk": true,
+   "explanation": "",
+   "reason": "model_refused",
+   "quotes": [],
+   "highlighted": null
+  },
+  {
+   "claim": "Фильтр ФС-50 нужен в количестве 2 шт., а муфта МУВП-2 — 3 шт.",
+   "expected": "partly",
+   "verdict": "contradicted",
+   "ok": false,
+   "expectedPage": 3,
+   "pages": [
+    3
+   ],
+   "pageOk": true,
+   "explanation": "Фильтр сетчатый ФС-50 нужен в количестве 2 шт., а муфта упругая втулочно-пальцевая МУВП-2 — 1 шт [1].",
+   "reason": null,
+   "quotes": [
+    "Привод и фильтрация Муфта упругая втулочно-пальцевая МУВП-2 — 1 шт."
+   ],
+   "highlighted": true
+  },
+  {
+   "claim": "Напор насоса 50 м.",
+   "expected": "supported",
+   "verdict": "supported",
+   "ok": true,
+   "expectedPage": 1,
+   "pages": [
+    1
+   ],
+   "pageOk": true,
+   "explanation": "Напор насоса составляет 50 м [1].",
+   "reason": null,
+   "quotes": [
+    "Подача 80 м3/ч, напор 50 м, частота вращения 2900 об/мин."
+   ],
+   "highlighted": true
+  }
+ ],
+ "summary": {
+  "parts": {
+   "expected": 34,
+   "found": 34,
+   "recall": 1.0,
+   "falseParts": 0,
+   "trapsListed": 0,
+   "precision": 1.0,
+   "quantityCorrect": 34,
+   "pageCorrect": 34,
+   "verifiedQuotes": 34,
+   "quoteHasCode": 34,
+   "highlighted": 34
+  },
+  "claims": {
+   "total": 30,
+   "correct": 29,
+   "byExpected": {
+    "supported": "14/14",
+    "contradicted": "8/8",
+    "partly": "1/2",
+    "not_found": "6/6"
+   },
+   "confusion": {
+    "partly -> contradicted": 1
+   },
+   "pageCorrect": 23,
+   "withPage": 23,
+   "dangerous": []
+  },
+  "camera": {
+   "calls": 50,
+   "falseMatched": 1,
+   "unstableImages": 3,
+   "markdown": "Основная модель, 5 повторов на картинку, пауза 7 с. Синтетические картинки (не фото с телефона): исходные, JPEG q40, с бликом поверх конца артикула, уменьшенные в 3 раза.\n\n**До исправления** (matched при readability high или medium): 50 запросов, ложных matched — 1, картинок с разными ответами — 3.\n\n| Модель | Картинка | На ней написано | Повторов | Ложных matched | Ответы (статус / прочитано / читаемость / лучший кандидат: число) |\n|---|---|---|---|---|---|\n| gemini-3.5-flash-lite | marking_6205.png | 6205-2RS | 5 | 0 | matched / 6205-2RS / high / 6205-2RS:exact: 5 |\n| gemini-3.5-flash-lite | marking_6205_q40.jpg | 6205-2RS | 5 | 0 | matched / 6205-2RS / high / 6205-2RS:exact: 5 |\n| gemini-3.5-flash-lite | marking_6205_glare.jpg | 6205-2RS | 5 | 0 | needs_confirmation / 6205 / high / 6205-2RS:close: 3<br>needs_confirmation / 6205-2RS / low / 6205-2RS:exact: 1<br>matched / 6205-2RS / medium / 6205-2RS:exact: 1 |\n| gemini-3.5-flash-lite | marking_6205_small.png | 6205-2RS | 5 | 0 | matched / 6205-2RS / high / 6205-2RS:exact: 4<br>unreadable / None / unreadable / None: 1 |\n| gemini-3.5-flash-lite | marking_6205h.png | 6205-2RSH | 5 | 0 | needs_confirmation / 6205-2RSH / high / 6205-2RS:close: 5 |\n| gemini-3.5-flash-lite | marking_6205h_q40.jpg | 6205-2RSH | 5 | 0 | needs_confirmation / 6205-2RSH / high / 6205-2RS:close: 5 |\n| gemini-3.5-flash-lite | marking_6205h_glare.jpg | 6205-2RSH | 5 | 1 | needs_confirmation / 6205-2RS / low / 6205-2RS:exact: 3<br>matched / 6205-2RS / medium / 6205-2RS:exact: 1<br>needs_confirmation / 6205-2RS1 / low / 6205-2RS:close: 1 |\n| gemini-3.5-flash-lite | marking_6205h_small.png | 6205-2RSH | 5 | 0 | needs_confirmation / 6205-2RSH / high / 6205-2RS:close: 5 |\n| gemini-3.5-flash-lite | marking_blurry.png | — (нечитаемо / без маркировки) | 5 | 0 | unreadable / None / unreadable / None: 5 |\n| gemini-3.5-flash-lite | bearing_no_marking.png | — (нечитаемо / без маркировки) | 5 | 0 | type_only / None / unreadable / 6210-2RS:type: 5 |\n\n**После исправления** (matched только при readability high и без glare/blur/angle/partial/dark/far), картинки с бликом: 10 запросов, ложных matched — 0.\n\n| Модель | Картинка | На ней написано | Повторов | Ложных matched | Ответы (статус / прочитано / читаемость / лучший кандидат: число) |\n|---|---|---|---|---|---|\n| gemini-3.5-flash-lite | marking_6205_glare.jpg | 6205-2RS | 5 | 0 | needs_confirmation / 6205-2RS / medium / 6205-2RS:exact: 3<br>needs_confirmation / 6205 / high / 6205-2RS:close: 1<br>needs_confirmation / 6205-2RS / low / 6205-2RS:exact: 1 |\n| gemini-3.5-flash-lite | marking_6205h_glare.jpg | 6205-2RSH | 5 | 0 | needs_confirmation / 6205-2RS / low / 6205-2RS:exact: 4<br>needs_confirmation / 6205-2RSH / low / 6205-2RS:close: 1 |"
+  }
+ }
+}

@@ -1,0 +1,21 @@
+{
+ "gemini-3.5-flash-lite | marking_6205_glare.jpg": {
+  "truth": "6205-2RS",
+  "runs": 5,
+  "falseMatched": 0,
+  "outcomes": {
+   "needs_confirmation / 6205-2RS / medium / 6205-2RS:exact": 3,
+   "needs_confirmation / 6205 / high / 6205-2RS:close": 1,
+   "needs_confirmation / 6205-2RS / low / 6205-2RS:exact": 1
+  }
+ },
+ "gemini-3.5-flash-lite | marking_6205h_glare.jpg": {
+  "truth": "6205-2RSH",
+  "runs": 5,
+  "falseMatched": 0,
+  "outcomes": {
+   "needs_confirmation / 6205-2RS / low / 6205-2RS:exact": 4,
+   "needs_confirmation / 6205-2RSH / low / 6205-2RS:close": 1
+  }
+ }
+}

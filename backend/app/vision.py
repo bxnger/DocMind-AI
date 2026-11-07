@@ -16,6 +16,7 @@ READABILITY = ("high", "medium", "low", "unreadable")
 CONFIDENCE = ("high", "medium", "low")
 ISSUES = ("glare", "blur", "angle", "partial", "dark", "far", "no_marking", "not_a_part")
 MAX_TYPE_CANDIDATES = 5
+SPOILING_ISSUES = {"glare", "blur", "angle", "partial", "dark", "far"}  # any of them: a part of the marking may be hidden
 
 PROMPT = """Look at this photo of a machine part (a bearing, a seal, a belt, a filter, a motor, a nameplate...).
 Return only JSON:
@@ -157,7 +158,11 @@ def decide(recognized: dict, matches: list[dict]) -> str:
     if not matches:
         return "no_match"
     exact = [match for match in matches if match["kind"] == "exact"]
-    if len(exact) == 1 and recognized["readability"] in ("high", "medium") and not type_conflict(recognized, exact[0]["part"]):
+    # "matched" only for a clear reading of a clean photo. Found by repeated runs: glare hid the last letter of
+    # "6205-2RSH", the model read "6205-2RS" with readability "medium", and the photo became an exact match of the
+    # wrong part. A hidden suffix is invisible to the code, so any doubt about the photo goes to a person.
+    clear = recognized["readability"] == "high" and not set(recognized["issues"]) & SPOILING_ISSUES
+    if len(exact) == 1 and clear and not type_conflict(recognized, exact[0]["part"]):
         return "matched"
     return "needs_confirmation"
 
