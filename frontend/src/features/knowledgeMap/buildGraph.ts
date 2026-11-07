@@ -31,7 +31,7 @@ export interface TopicGraph {
   edges: TopicEdge[];
 }
 
-const MAX_NODES = 30;
+const MAX_NODES = 50;
 const MAX_FRAGMENTS = 5;
 const EDGES_PER_NODE = 4;
 const GROUPS = 5;
@@ -191,4 +191,20 @@ export function neighbours(graph: TopicGraph, id: string): Array<{ node: TopicNo
 export function searchTopics(graph: TopicGraph, query: string): TopicNode[] {
   const needle = query.trim().toLocaleLowerCase();
   return needle ? graph.nodes.filter((node) => node.label.toLocaleLowerCase().includes(needle)) : [];
+}
+
+/** The largest topic of each group of terms that share passages. The document's own node links to these. */
+export function hubsOf(graph: TopicGraph): string[] {
+  const best = new Map<number, TopicNode>();
+  for (const node of graph.nodes) {
+    const held = best.get(node.group);
+    if (!held || node.mentions > held.mentions) best.set(node.group, node);
+  }
+  return [...best.values()].map((node) => node.id);
+}
+
+/** The topics to draw: the most mentioned, plus anything the user is looking at. Nothing else is lost, only not drawn. */
+export function visibleTopics(graph: TopicGraph, limit: number, keep: Iterable<string>): Set<string> {
+  const ranked = [...graph.nodes].sort((a, b) => b.mentions - a.mentions || a.id.localeCompare(b.id));
+  return new Set([...ranked.slice(0, limit).map((node) => node.id), ...keep]);
 }

@@ -147,7 +147,14 @@ export function AssistantPanel({ mode, canSwitchMode, onModeChange, doc, availab
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
           {/* mt-auto rather than justify-end: tall content must stay reachable by scrolling. */}
           <h3 className="mt-auto font-display text-lg font-medium">{t('chat.emptyTitle')}</h3>
-          <p className="mt-1 max-w-[60ch] text-sm text-muted">{t('chat.emptyBody')}</p>
+          <ol data-testid="how-it-works" className="mt-2 space-y-1 text-sm text-muted">
+            {(['ask', 'click', 'see'] as const).map((step, index) => (
+              <li key={step} className="flex gap-2">
+                <span aria-hidden className="tabular mt-[3px] inline-flex size-4 shrink-0 items-center justify-center rounded-full border border-line text-[10px] font-medium">{index + 1}</span>
+                <span>{t(`chat.steps.${step}`)}</span>
+              </li>
+            ))}
+          </ol>
           {availability.state === 'preparing' ? (
             <p role="status" className="mt-4 flex items-center gap-2 text-sm text-muted">
               <Loader2 size={14} className="spin" aria-hidden />

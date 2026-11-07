@@ -5,12 +5,14 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/cn';
 import { formatBytes } from '@/lib/format';
+import { useCapabilities } from '@/features/system/useSystem';
 import { useUpload } from './UploadProvider';
 
 export function Dropzone({ className }: { className?: string }) {
   const { t, i18n } = useTranslation();
   const { addFiles, openPicker, maxBytes } = useUpload();
   const [dragging, setDragging] = useState(false);
+  const maxPages = useCapabilities().data?.limits.maxPages;
 
   const onDrop = (event: DragEvent) => {
     event.preventDefault();
@@ -48,6 +50,7 @@ export function Dropzone({ className }: { className?: string }) {
       </p>
       <p className="tabular text-sm text-muted">
         {t('upload.limits', { size: formatBytes(maxBytes, i18n.language) })}
+        {maxPages ? ` ${t('upload.pagesLimit', { count: maxPages })}` : ''}
       </p>
       </div>
       <Button variant="primary" size="lg" className="max-sm:w-full" onClick={openPicker}>

@@ -43,3 +43,5 @@ export function useRecents(): RecentEntry[] {
     return () => listeners.delete(notify);
   }, read);
 }
+
+export const getRecentsForTest = (): RecentEntry[] => read();

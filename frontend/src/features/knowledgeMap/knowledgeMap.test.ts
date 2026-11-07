@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { DocumentText } from '@/services/chat/demo/textIndex';
-import { buildTopicGraph, neighbours, searchTopics, stripBoilerplate } from './buildGraph';
-import { WORLD, centerOn, fitView, layoutGraph, placeLabels, zoomAt, type LabelInput, type LabelPlacement } from './layout';
+import { buildTopicGraph, hubsOf, neighbours, searchTopics, stripBoilerplate, visibleTopics, type TopicGraph } from './buildGraph';
+import { blocksToMapText } from './docxText';
+import { DOCUMENT_NODE, WORLD, centerOn, fitView, layoutGraph, placeLabels, zoomAt, type LabelInput, type LabelPlacement, fitPoints, interpolate, relaxAround, toWorld, worldFor } from './layout';
 
 const page = (n: number, text: string, footer = 'Confidential company handbook') => ({
   page: n,
@@ -150,5 +151,88 @@ describe('map labels', () => {
   it('gives the same result every time', () => {
     const items = [node('a', 1, 1), node('b', 9, 9), node('c', 40, 3)];
     expect([...placeLabels(items)]).toEqual([...placeLabels(items)]);
+  });
+});
+
+describe('the map of a document', () => {
+  const graph: TopicGraph = {
+    nodes: ['a', 'b', 'c', 'd'].map((id, index) => ({ id, label: id, mentions: 10 - index, pages: [1], fragments: [{ page: 1, quote: id }], group: index < 2 ? 0 : 1 })),
+    edges: [{ source: 'a', target: 'b', weight: 2 }, { source: 'c', target: 'd', weight: 1 }],
+  };
+
+  it('links the document to the largest topic of each group', () => {
+    expect(hubsOf(graph).sort()).toEqual(['a', 'c']);
+  });
+  it('keeps the document at the centre, the same way every time', () => {
+    const first = layoutGraph(graph, hubsOf(graph));
+    const world = worldFor(5);
+    expect(first.get(DOCUMENT_NODE)).toEqual({ x: world.width / 2, y: world.height / 2 });
+    expect([...first]).toEqual([...layoutGraph(graph, hubsOf(graph))]);
+  });
+  it('gives a larger map more room', () => {
+    expect(worldFor(51).width).toBeGreaterThan(worldFor(21).width);
+  });
+  it('draws only the most mentioned, plus what the user is looking at', () => {
+    expect(visibleTopics(graph, 2, [])).toEqual(new Set(['a', 'b']));
+    expect(visibleTopics(graph, 2, ['d'])).toEqual(new Set(['a', 'b', 'd']));
+    expect(visibleTopics(graph, Infinity, []).size).toBe(4);
+  });
+});
+
+describe('moving nodes', () => {
+  const graph: TopicGraph = {
+    nodes: ['a', 'b', 'c'].map((id) => ({ id, label: id, mentions: 3, pages: [1], fragments: [], group: 0 })),
+    edges: [{ source: 'a', target: 'b', weight: 1 }],
+  };
+  const start = new Map([['a', { x: 300, y: 300 }], ['b', { x: 310, y: 300 }], ['c', { x: 500, y: 400 }]]);
+
+  it('moves only what may adjust, and leaves the rest exactly in place', () => {
+    const next = relaxAround(start, graph, new Set(['b']));
+    expect(next.get('a')).toEqual(start.get('a'));
+    expect(next.get('c')).toEqual(start.get('c'));
+    expect(next.get('b')).not.toEqual(start.get('b'));
+  });
+  it('a pinned node, being fixed, does not move at all', () => {
+    expect(relaxAround(start, graph, new Set())).toEqual(start);
+  });
+  it('does not change the positions it was given', () => {
+    const copy = new Map([...start].map(([id, point]) => [id, { ...point }]));
+    relaxAround(start, graph, new Set(['a', 'b', 'c']));
+    expect(start).toEqual(copy);
+  });
+  it('settles in a straight line between two layouts', () => {
+    const from = new Map([['a', { x: 0, y: 0 }]]);
+    const to = new Map([['a', { x: 10, y: 20 }]]);
+    expect(interpolate(from, to, 0.5).get('a')).toEqual({ x: 5, y: 10 });
+    expect(interpolate(from, to, 1).get('a')).toEqual({ x: 10, y: 20 });
+  });
+});
+
+describe('fitting the view', () => {
+  it('shows every point', () => {
+    const points = [{ x: 100, y: 100 }, { x: 900, y: 500 }, { x: 400, y: 800 }];
+    const view = fitPoints(points, 1000, 600);
+    for (const point of points) {
+      const x = point.x * view.k + view.x;
+      const y = point.y * view.k + view.y;
+      expect(x).toBeGreaterThanOrEqual(0);
+      expect(x).toBeLessThanOrEqual(1000);
+      expect(y).toBeGreaterThanOrEqual(0);
+      expect(y).toBeLessThanOrEqual(600);
+    }
+  });
+  it('does not blow up a few points or fail on none', () => {
+    expect(fitPoints([{ x: 1, y: 1 }, { x: 2, y: 2 }], 1000, 1000).k).toBeLessThanOrEqual(1.5);
+    expect(fitPoints([], 1000, 600).k).toBe(1);
+  });
+  it('turns a screen position into a map position', () => {
+    expect(toWorld({ x: 10, y: 20, k: 2 }, 30, 40)).toEqual({ x: 10, y: 10 });
+  });
+});
+
+describe('the map of a DOCX', () => {
+  it('reads real blocks, and keeps their position to find them again', () => {
+    const blocks = [{ index: 0, kind: 'heading' as const, section: null, text: 'Terms' }, { index: 1, kind: 'paragraph' as const, section: 'Terms', text: 'Rent is due.' }];
+    expect(blocksToMapText(blocks)[1]).toMatchObject({ page: 2, text: 'Rent is due.' });
   });
 });

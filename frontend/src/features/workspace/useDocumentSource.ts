@@ -31,7 +31,7 @@ export function useDocumentSource(doc: DocumentModel): DocumentSource {
     if (isSampleDocument(doc.id)) return { kind: 'pdf', origin: 'sample', input: { type: 'url', url: sampleUrl(i18n.language) } };
     if (doc.status === 'failed') return { kind: 'unavailable', reason: 'failed' };
     if (doc.kind !== 'pdf') return { kind: 'unavailable', reason: 'docx' };
-    if (doc.status === 'ready') return { kind: 'pdf', origin: 'backend', input: { type: 'url', url: documentFileUrl(doc.id) } };
+    if (doc.status === 'ready') return { kind: 'pdf', origin: 'backend', input: { type: 'url', url: documentFileUrl(doc.id), authenticated: true } };
     if (local.isPending) return { kind: 'checking' };
     if (local.data) return { kind: 'pdf', origin: 'browser', input: { type: 'blob', blob: local.data } };
     return { kind: 'unavailable', reason: 'not-ready' };

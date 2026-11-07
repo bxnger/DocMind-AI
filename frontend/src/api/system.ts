@@ -1,12 +1,12 @@
 import type { Capabilities } from '@/types/document';
-import { AppError, ERROR_BAD_RESPONSE, getJson, isRecord } from './client';
+import { AppError, ERROR_BAD_RESPONSE, getPublicJson, isRecord } from './client';
 
 export async function getHealth(signal?: AbortSignal): Promise<void> {
-  await getJson('/health', signal);
+  await getPublicJson('/health', signal);
 }
 
 export async function getCapabilities(signal?: AbortSignal): Promise<Capabilities> {
-  const body = await getJson('/capabilities', signal);
+  const body = await getPublicJson('/capabilities', signal);
   const limits = isRecord(body) && isRecord(body.limits) ? body.limits : null;
   if (
     !isRecord(body) ||

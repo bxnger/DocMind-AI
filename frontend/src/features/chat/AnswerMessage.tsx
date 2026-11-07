@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { CircleAlert, RotateCcw, SearchX } from 'lucide-react';
+import { CircleAlert, Crosshair, RotateCcw, SearchX, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
+import { IconButton } from '@/components/ui/IconButton';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { usePersistentState } from '@/hooks/usePersistentState';
 import { useEvidenceApi } from '@/features/evidence/EvidenceContext';
+import { cn } from '@/lib/cn';
 import { AnswerMarkdown } from '@/features/sources/AnswerMarkdown';
 import { SourceCard } from '@/features/sources/SourceCard';
 import type { AssistantMessage, EvidenceSource, NotFoundReason } from '@/types/chat';
@@ -19,6 +23,7 @@ interface Props {
 function Working({ live }: { live: boolean }) {
   const { t } = useTranslation();
   return (
+    <div className="space-y-2">
     <div role="status" className="flex items-center gap-2 text-sm text-muted">
       <span className="flex gap-1" aria-hidden>
         {[0, 1, 2].map((dot) => (
@@ -27,6 +32,23 @@ function Working({ live }: { live: boolean }) {
       </span>
       {t(live ? 'chat.workingLive' : 'chat.working')}
     </div>
+    <Skeleton className="h-3.5 w-[92%] rounded" />
+    <Skeleton className="h-3.5 w-[70%] rounded" />
+    </div>
+  );
+}
+
+/** Says once how to check an answer, right where the first one appears. */
+function EvidenceHint() {
+  const { t } = useTranslation();
+  const [seen, setSeen] = usePersistentState('docmind.hint.evidence', false);
+  if (seen) return null;
+  return (
+    <p data-testid="evidence-hint" className="flex items-start gap-2 rounded-control bg-accent-tint py-1.5 pr-1 pl-2.5 text-xs text-fg/90">
+      <Crosshair size={13} className="mt-0.5 shrink-0 text-accent" aria-hidden />
+      <span className="min-w-0 flex-1 self-center">{t('chat.evidenceHint')}</span>
+      <IconButton dense label={t('common.dismiss')} icon={<X size={13} aria-hidden />} onClick={() => setSeen(true)} />
+    </p>
   );
 }
 
@@ -86,7 +108,7 @@ export function AnswerMessage({ message, animate, onRetry, onRephrase, onUseDemo
 
       {streaming && (
         <p role="status" className="flex items-center gap-2 text-xs text-muted">
-          <span className="pulse-dot size-1.5 rounded-full bg-accent" aria-hidden />
+          <span className="pulse-dot size-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
           {t('chat.streaming')}
         </p>
       )}
@@ -94,6 +116,7 @@ export function AnswerMessage({ message, animate, onRetry, onRephrase, onUseDemo
       {message.sources.length > 0 && !notFound && (
         <div className="space-y-2">
           <h3 className="micro-label text-accent-2">{t('sources.heading')}</h3>
+          {message.status === 'done' && <EvidenceHint />}
           {message.sources.map((source) => (
             <SourceCard
               key={source.index}
@@ -112,10 +135,10 @@ export function AnswerMessage({ message, animate, onRetry, onRephrase, onUseDemo
         <p className="text-sm text-muted">{message.mode === 'live' && message.text ? t('chat.stoppedUnverified') : t('chat.stopped')}</p>
       )}
       {(message.status === 'error' || message.status === 'stopped') && (
-        <div role={message.status === 'error' ? 'alert' : undefined} className="space-y-2">
+        <div role={message.status === 'error' ? 'alert' : undefined} className={cn('space-y-2', message.status === 'error' && 'rounded-control border border-line bg-card p-3')}>
           {message.errorMessage && (
-            <p className="flex items-center gap-2 text-sm text-danger">
-              <CircleAlert size={14} aria-hidden />
+            <p className="flex items-start gap-2 text-sm">
+              <CircleAlert size={15} className="mt-0.5 shrink-0 text-danger" aria-hidden />
               {message.errorMessage}
             </p>
           )}
@@ -125,7 +148,7 @@ export function AnswerMessage({ message, animate, onRetry, onRephrase, onUseDemo
                 {t('common.retry')}
               </Button>
             )}
-            {message.errorCode === 'LLM_UNAVAILABLE' && onUseDemo && (
+            {(message.errorCode === 'LLM_UNAVAILABLE' || message.errorCode === 'AI_SESSION_BUDGET_EXCEEDED' || message.errorCode === 'AI_BUDGET_EXCEEDED') && onUseDemo && (
               <Button size="sm" onClick={onUseDemo}>{t('chat.useDemo')}</Button>
             )}
           </div>

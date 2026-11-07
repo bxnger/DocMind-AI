@@ -9,7 +9,7 @@ import { useDocumentBlocks } from '@/features/documents/useDocumentContent';
 import { useErrorMessage } from '@/features/system/useErrorMessage';
 import { cn } from '@/lib/cn';
 import type { DocumentModel } from '@/types/document';
-import { quoteParts } from './quoteParts';
+import { markParts, quoteParts, type QuoteMark } from './quoteParts';
 
 export interface DocxTarget {
   /** Block `index` from GET /documents/{id}/text. */
@@ -24,11 +24,14 @@ interface Props {
   target: DocxTarget | null;
   /** A floating panel covers the lower part, so the end of the text needs room to move clear of it. */
   roomForInspector: boolean;
+  /** Changes to mark, for a comparison. Only text really found in a block is marked. */
+  marks?: readonly QuoteMark[];
 }
 
-function BlockText({ block, quote }: { block: TextBlock; quote: string | null }) {
+function BlockText({ block, quote, marks }: { block: TextBlock; quote: string | null; marks: readonly QuoteMark[] }) {
   const parts = quote === null ? null : quoteParts(block.text, quote);
-  if (!parts) return block.text;
+  const others = markParts(block.text, marks);
+  if (!parts) return others.map((part, index) => (part.className ? <mark key={index} className={part.className}>{part.text}</mark> : part.text));
   return (
     <>
       {parts[0]}
@@ -38,6 +41,8 @@ function BlockText({ block, quote }: { block: TextBlock; quote: string | null })
   );
 }
 
+const NO_MARKS: readonly QuoteMark[] = [];
+
 const BLOCK_STYLE: Record<TextBlock['kind'], string> = {
   heading: 'mt-7 first:mt-0 font-display text-lg leading-7 font-semibold',
   paragraph: 'mt-3 text-[15px] leading-[25px]',
@@ -46,7 +51,7 @@ const BLOCK_STYLE: Record<TextBlock['kind'], string> = {
 };
 
 /** A reader of the extracted text. It shows what the server returned: no pages, and no PDF coordinates. */
-export function DocxReader({ doc, target, roomForInspector }: Props) {
+export function DocxReader({ doc, target, roomForInspector, marks = NO_MARKS }: Props) {
   const { t } = useTranslation();
   const errorMessage = useErrorMessage();
   const query = useDocumentBlocks(doc.id, true);
@@ -104,7 +109,7 @@ export function DocxReader({ doc, target, roomForInspector }: Props) {
               data-active={active || undefined}
               className={cn(BLOCK_STYLE[block.kind], 'scroll-mt-4', active && 'rounded-sm shadow-[-10px_0_0_var(--color-bg),-12px_0_0_var(--color-accent-2-line)]')}
             >
-              <BlockText block={block} quote={active && target ? target.quote : null} />
+              <BlockText block={block} quote={active && target ? target.quote : null} marks={marks} />
             </Tag>
           );
         })}

@@ -10,7 +10,7 @@ import { EvidencePreview } from '@/features/documents/EvidencePreview';
 import { useDocuments } from '@/features/documents/useDocuments';
 import { useErrorMessage } from '@/features/system/useErrorMessage';
 import { useCapabilities } from '@/features/system/useSystem';
-import { SAMPLE_DOCUMENT_ID } from '@/services/sampleDocument';
+import { SAMPLE_DOCUMENT_ID, SAMPLE_QUESTION_KEYS } from '@/services/sampleDocument';
 import { Dropzone } from '@/features/upload/Dropzone';
 import { HomeModeStrip } from '@/features/userModes/HomeModeStrip';
 import type { DocumentModel } from '@/types/document';
@@ -65,7 +65,7 @@ function RecentDocuments() {
         {documents.data && documents.data.length > 0 && (
           <ul>
             {documents.data.slice(0, HOME_DOCS).map((doc) => (
-              <DocumentRow key={doc.id} doc={doc} onDelete={setDeleting} />
+              <DocumentRow key={doc.id} doc={doc} tag={doc.isDemo ? t('documents.demoTag') : undefined} onDelete={doc.isDemo ? undefined : setDeleting} />
             ))}
           </ul>
         )}
@@ -87,6 +87,18 @@ export function HomePage() {
             <h1 className="font-display text-[26px] leading-[32px] font-medium sm:text-[32px] sm:leading-[38px] tracking-[-0.02em] md:text-[40px] md:leading-[46px]">{t('home.title')}</h1>
             <p className="mt-3 max-w-[58ch] text-base text-muted sm:text-md">{t('home.subtitle')}</p>
             <Dropzone className="mt-6" />
+            <section aria-label={t('home.tryLabel')} data-testid="home-try" className="mt-4">
+              <h2 className="micro-label mb-1.5">{t('home.tryLabel')}</h2>
+              <ul className="flex flex-wrap gap-1.5">
+                {SAMPLE_QUESTION_KEYS.slice(0, 3).map((key) => (
+                  <li key={key} className="min-w-0">
+                    <Link to={`/documents/${SAMPLE_DOCUMENT_ID}`} state={{ prefill: t(`home.sample.${key}`) }} className="pressable inline-flex min-h-8 max-w-full items-center rounded-full border border-line bg-card px-3 py-1 text-sm hover:border-line-strong hover:bg-card-raised pointer-coarse:min-h-10">
+                      {t(`home.sample.${key}`)}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
             <nav aria-label={t('home.shortcuts')} className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
               {capabilities.data?.comparison && (
                 <Link to="/compare" className="inline-flex min-h-6 items-center gap-1.5 text-muted hover:text-accent pointer-coarse:min-h-10">
