@@ -38,6 +38,7 @@ export function MarkingCheck({ adapter, parts, maxImageBytes, showExamples, onDe
   const errorMessage = useErrorMessage();
   const camera = useRef<HTMLInputElement>(null);
   const gallery = useRef<HTMLInputElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [result, setResult] = useState<PhotoMatch | null>(null);
   const [text, setText] = useState('');
@@ -48,6 +49,11 @@ export function MarkingCheck({ adapter, parts, maxImageBytes, showExamples, onDe
   useEffect(() => () => {
     if (preview) URL.revokeObjectURL(preview);
   }, [preview]);
+
+  // On a phone the buttons fill the screen, so the photo and its result would appear out of sight.
+  useEffect(() => {
+    if (preview) previewRef.current?.scrollIntoView({ block: 'nearest' });
+  }, [preview, result]);
 
   const show = (match: PhotoMatch) => {
     setResult(match);
@@ -135,7 +141,7 @@ export function MarkingCheck({ adapter, parts, maxImageBytes, showExamples, onDe
           <p className="text-xs font-medium">{t('procurement.marking.examplesTitle')}</p>
           <div className="mt-1 flex flex-wrap gap-2">
             {DEMO_PHOTOS.map((photo) => (
-              <Button key={photo.key} size="sm" variant="ghost" data-testid={`photo-example-${photo.key}`} disabled={upload.isPending || example.isPending} onClick={() => example.mutate(photo)}>{t(`procurement.marking.example.${photo.key}`)}</Button>
+              <Button key={photo.key} size="sm" data-testid={`photo-example-${photo.key}`} disabled={upload.isPending || example.isPending} onClick={() => example.mutate(photo)}>{t(`procurement.marking.example.${photo.key}`)}</Button>
             ))}
           </div>
         </div>
@@ -143,7 +149,7 @@ export function MarkingCheck({ adapter, parts, maxImageBytes, showExamples, onDe
       {tooLarge && <p role="alert" className="mt-1 text-sm text-danger">{t('errors.codes.IMAGE_TOO_LARGE')}</p>}
       {failure && <p role="alert" data-testid="marking-error" className="mt-2 text-sm text-danger">{errorMessage(failure)}</p>}
       {preview && (
-        <div className="mt-3 flex flex-wrap gap-3 border-t border-line pt-3">
+        <div ref={previewRef} className="mt-3 flex flex-wrap gap-3 border-t border-line pt-3">
           <div className="relative shrink-0">
             <img src={preview} alt={t('procurement.marking.photo')} className="h-32 max-w-full rounded-control border border-line object-contain" />
             <p className="mt-1 max-w-52 text-[11px] text-muted">{t('procurement.marking.notStored')}</p>
