@@ -38,6 +38,8 @@ TRANSLATE_TIMEOUT_SECONDS = 8.0  # a search aid must never hold the answer up fo
 # Measured in the release QA run: the first chunk came after 0.5-1.5 s, once after 9.2 s under load. An answer that
 # has started keeps its budget.
 FIRST_CHUNK_SECONDS = 12.0
+JSON_TIMEOUT_SECONDS = 45.0  # one structured extraction (a batch of document excerpts, or one photo)
+MAX_JSON_TOKENS = 8192
 MAX_ATTEMPTS = 3
 RETRY_DELAY_SECONDS = 0.7
 TRANSIENT_NETWORK_ERRORS = (httpx.ConnectError, httpx.ConnectTimeout, httpx.RemoteProtocolError, httpx.ReadError)
@@ -182,6 +184,49 @@ class GeminiAnswerer:
             )
             self._clients[loop] = client
         return client
+
+    vision = True  # reads images (marking photos); Groq does not
+
+    async def complete_json(
+        self, prompt: str, image: bytes | None = None, mime_type: str | None = None, timeout: float = JSON_TIMEOUT_SECONDS
+    ) -> str:
+        """One JSON answer (no stream): this model, then the backup Gemini model, then (text only) the external one.
+
+        Used for structured extraction: parts of a document, the text on a photo. Raises like the chat does.
+        """
+        config = types.GenerateContentConfig(
+            response_mime_type="application/json", temperature=0, max_output_tokens=MAX_JSON_TOKENS
+        )
+        contents: list = [prompt] if image is None else [types.Part.from_bytes(data=image, mime_type=mime_type), prompt]
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + timeout
+        first_error: LlmUnavailable | None = None
+        for answerer in (self, self.fallback):
+            remaining = deadline - loop.time()
+            if answerer is None or remaining <= 0:
+                continue
+            try:
+                async with asyncio.timeout(remaining):
+                    response = await answerer.client.aio.models.generate_content(
+                        model=answerer.model, contents=contents, config=config
+                    )
+                return (response.text or "").strip()
+            except TimeoutError:
+                logger.warning("json request timed out on %s", answerer.model)
+                first_error = first_error or LlmTimeout()
+            except errors.APIError as exc:
+                error = _translate(exc, answerer.model)
+                first_error = first_error or error
+                if isinstance(error, LlmAuthFailed):
+                    break
+            except httpx.HTTPError as exc:
+                logger.warning("json request failed on %s (%s)", answerer.model, type(exc).__name__)
+                first_error = first_error or LlmUnavailable()
+        complete_elsewhere = getattr(self.external, "complete_text", None)
+        remaining = deadline - loop.time()
+        if image is None and complete_elsewhere is not None and remaining > 1:
+            return await complete_elsewhere(prompt, timeout=remaining)
+        raise first_error or LlmUnavailable()
 
     async def translate_query(self, question: str, target_languages: list[str]) -> str | None:
         """The question translated into each target language, one per line, for cross-language search.

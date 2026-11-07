@@ -1,0 +1,330 @@
+"""Parts of a technical document, photo of a marking, price lists, offers and the purchase sheet (docs/API-PROCUREMENT.md)."""
+
+import io
+import json
+
+import pytest
+
+from app.codes import code_match, find_bearings, normalize_code, standard_bearing_specs
+from app.deps import get_answerer
+from app.pricing import parse_price, parse_stock
+from tests.conftest import FakeAnswerer, make_pdf, upload
+
+# make_pdf writes one line per page and the page edge cuts a long line, so each page holds a short line.
+MANUAL = (
+    "Lathe TS-16. Operating manual. Manufacturer: Example Works.",
+    "Spindle front bearing 6205-2RS - 2 pcs. Rear bearing NU 210 ECP - 1 pcs.",
+    "Drive belt A-1250 - 3 pcs. Length 1250 mm.",
+    "Bearing service: budget 12 450 000 tenge, approved in 2026.",
+)
+JPEG = b"\xff\xd8\xff\xe0" + b"0" * 100
+
+
+class JsonAnswerer(FakeAnswerer):
+    """A model that also answers structured requests (and reads photos, like Gemini)."""
+
+    vision = True
+
+    def __init__(self, json_reply: object = None) -> None:
+        super().__init__()
+        self.json_reply = json_reply
+        self.json_calls: list[tuple[str, bytes | None]] = []
+
+    async def complete_json(self, prompt, image=None, mime_type=None, timeout=45.0):
+        self.json_calls.append((prompt, image))
+        reply = self.json_reply(prompt, image) if callable(self.json_reply) else self.json_reply
+        return reply if isinstance(reply, str) else json.dumps(reply)
+
+
+def ready(client, pages=MANUAL, name="manual.pdf") -> str:
+    created = upload(client, name, make_pdf(list(pages))).json()
+    assert client.get(f"/api/v1/documents/{created['id']}").json()["status"] == "ready"
+    return created["id"]
+
+
+def parts_of(client, document_id, **body) -> dict:
+    assert client.post(f"/api/v1/documents/{document_id}/parts", json=body or None).status_code == 202
+    result = client.get(f"/api/v1/documents/{document_id}/parts").json()
+    assert result["status"] == "ready", result
+    return result
+
+
+def use(client, answerer):
+    client.app.dependency_overrides[get_answerer] = lambda: answerer
+
+
+def price_list(client, csv_text: str, **form) -> dict:
+    files = {"file": ("prices.csv", csv_text.encode("utf-8"), "text/csv")}
+    response = client.post("/api/v1/price-lists", files=files, data={k: str(v) for k, v in form.items()})
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+PRICES = (
+    "Артикул;Наименование;Цена;Наличие;Ссылка\n"
+    "6205-2RS;Подшипник 6205-2RS;4 850,00;40;https://shop.example/6205\n"
+    "6205-2RSH;Подшипник 6205-2RSH;5 100;;\n"
+    "6205 2RS;Подшипник 6205-2RS другой склад;4 990.5;нет;\n"
+    "NU210ECP;Подшипник NU 210 ECP;;5;\n"
+)
+
+
+# Codes and bearings: plain code, no model ---------------------------------------------------------------------------
+
+def test_part_numbers_match_across_spelling_and_lookalike_letters():
+    assert normalize_code("6205-2RS") == normalize_code("6205 2RS") == "62052RS"
+    assert normalize_code("NU 210 ЕСР") == "NU210ECP"  # Cyrillic Е, С, Р read for Latin E, C, P
+    assert code_match("6205-2RS", "6205 2RS") == "exact"
+    assert code_match("6205-2RS", "6205-2RSH") == "close"
+    assert code_match("NU 210 ECP", "NU210ECP") == "exact"
+    assert code_match("6205-2RS", "6305-2RS") is None
+
+
+def test_standard_bearing_dimensions_are_computed_not_guessed():
+    dims = {spec["name"]: spec["value"] for spec in standard_bearing_specs("6205-2RS")}
+    assert dims == {"Внутренний диаметр d": "25", "Наружный диаметр D": "52", "Ширина B": "15"}
+    assert {s["value"] for s in standard_bearing_specs("6003")} == {"17", "35", "10"}
+    assert [s["value"] for s in standard_bearing_specs("NU 210 ECP")] == ["50"]  # only the bore follows from the rule
+    assert all(spec["origin"] == "standard" for spec in standard_bearing_specs("6205"))
+
+
+def test_bearings_are_found_but_amounts_and_years_are_not():
+    assert [found[0] for found in find_bearings(MANUAL[1])] == ["6205-2RS", "NU 210 ECP"]
+    assert find_bearings(MANUAL[3]) == []  # a bearing word nearby, but an amount and a year
+    assert find_bearings("The budget is 12 450 000 tenge, year 2026, invoice 6205.") == []
+    assert [found[0] for found in find_bearings("Rear bearing NU 210 ЕСР")] == ["NU 210 ЕСР"]  # original letters kept
+    assert [found[0] for found in find_bearings("Подшипник 6205 — 2 шт.")] == ["6205"]
+
+
+def test_prices_and_stock_are_read_without_inventing():
+    assert parse_price("4 850,00 ₸") == (__import__("decimal").Decimal("4850.00"), "KZT")
+    assert parse_price("") == (None, None)
+    assert parse_stock("") == ("unknown", None)
+    assert parse_stock("нет") == ("unavailable", None)
+    assert parse_stock("40") == ("available", 40)
+    assert parse_stock("уточняйте") == ("unknown", None)
+
+
+# Parts of a document -------------------------------------------------------------------------------------------------
+
+def test_bearings_are_extracted_with_quantity_page_quote_and_standard_specs_without_ai(client):
+    use(client, None)  # no AI configured: the code pass still works
+    document_id = ready(client)
+    result = parts_of(client, document_id)
+    by_code = {part["partNumber"]: part for part in result["parts"]}
+    bearing = by_code["6205-2RS"]
+    assert bearing["category"] == "bearing" and bearing["quantity"] == 2 and bearing["verified"]
+    assert bearing["sources"][0]["page"] == 2 and "6205-2RS" in bearing["sources"][0]["quote"]
+    assert bearing["sources"][0]["highlights"]  # Evidence Jump works for parts too
+    assert {s["origin"] for s in bearing["specs"]} == {"standard"}
+    assert by_code["NU 210 ECP"]["quantity"] == 1
+    assert "12 450 000" not in by_code and result["summary"]["unverified"] == 0
+
+
+def test_ai_parts_are_checked_against_the_excerpt(client):
+    import re
+
+    def reply(prompt, _image):
+        blocks = dict(re.findall(r'<excerpt number="(\d+)"[^>]*>\n(.*?)\n</excerpt>', prompt, re.DOTALL))
+        number = int(next(n for n, text in blocks.items() if "Drive belt" in text))
+        return {
+            "equipment": {"name": "Lathe", "model": "TS-16", "manufacturer": "Example Works", "excerpt": 1},
+            "parts": [
+                {"excerpt": number, "name": "Drive belt", "category": "belt", "partNumber": "A-1250", "quantity": 3, "unit": "pcs",
+                 "specs": [{"name": "Length", "value": "1250", "unit": "mm"}, {"name": "Width", "value": "13", "unit": "mm"}]},
+                {"excerpt": number, "name": "Spindle bearing", "category": "bearing", "partNumber": "6205-2RS", "quantity": 2},
+                {"excerpt": number, "name": "Invented seal", "category": "seal", "partNumber": "SEAL-999", "quantity": 7},
+            ],
+        }
+
+    answerer = JsonAnswerer(reply)
+    use(client, answerer)
+    result = parts_of(client, ready(client))
+    by_code = {part["partNumber"]: part for part in result["parts"]}
+    assert result["equipment"]["model"] == "TS-16" and result["equipment"]["sources"][0]["page"] == 1
+    belt = by_code["A-1250"]
+    assert belt["verified"] and belt["quantity"] == 3 and belt["category"] == "belt"
+    assert [spec["name"] for spec in belt["specs"]] == ["Length"]  # 13 mm is not in the document: dropped
+    invented = by_code["SEAL-999"]
+    assert invented["verified"] is False and invented["quantity"] is None  # shown, marked for checking, no invented count
+    assert by_code["6205-2RS"]["name"] == "Spindle bearing"  # merged with the code-found bearing, not duplicated
+    assert result["summary"]["unverified"] == 1
+    assert "not instructions" in answerer.json_calls[0][0]
+
+
+def test_a_category_filter_and_a_second_start_do_not_rerun(client):
+    answerer = JsonAnswerer({"equipment": None, "parts": []})
+    use(client, answerer)
+    document_id = ready(client)
+    result = parts_of(client, document_id, category="bearing")
+    assert {part["category"] for part in result["parts"]} == {"bearing"}
+    calls = len(answerer.json_calls)
+    assert client.post(f"/api/v1/documents/{document_id}/parts").status_code == 202
+    assert len(answerer.json_calls) == calls
+
+
+def test_parts_belong_to_the_session(client):
+    use(client, None)
+    document_id = ready(client)
+    parts_of(client, document_id)
+    other = client.__class__(client.app)
+    other.headers["Authorization"] = "Bearer " + other.post("/api/v1/sessions").json()["token"]
+    assert other.get(f"/api/v1/documents/{document_id}/parts").status_code == 404
+    assert client.get("/api/v1/documents/nope/parts").status_code == 404
+
+
+# Photo of a marking --------------------------------------------------------------------------------------------------
+
+def photo(client, document_id, data=JPEG):
+    return client.post(f"/api/v1/documents/{document_id}/parts/identify", files={"image": ("p.jpg", data, "image/jpeg")})
+
+
+@pytest.mark.parametrize("read, status, match", [
+    ({"text": "SKF 6205-2RS C3", "partNumber": "6205 2RS", "manufacturer": "SKF", "readability": "high"}, "matched", "exact"),
+    ({"text": "SKF 6205-2RSH", "partNumber": "6205-2RSH", "readability": "high"}, "needs_confirmation", "close"),
+    ({"text": "6205-2RS", "partNumber": "6205-2RS", "readability": "low"}, "needs_confirmation", "exact"),
+    ({"text": "6310", "partNumber": "6310", "readability": "high"}, "no_match", None),
+    ({"text": "", "partNumber": None, "readability": "unreadable"}, "unreadable", None),
+])
+def test_a_photo_is_read_by_the_model_and_matched_by_code(client, read, status, match):
+    answerer = JsonAnswerer(lambda prompt, image: {"equipment": None, "parts": []} if image is None else read)
+    use(client, answerer)
+    document_id = ready(client)
+    parts_of(client, document_id)
+    body = photo(client, document_id).json()
+    assert body["matchStatus"] == status
+    assert (body["matches"][0]["match"] if body["matches"] else None) == match
+    assert body["message"]
+    assert answerer.json_calls[-1][1] == JPEG
+
+
+def test_photo_errors(client):
+    use(client, JsonAnswerer({"equipment": None, "parts": []}))
+    document_id = ready(client)
+    assert photo(client, document_id).json()["error"]["code"] == "PARTS_NOT_STARTED"
+    parts_of(client, document_id)
+    assert photo(client, document_id, b"GIF89a....").status_code == 415
+    assert photo(client, document_id, b"\xff\xd8\xff" + b"0" * (8 * 1024 * 1024)).status_code == 413
+    plain = FakeAnswerer()  # a provider that cannot see images (Groq)
+    use(client, plain)
+    response = photo(client, document_id)
+    assert response.status_code == 503 and response.json()["error"]["code"] == "VISION_UNAVAILABLE"
+
+
+def test_a_confirmation_is_explicit_and_reaches_the_quote(client):
+    use(client, None)
+    document_id = ready(client)
+    part = next(p for p in parts_of(client, document_id)["parts"] if p["partNumber"] == "6205-2RS")
+    url = f"/api/v1/documents/{document_id}/parts/{part['id']}/confirmations"
+    confirmation = client.post(url, json={"recognizedText": "SKF 6205-2RS", "recognizedPartNumber": "6205-2RS", "decision": "confirmed"}).json()
+    assert confirmation["confirmedBy"] == "user" and confirmation["documentPartNumber"] == "6205-2RS"
+    assert client.get(url).json()["items"][0]["id"] == confirmation["id"]
+    quote = client.post("/api/v1/procurement/quote", json={"documentId": document_id, "items": [{"partId": part["id"]}]}).json()
+    assert quote["items"][0]["identification"] == {"status": "user_confirmed", "confirmationId": confirmation["id"]}
+    assert client.post(f"/api/v1/documents/{document_id}/parts/p999/confirmations", json={"decision": "confirmed"}).status_code == 404
+
+
+# Price lists, offers, the purchase sheet ----------------------------------------------------------------------------
+
+def test_offers_are_exact_matches_and_similar_ones_are_apart(client):
+    use(client, None)
+    document_id = ready(client)
+    parts = {p["partNumber"]: p for p in parts_of(client, document_id)["parts"]}
+    imported = price_list(client, PRICES, supplier="ТОО Тест", checkedAt="2026-11-08")
+    assert imported["rows"] == 3 and imported["skipped"] == [{"row": 5, "reason": "Нет цены"}]
+    assert imported["checkedAtOrigin"] == "upload_form" and imported["demo"] is False
+    body = client.post("/api/v1/procurement/offers", json={"documentId": document_id, "partIds": [parts["6205-2RS"]["id"], parts["NU 210 ECP"]["id"]]}).json()
+    bearing, roller = body["items"]
+    assert [(o["price"], o["stockStatus"], o["stockQuantity"]) for o in bearing["offers"]] == [("4850.00", "available", 40), ("4990.50", "unavailable", None)]
+    assert bearing["offers"][0]["id"] == f"{imported['id']}:2" and bearing["offers"][0]["sourceRow"] == 2
+    assert bearing["offers"][0]["url"] == "https://shop.example/6205" and bearing["offers"][0]["checkedAt"] == "2026-11-08"
+    assert [(o["partNumber"], o["match"], o["stockStatus"]) for o in bearing["similar"]] == [("6205-2RSH", "close", "unknown")]
+    assert roller["offers"] == [] and roller["similar"] == []
+
+
+def test_the_quote_is_computed_by_code_and_unknown_prices_stay_null(client):
+    use(client, None)
+    document_id = ready(client)
+    parts = {p["partNumber"]: p for p in parts_of(client, document_id)["parts"]}
+    imported = price_list(client, PRICES + "A-1250;Ремень;10;да;\n")
+    usd = price_list(client, "sku,title,price,currency\nNU210ECP,Roller bearing,99.99,USD\n")
+    items = [
+        {"partId": parts["6205-2RS"]["id"], "offerId": f"{imported['id']}:2"},               # 2 x 4850.00 from the document
+        {"partId": parts["NU 210 ECP"]["id"], "quantity": 3, "offerId": f"{usd['id']}:2"},   # 3 x 99.99 USD
+        {"partId": parts["6205-2RS"]["id"], "quantity": 1, "offerId": f"{imported['id']}:3"},  # a similar part number
+    ]
+    quote = client.post("/api/v1/procurement/quote", json={"documentId": document_id, "items": items}).json()
+    first, second, third = quote["items"]
+    assert (first["quantity"], first["unitPrice"], first["lineTotal"], first["status"]) == (2, "4850.00", "9700.00", "priced")
+    assert (second["lineTotal"], second["currency"]) == ("299.97", "USD")
+    assert third["matchWarning"] is True and third["lineTotal"] == "5100.00"
+    assert quote["totals"] == [{"currency": "KZT", "amount": "14800.00", "items": 2}, {"currency": "USD", "amount": "299.97", "items": 1}]
+    assert any("валют" in warning for warning in quote["warnings"])
+
+    no_offer = client.post("/api/v1/procurement/quote", json={"documentId": document_id, "items": [{"partId": parts["6205-2RS"]["id"]}]}).json()
+    assert no_offer["items"][0]["status"] == "no_price" and no_offer["items"][0]["lineTotal"] is None
+    assert no_offer["totals"] == [] and no_offer["unpriced"] == 1
+
+    assert client.delete(f"/api/v1/price-lists/{imported['id']}").status_code == 204
+    gone = client.post("/api/v1/procurement/quote", json={"documentId": document_id, "items": items[:1]}).json()
+    assert gone["items"][0]["status"] == "offer_missing" and gone["items"][0]["unitPrice"] is None and gone["warnings"]
+
+
+def test_an_offer_of_another_part_or_session_is_missing_not_priced(client):
+    use(client, None)
+    document_id = ready(client)
+    parts = {p["partNumber"]: p for p in parts_of(client, document_id)["parts"]}
+    imported = price_list(client, PRICES)
+    wrong = client.post("/api/v1/procurement/quote", json={"documentId": document_id, "items": [
+        {"partId": parts["NU 210 ECP"]["id"], "offerId": f"{imported['id']}:2"}]}).json()
+    assert wrong["items"][0]["status"] == "offer_missing"
+    other = client.__class__(client.app)
+    other.headers["Authorization"] = "Bearer " + other.post("/api/v1/sessions").json()["token"]
+    assert other.get("/api/v1/price-lists").json()["items"] == []
+
+
+def test_demo_price_lists_hide_links_and_bad_files_are_refused(client):
+    use(client, None)
+    document_id = ready(client)
+    part = next(p for p in parts_of(client, document_id)["parts"] if p["partNumber"] == "6205-2RS")
+    price_list(client, PRICES, demo="true")
+    offer = client.post("/api/v1/procurement/offers", json={"documentId": document_id, "partIds": [part["id"]]}).json()["items"][0]["offers"][0]
+    assert offer["demo"] is True and offer["url"] is None
+    bad = client.post("/api/v1/price-lists", files={"file": ("x.csv", "a;b\n1;2\n".encode(), "text/csv")})
+    assert bad.status_code == 422 and bad.json()["error"]["code"] == "PRICE_LIST_INVALID"
+
+
+def test_xlsx_price_list_and_export(client):
+    from openpyxl import Workbook, load_workbook
+
+    use(client, None)
+    document_id = ready(client)
+    part = next(p for p in parts_of(client, document_id)["parts"] if p["partNumber"] == "6205-2RS")
+    book = Workbook()
+    book.active.append(["Part number", "Description", "Price", "Stock", "Date"])
+    book.active.append(["6205-2RS", "Ball bearing", 4850, 12, "08.11.2026"])
+    buffer = io.BytesIO()
+    book.save(buffer)
+    response = client.post("/api/v1/price-lists", files={"file": ("p.xlsx", buffer.getvalue(), "application/octet-stream")})
+    assert response.status_code == 201, response.text
+    offer = client.post("/api/v1/procurement/offers", json={"documentId": document_id, "partIds": [part["id"]]}).json()["items"][0]["offers"][0]
+    assert (offer["price"], offer["checkedAt"], offer["checkedAtOrigin"]) == ("4850.00", "2026-11-08", "file")
+    body = {"documentId": document_id, "items": [{"partId": part["id"], "offerId": offer["id"]}]}
+    xlsx = client.post("/api/v1/procurement/quote/export?format=xlsx", json=body)
+    assert xlsx.status_code == 200 and "attachment" in xlsx.headers["content-disposition"]
+    rows = list(load_workbook(io.BytesIO(xlsx.content)).active.iter_rows(values_only=True))
+    assert rows[1][2] == "6205-2RS" and float(rows[1][7]) == 9700.0 and rows[1][11] == "2"
+    csv_file = client.post("/api/v1/procurement/quote/export?format=csv", json=body)
+    assert "9700.00" in csv_file.content.decode("utf-8-sig")
+
+
+# Capabilities ---------------------------------------------------------------------------------------------------------
+
+def test_capabilities_only_add_fields(client):
+    use(client, JsonAnswerer())
+    body = client.get("/api/v1/capabilities").json()
+    assert {"version", "languages", "ocr", "docxPreview", "comparison", "highlights", "limits"} <= set(body)
+    assert body["features"] == {"claimCheck": True, "parts": True, "photoIdentify": True, "priceLists": True, "procurement": True, "hr": False}
+    assert body["limits"]["maxImageBytes"] == 8 * 1024 * 1024
+    use(client, FakeAnswerer())
+    assert client.get("/api/v1/capabilities").json()["features"]["photoIdentify"] is False

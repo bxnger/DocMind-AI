@@ -102,6 +102,18 @@ SCHEMA = [
         PRIMARY KEY (day, scope)
     )
     """,
+    # Procurement records of one session: a document's part list, a price list, a photo confirmation. JSON bodies.
+    """
+    CREATE TABLE IF NOT EXISTS records (
+        kind TEXT NOT NULL,
+        id TEXT NOT NULL,
+        owner_id TEXT NOT NULL,
+        document_id TEXT,
+        data_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (kind, id)
+    )
+    """,
 ]
 
 
@@ -234,6 +246,7 @@ class Store:
             conn.execute("DELETE FROM segments WHERE document_id = ?", (doc_id,))
             conn.execute("DELETE FROM conversation_documents WHERE document_id = ?", (doc_id,))
             conn.execute("DELETE FROM comparisons WHERE document_a_id = ? OR document_b_id = ?", (doc_id, doc_id))
+            conn.execute("DELETE FROM records WHERE document_id = ?", (doc_id,))
             conn.execute("DELETE FROM documents WHERE id = ?", (doc_id,))
         self.remove_files(doc_id, doc["kind"])
 
@@ -289,6 +302,44 @@ class Store:
             self.delete_conversation(conversation_id)
         with self._db() as conn:
             conn.execute("DELETE FROM comparisons WHERE owner_id = ?", (owner_id,))
+            conn.execute("DELETE FROM records WHERE owner_id = ?", (owner_id,))
+
+    # Procurement records
+
+    def put_record(self, kind: str, record_id: str, owner_id: str, data: dict, document_id: str | None = None) -> None:
+        with self._db() as conn:
+            conn.execute(
+                "INSERT INTO records (kind, id, owner_id, document_id, data_json, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+                " ON CONFLICT(kind, id) DO UPDATE SET data_json = excluded.data_json",
+                (kind, record_id, owner_id, document_id, json.dumps(data, ensure_ascii=False), _now()),
+            )
+
+    def get_record(self, kind: str, record_id: str, owner_id: str) -> dict | None:
+        """None when it does not exist or belongs to another session: the caller says 404 either way."""
+        with self._db() as conn:
+            row = conn.execute(
+                "SELECT data_json FROM records WHERE kind = ? AND id = ? AND owner_id = ?", (kind, record_id, owner_id)
+            ).fetchone()
+        return json.loads(row["data_json"]) if row else None
+
+    def list_records(self, kind: str, owner_id: str, document_id: str | None = None) -> list[dict]:
+        query = "SELECT data_json FROM records WHERE kind = ? AND owner_id = ?"
+        params: list = [kind, owner_id]
+        if document_id is not None:
+            query += " AND document_id = ?"
+            params.append(document_id)
+        with self._db() as conn:
+            rows = conn.execute(query + " ORDER BY created_at, rowid", params).fetchall()
+        return [json.loads(row["data_json"]) for row in rows]
+
+    def count_records(self, kind: str, owner_id: str) -> int:
+        with self._db() as conn:
+            return conn.execute("SELECT COUNT(*) FROM records WHERE kind = ? AND owner_id = ?", (kind, owner_id)).fetchone()[0]
+
+    def delete_record(self, kind: str, record_id: str, owner_id: str) -> bool:
+        with self._db() as conn:
+            cursor = conn.execute("DELETE FROM records WHERE kind = ? AND id = ? AND owner_id = ?", (kind, record_id, owner_id))
+        return cursor.rowcount > 0
 
     def delete_session(self, owner_id: str) -> None:
         self.delete_owner_data(owner_id)

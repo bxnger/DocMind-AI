@@ -52,16 +52,58 @@ def repair_codes(text: str, latin_text: str) -> str:
     return _CYRILLIC_CODE.sub(lambda match: latin.get(match.group(1), match.group(0)), text)
 
 
+# Where Tesseract language data usually lives. Found live: without TESSDATA_PREFIX the API reported "no OCR" on a
+# Windows machine that had kaz/rus/eng data in the user's folder, because PyMuPDF's own search failed (it reads the
+# Tesseract console output, which is not UTF-8 on a Russian Windows) and the default folder held English only.
+TESSDATA_CANDIDATES = (
+    Path(r"C:\Program Files\Tesseract-OCR\tessdata"),
+    Path(r"C:\Program Files (x86)\Tesseract-OCR\tessdata"),
+    Path("/usr/share/tesseract-ocr/5/tessdata"),
+    Path("/usr/share/tesseract-ocr/4.00/tessdata"),
+    Path("/usr/share/tessdata"),
+    Path("/usr/local/share/tessdata"),
+    Path("/opt/homebrew/share/tessdata"),
+)
+
+
+def _languages_in(folder: Path) -> list[str]:
+    return [lang for lang in OCR_LANGUAGES if (folder / f"{lang}.traineddata").exists()]
+
+
+def find_tessdata() -> Path | None:
+    """The folder with the most of our OCR languages: TESSDATA_PREFIX when it has them, else a usual place.
+
+    The folder found is put into TESSDATA_PREFIX, so OCR and the reading worker (which gets that variable) use it.
+    """
+    import os
+
+    folders = [Path(os.environ["TESSDATA_PREFIX"])] if os.environ.get("TESSDATA_PREFIX") else []
+    try:
+        # The reading worker runs with a minimal environment, where Windows has no home folder: never fail on it.
+        candidates = (Path.home() / "tessdata", *TESSDATA_CANDIDATES)
+    except (RuntimeError, KeyError):
+        candidates = TESSDATA_CANDIDATES
+    folders += [folder for folder in candidates if folder not in folders]
+    best = max(folders, key=lambda folder: len(_languages_in(folder)), default=None)
+    if best is None or not _languages_in(best):
+        try:
+            found = fitz.get_tessdata()
+        except Exception:
+            return None
+        best = Path(found) if found else None
+        if best is None or not _languages_in(best):
+            return None
+    if os.environ.get("TESSDATA_PREFIX") != str(best):
+        os.environ["TESSDATA_PREFIX"] = str(best)
+    return best
+
+
 def ocr_languages() -> str | None:
     """Tesseract languages usable for OCR, like "kaz+rus+eng", or None when OCR is not set up."""
-    try:
-        tessdata = fitz.get_tessdata()
-    except Exception:
+    tessdata = find_tessdata()
+    if tessdata is None:
         return None
-    if not tessdata:
-        return None
-    present = [lang for lang in OCR_LANGUAGES if (Path(tessdata) / f"{lang}.traineddata").exists()]
-    return "+".join(present) or None
+    return "+".join(_languages_in(tessdata)) or None
 
 
 def scanned_pages(path: Path) -> list[int]:

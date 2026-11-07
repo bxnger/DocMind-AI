@@ -7,18 +7,18 @@ import uuid
 from collections.abc import Mapping
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import MAX_JSON_BODY_BYTES, MAX_UPLOAD_BODY_BYTES, Settings
-from app.deps import get_settings, get_store
+from app.deps import get_answerer, get_settings, get_store
 from app.errors import error_body, register_error_handlers
 from app.extraction import ocr_languages
 from app.pipeline import recover_unfinished
 from app.ratelimit import RateLimiter
 from app.store import Store
-from app.routers import comparisons, conversations, documents, sessions
+from app.routers import comparisons, conversations, documents, procurement, sessions
 from app.schemas import Capabilities, build_capabilities
 
 logger = logging.getLogger("app")
@@ -71,7 +71,8 @@ class BodyLimit:
         if scope["type"] != "http" or scope["method"] not in ("POST", "PUT", "PATCH"):
             await self.app(scope, receive, send)
             return
-        limit = MAX_UPLOAD_BODY_BYTES if scope["path"].endswith("/documents") else MAX_JSON_BODY_BYTES
+        uploads = ("/documents", "/price-lists", "/parts/identify")  # file uploads; each endpoint has its own smaller limit too
+        limit = MAX_UPLOAD_BODY_BYTES if scope["path"].endswith(uploads) else MAX_JSON_BODY_BYTES
 
         async def refuse() -> None:
             body = {"error": {"code": "FILE_TOO_LARGE", "message": "The request is too large", "retryable": False, "requestId": uuid.uuid4().hex}}
@@ -177,13 +178,16 @@ def create_app(settings: Settings | None = None, store: Store | None = None) -> 
         return {"status": "ok"}
 
     @app.get("/api/v1/capabilities", response_model=Capabilities)
-    def capabilities() -> Capabilities:
-        return build_capabilities(VERSION, ocr=ocr_languages() is not None)
+    def capabilities(answerer=Depends(get_answerer)) -> Capabilities:
+        return build_capabilities(
+            VERSION, ocr=ocr_languages() is not None, vision=bool(getattr(answerer, "vision", False))
+        )
 
     app.include_router(sessions.router, prefix="/api/v1")
     app.include_router(documents.router, prefix="/api/v1")
     app.include_router(conversations.router, prefix="/api/v1")
     app.include_router(comparisons.router, prefix="/api/v1")
+    app.include_router(procurement.router, prefix="/api/v1")
     return app
 
 

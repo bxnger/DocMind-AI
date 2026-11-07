@@ -86,6 +86,10 @@ class GroqAnswerer:
         if text:
             yield text
 
+    async def complete_text(self, prompt: str, timeout: float = 30.0) -> str:
+        """One plain answer to `prompt` (structured extraction asks for JSON in the prompt). Groq reads no images."""
+        return await self._complete([{"role": "user", "content": prompt}], 4096, timeout)
+
     async def translate_query(self, question: str, target_languages: list[str], timeout: float = 8.0) -> str | None:
         """The question translated for cross-language search. None on any failure: a search aid must not raise."""
         prompt = translation_prompt(question, target_languages)

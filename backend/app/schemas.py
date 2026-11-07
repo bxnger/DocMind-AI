@@ -60,6 +60,18 @@ class Limits(BaseModel):
     max_file_size_bytes: int
     max_pages: int
     max_documents_per_conversation: int
+    max_image_bytes: int
+
+
+class Features(BaseModel):
+    model_config = CAMEL
+
+    claim_check: bool
+    parts: bool
+    photo_identify: bool
+    price_lists: bool
+    procurement: bool
+    hr: bool
 
 
 class Capabilities(BaseModel):
@@ -67,24 +79,30 @@ class Capabilities(BaseModel):
 
     version: str
     languages: list[Literal["kk", "ru", "en"]]
-    ocr: bool
+    ocr: bool  # OCR of scanned PDFs (Tesseract); a photo of a part is features.photoIdentify
     docx_preview: Literal["pdf", "none"]
     comparison: bool
     highlights: bool
+    features: Features
     limits: Limits
 
 
-def build_capabilities(version: str, ocr: bool) -> Capabilities:
+MAX_IMAGE_BYTES = 8 * 1024 * 1024
+
+
+def build_capabilities(version: str, ocr: bool, vision: bool = False) -> Capabilities:
     return Capabilities(
         version=version,
-        languages=[],
+        languages=["kk", "ru", "en"] if ocr else [],
         ocr=ocr,
         docx_preview="none",
         comparison=True,
         highlights=True,
+        features=Features(claim_check=True, parts=True, photo_identify=vision, price_lists=True, procurement=True, hr=False),
         limits=Limits(
             max_file_size_bytes=MAX_FILE_SIZE_BYTES,
             max_pages=MAX_PAGES,
             max_documents_per_conversation=MAX_DOCUMENTS_PER_CONVERSATION,
+            max_image_bytes=MAX_IMAGE_BYTES,
         ),
     )
