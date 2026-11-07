@@ -64,8 +64,22 @@ def ocr_languages() -> str | None:
     return "+".join(present) or None
 
 
-def extract_pdf(path: Path, languages: str | None = None) -> list[Segment]:
-    """Text per page. With `languages`, every page is read with OCR instead of its text layer."""
+def scanned_pages(path: Path) -> list[int]:
+    """Numbers of the pages that have no text layer but hold an image: scans inside an otherwise digital PDF.
+    A blank page (no image) is not one."""
+    try:
+        with fitz.open(path) as doc:
+            return [
+                number for number, page in enumerate(doc, start=1)
+                if not page.get_text("text").strip() and page.get_images(full=False)
+            ]
+    except Exception:
+        return []
+
+
+def extract_pdf(path: Path, languages: str | None = None, only_pages: set[int] | None = None) -> list[Segment]:
+    """Text per page. With `languages`, every page is read with OCR instead of its text layer, or, with
+    `only_pages`, just those pages (the others keep their text layer)."""
     failure = "OCR_FAILED" if languages else "PARSE_FAILED"
     try:
         doc = fitz.open(path)
@@ -78,7 +92,7 @@ def extract_pdf(path: Path, languages: str | None = None) -> list[Segment]:
             raise ExtractionError("PARSE_FAILED", "The PDF is damaged: no pages could be read")
         segments = []
         for number, page in enumerate(doc, start=1):
-            if languages:
+            if languages and (only_pages is None or number in only_pages):
                 textpage = page.get_textpage_ocr(language=languages, dpi=OCR_DPI, full=True)
                 text = page.get_text("text", textpage=textpage)
                 if needs_latin_codes(text) and languages != "eng":
@@ -265,6 +279,15 @@ def read_document(path, kind, max_pages, max_ocr_pages, extract_pdf_fn=None, ocr
             if on_ocr:
                 on_ocr()
             segments, ocr_used = read_pdf(path, languages), True
+        elif any(not segment.text for segment in segments):
+            # A digital PDF with scanned pages in it (a signed page, an attachment): only those pages need OCR.
+            # Without OCR, or with too many such pages, the text pages are still used, as before.
+            scans = scanned_pages(path)
+            languages = languages_of() if scans else None
+            if languages and len(scans) <= max_ocr_pages:
+                if on_ocr:
+                    on_ocr()
+                segments, ocr_used = read_pdf(path, languages, only_pages=set(scans)), True
     if not any(segment.text for segment in segments):
         raise ExtractionError("NO_TEXT_FOUND", "No text found in the document")
     return segments, ocr_used

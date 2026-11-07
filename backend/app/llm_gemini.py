@@ -34,6 +34,10 @@ THINKING_LEVELS = ("minimal", "low", "medium", "high")
 PRIMARY_BUDGET_SECONDS = 25.0
 BACKUP_BUDGET_SECONDS = 15.0  # the backup Gemini model, when another provider still waits behind it
 TRANSLATE_TIMEOUT_SECONDS = 8.0  # a search aid must never hold the answer up for long
+# A model that has sent nothing for this long is stuck: move on to the next one instead of using the whole budget.
+# Measured in the release QA run: the first chunk came after 0.5-1.5 s, once after 9.2 s under load. An answer that
+# has started keeps its budget.
+FIRST_CHUNK_SECONDS = 12.0
 MAX_ATTEMPTS = 3
 RETRY_DELAY_SECONDS = 0.7
 TRANSIENT_NETWORK_ERRORS = (httpx.ConnectError, httpx.ConnectTimeout, httpx.RemoteProtocolError, httpx.ReadError)
@@ -270,26 +274,29 @@ class GeminiAnswerer:
         loop = asyncio.get_running_loop()
         # The HTTP timeout only limits gaps between bytes; this also bounds the whole answer, retries included.
         deadline = loop.time() + (self.timeout_seconds or REQUEST_TIMEOUT_SECONDS)
+        first_deadline = min(deadline, loop.time() + FIRST_CHUNK_SECONDS)
         report = _Report(prompt_chars)
         yielded = False
+        started = False  # a chunk has arrived: from then on only the whole budget applies
         attempt = 0
         while True:
             attempt += 1
             chunks = None
             try:
-                async with asyncio.timeout_at(deadline):
+                async with asyncio.timeout_at(deadline if started else first_deadline):
                     chunks = await self.client.aio.models.generate_content_stream(
                         model=self.model, contents=contents, config=config
                     )
                 report.opened()
                 iterator = aiter(chunks)
                 while True:
-                    async with asyncio.timeout_at(deadline):
+                    async with asyncio.timeout_at(deadline if started else first_deadline):
                         try:
                             chunk = await anext(iterator)
                         except StopAsyncIteration:
                             report.log(self.model, attempt, level_name)
                             return
+                    started = True
                     report.see(chunk)
                     # A chunk can hold no text, for example the last one or a safety block. Then the
                     # answer has no valid citation and the router turns it into not_found.
