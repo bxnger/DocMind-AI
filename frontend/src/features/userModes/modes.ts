@@ -3,7 +3,7 @@ import { readStored, writeStored } from '@/lib/storage';
 
 export const USER_MODES = ['general', 'student', 'teacher', 'legal', 'business', 'procurement', 'hr'] as const;
 export type UserMode = (typeof USER_MODES)[number];
-export const DEFAULT_USER_MODE: UserMode = 'general';
+export const DEFAULT_USER_MODE: UserMode = 'procurement';
 
 export const MODE_ICONS: Record<UserMode, LucideIcon> = {
   general: Sparkles,
@@ -32,7 +32,7 @@ export const isUserMode = (value: unknown): value is UserMode => USER_MODES.some
 
 const KEY = 'docmind.userMode';
 
-/** Unknown stored values, for example from an older version, fall back to General. */
+/** Unknown stored values, for example from an older version, fall back to the default. */
 export function loadUserMode(): UserMode {
   const stored = readStored<unknown>('local', KEY, DEFAULT_USER_MODE);
   return isUserMode(stored) ? stored : DEFAULT_USER_MODE;

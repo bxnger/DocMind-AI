@@ -36,29 +36,48 @@ export interface PartList {
   summary: { total: number; unverified: number };
 }
 
-export type MatchStatus = 'matched' | 'needs_confirmation' | 'no_match' | 'unreadable';
+export type MatchStatus = 'matched' | 'needs_confirmation' | 'no_match' | 'type_only' | 'unreadable';
+export type PartType = PartCategory | 'unknown';
+export type PhotoIssue = 'glare' | 'blur' | 'angle' | 'partial' | 'dark' | 'far' | 'no_marking' | 'not_a_part';
 
 export interface PhotoCandidate {
   partId: string;
   partNumber: string;
   name: string;
-  match: 'exact' | 'close' | 'partial';
+  /** `type`: only the kind of part agrees. It is a candidate, never a match of part numbers. */
+  match: 'exact' | 'close' | 'partial' | 'type';
   difference: string | null;
   sources: EvidenceSource[];
 }
 
 export interface PhotoMatch {
   matchStatus: MatchStatus;
-  recognized: { text: string | null; partNumber: string | null; manufacturer: string | null; markings: string[]; readability: string | null };
+  recognized: {
+    text: string | null;
+    partNumber: string | null;
+    manufacturer: string | null;
+    markings: string[];
+    readability: string | null;
+    /** Every inscription the model read, as written. Older answers have none. */
+    visibleMarkings: string[];
+    /** The model's estimate from the shape of the part, not a fact. */
+    partType: PartType | null;
+    /** About partType only. How far to trust a part number is `readability`. */
+    confidence: 'high' | 'medium' | 'low' | null;
+    issues: PhotoIssue[];
+  };
   matches: PhotoCandidate[];
   message: string | null;
+  /** How to retake the photo, in the language of the answer. */
+  tips: string[];
 }
 
 export type Decision = 'confirmed' | 'rejected';
 
 export interface ConfirmationInput {
   recognizedText: string;
-  recognizedPartNumber: string;
+  /** Null when no part number was read and the person chose by the kind of part. */
+  recognizedPartNumber: string | null;
   decision: Decision;
 }
 
@@ -66,7 +85,7 @@ export interface Confirmation {
   id: string;
   partId: string;
   decision: Decision;
-  recognizedPartNumber: string;
+  recognizedPartNumber: string | null;
   documentPartNumber: string;
   confirmedBy: string;
   createdAt: string;

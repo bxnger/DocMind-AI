@@ -17,7 +17,7 @@ export function formatMoney(amount: string, currency: string, language: string):
   const value = Number(amount);
   if (!Number.isFinite(value)) return `${amount} ${currency}`;
   try {
-    return new Intl.NumberFormat(language, { style: 'currency', currency, maximumFractionDigits: 2 }).format(value);
+    return new Intl.NumberFormat(language, { style: 'currency', currency, currencyDisplay: 'narrowSymbol', maximumFractionDigits: 2 }).format(value);
   } catch {
     return `${new Intl.NumberFormat(language, { minimumFractionDigits: 2 }).format(value)} ${currency}`; // not an ISO code
   }

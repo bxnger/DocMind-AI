@@ -10,8 +10,8 @@ import { createLiveAdapter } from '@/services/procurement/liveAdapter';
 import type { ProcurementAdapter, SourceText } from '@/services/procurement/types';
 import { isSampleDocument } from '@/services/sampleDocument';
 import type { DocumentText } from '@/services/chat/demo/textIndex';
-import type { Part, QuoteRequestItem } from '@/types/procurement';
 import type { DocumentModel } from '@/types/document';
+import { NEW_LINE, quoteItems, type SheetLine } from './sheetLines';
 
 const POLL_MS = 1500;
 
@@ -47,48 +47,25 @@ export function useProcurementAdapter(doc: DocumentModel, pdfText: DocumentText 
   }, [blocks.data, canReadPhotos, decided, doc.id, doc.name, isDocx, language, live, pdfText]);
 }
 
-/** What the person decided for one line. The server keeps no sheet: it only calculates what it is sent. */
-export interface SheetLine {
-  included: boolean;
-  quantity: number | null;
-  offerId: string | null;
-  note: string;
-  confirmationId: string | null;
-}
-
-const NEW_LINE: SheetLine = { included: true, quantity: null, offerId: null, note: '', confirmationId: null };
+export const sheetStorageKey = (documentId: string): string => `docmind.chat.procurement.${documentId}`;
 
 export function useSheetLines(documentId: string) {
-  const key = `docmind.chat.procurement.${documentId}`;
+  const key = sheetStorageKey(documentId);
   const [lines, setLines] = useState<Record<string, SheetLine>>(() => readStored('session', key, {}));
-  const update = useCallback((partId: string, change: Partial<SheetLine>) => {
+  const updateMany = useCallback((changes: Record<string, Partial<SheetLine>>) => {
     setLines((current) => {
-      const next = { ...current, [partId]: { ...NEW_LINE, ...current[partId], ...change } };
+      const next = { ...current };
+      for (const [partId, change] of Object.entries(changes)) next[partId] = { ...NEW_LINE, ...current[partId], ...change };
       writeStored('session', key, next);
       return next;
     });
   }, [key]);
-  return { lines, update };
+  const update = useCallback((partId: string, change: Partial<SheetLine>) => updateMany({ [partId]: change }), [updateMany]);
+  return { lines, update, updateMany };
 }
 
-/** A line goes to the calculation only with a real quantity: from the document, or typed by the person. */
-export function quoteItems(parts: readonly Part[], lines: Record<string, SheetLine>): { items: QuoteRequestItem[]; withoutQuantity: number } {
-  const items: QuoteRequestItem[] = [];
-  let withoutQuantity = 0;
-  for (const part of parts) {
-    const line = lines[part.id];
-    if (line && !line.included) continue;
-    const quantity = line?.quantity ?? part.quantity;
-    if (quantity === null) {
-      withoutQuantity += 1;
-      continue;
-    }
-    items.push({ partId: part.id, quantity, offerId: line?.offerId ?? null, ...(line?.confirmationId ? { confirmationId: line.confirmationId } : {}) });
-  }
-  return { items, withoutQuantity };
-}
-
-export function useProcurement(documentId: string, adapter: ProcurementAdapter | null, lines: Record<string, SheetLine>) {
+/** The document must be ready first: asking earlier only earns an error from the server. */
+export function useProcurement(documentId: string, adapter: ProcurementAdapter | null, lines: Record<string, SheetLine>, documentReady: boolean) {
   const scope = useMemo(() => ['procurement', documentId, adapter?.isDemo ?? null] as const, [adapter?.isDemo, documentId]);
   const need = (): ProcurementAdapter => {
     if (!adapter) throw new Error('Procurement is not ready');
@@ -97,7 +74,7 @@ export function useProcurement(documentId: string, adapter: ProcurementAdapter |
   const partList = useQuery({
     queryKey: [...scope, 'parts'],
     queryFn: ({ signal }) => need().parts(signal),
-    enabled: adapter !== null,
+    enabled: adapter !== null && documentReady,
     refetchInterval: (query) => (query.state.data?.status === 'processing' ? POLL_MS : false),
   });
   const ready = partList.data?.status === 'ready';

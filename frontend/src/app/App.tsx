@@ -14,7 +14,9 @@ import { useToast } from '@/components/ui/Toast';
 import { clearUserData } from '@/services/userData';
 import { ComparePage } from '@/pages/ComparePage';
 import { DocumentsPage } from '@/pages/DocumentsPage';
+import { EquipmentPage } from '@/pages/EquipmentPage';
 import { HomePage } from '@/pages/HomePage';
+import { ProcurementPage } from '@/pages/ProcurementPage';
 import { HrPage } from '@/pages/HrPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { RecentPage } from '@/pages/RecentPage';
@@ -87,6 +89,8 @@ export function App() {
                   />
                   <Route path="compare" element={<ComparePage />} />
                   <Route path="hr" element={<HrPage />} />
+                  <Route path="equipment" element={<EquipmentPage />} />
+                  <Route path="procurement" element={<ProcurementPage />} />
                   <Route path="recent" element={<RecentPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                   <Route path="*" element={<NotFoundPage />} />

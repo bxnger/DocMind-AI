@@ -99,6 +99,25 @@ src/
 - Design tokens are in `src/styles/index.css`.
 - UI strings are in `src/i18n/locales/` (`en`, `ru`, `kk`). A unit test fails if a key or placeholder is missing.
 
-## Procurement and HR
+## DOCMIND INDUSTRY
 
-The Procurement tab (in the Production and procurement mode) and `/hr` follow `backend/docs/API-PROCUREMENT.md`, revision 2, on the `backend/procurement-mvp` branch. Each turns on from `capabilities.features`: `procurement`, `parts`, `priceLists`, `photoIdentify` and `hr`. Until the server reports them, a demonstration adapter is used and says so on screen: its prices are invented, and it reads no photos. Its quotes are real text of the document. The HR result has no score and no hiring recommendation.
+The product is positioned for industry: from technical documentation to a purchase sheet. The document chat, Compare, Knowledge Map, Facts and the other modes stay, under **More tools** and in each document's tabs.
+
+The workflow lives in a document's **Procurement** tab, in steps: parts with quotes and pages, a check by photo, offers from price lists, and the sheet with its export. It follows `backend/docs/API-PROCUREMENT.md` on the `backend/procurement-mvp` branch. All money is calculated by the backend.
+
+Each part turns on from `capabilities.features`:
+
+| Flag | Without it |
+| --- | --- |
+| `parts`, `priceLists`, `procurement` | A demonstration adapter, labelled on screen. Its built-in prices are invented, and it reads no photos. Its quotes are real text of the document. |
+| `photoIdentify` | The photo step says it's unavailable. |
+| `claimCheck` | The Verify tab says it's unavailable. |
+| `hr` | `/hr` compares words only, and says so. There is no score or hiring recommendation either way. |
+
+`public/demo/industry/` holds what the **See the demonstration** button uses. All of it goes through the same upload and API as a user's own files:
+
+- `tv320_manual.pdf`, `demo_prices.csv` and `marking_*.png` come from the backend's `backend/demo/procurement/`. The machine and the prices are made up.
+- `part_no_marking.png` is a drawing of an unmarked bearing, made for this demonstration.
+- `verified_suppliers.csv` holds real offers, copied by hand from the suppliers' product pages. **Check the prices again and update the date in the file before showing them.** It is not a live check.
+
+To point a local frontend at another backend without touching any file, set the variable for that process: `VITE_API_BASE_URL=https://example.trycloudflare.com npx vite`. Give only the origin, without `/api/v1`. The backend's `CORS_ORIGINS` must include `http://localhost:5173`.

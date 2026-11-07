@@ -31,7 +31,7 @@ function Result({ result, onOpenSource }: { result: ClaimCheck; onOpenSource: (s
         {t(`verify.verdict.${result.verdict}`)}
       </p>
       {result.explanation && <p data-testid="verify-explanation" className="mt-2 break-words [overflow-wrap:anywhere]">{result.explanation}</p>}
-      {result.verdict === 'not_found' && <p data-testid="verify-not-found" className="mt-2 text-sm text-muted">{t(result.reason ? `chat.notFoundReason.${result.reason}` : 'verify.notFoundBody')}</p>}
+      {result.verdict === 'not_found' && <p data-testid="verify-not-found" className="mt-2 text-sm text-muted">{t(result.reason ? `verify.notFoundReason.${result.reason}` : 'verify.notFoundBody')}</p>}
       {result.sources.length > 0 && (
         <>
           <h3 className="micro-label mt-3 mb-1">{t('verify.sources')}</h3>

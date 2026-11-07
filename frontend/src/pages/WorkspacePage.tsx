@@ -17,6 +17,7 @@ import type { TextBlock } from '@/api/documents';
 import { useDocumentBlocks, useDocumentFacts } from '@/features/documents/useDocumentContent';
 import { blocksToMapText } from '@/features/knowledgeMap/docxText';
 import { FactsPanel, factMessage } from '@/features/facts/FactsPanel';
+import { isProcurementStep } from '@/features/procurement/WorkflowStepper';
 import { VerifyPanel } from '@/features/verify/VerifyPanel';
 import { ProcurementPanel } from '@/features/procurement/ProcurementPanel';
 import { useUserMode } from '@/features/userModes/useUserMode';
@@ -109,6 +110,7 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
     return { page: state.jump.page, quote: typeof state.jump.quote === 'string' ? state.jump.quote : null, nonce: 0 };
   });
   const [deleting, setDeleting] = useState(false);
+  const initialStep = isRecord(startState) && isProcurementStep(startState.step) ? startState.step : undefined;
 
   const source = useDocumentSource(doc);
   const input: PdfInput | null = source.kind === 'pdf' ? source.input : null;
@@ -132,8 +134,12 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
   // Fragments from the map go through the same Evidence Jump as answers, as a source list kept outside the chat.
   const [view, setView] = useState<LeftView>(() => {
     const state: unknown = routerLocation.state;
-    return isRecord(state) && state.view === 'map' ? 'map' : 'document';
+    if (!isRecord(state)) return 'document';
+    return state.view === 'map' || state.view === 'procurement' || state.view === 'verify' ? state.view : 'document';
   });
+  // Once opened, the workflow stays mounted, so a source and back keep the photo and the step. Opening it is what starts the extraction.
+  const [procurementOpened, setProcurementOpened] = useState(false);
+  if (view === 'procurement' && !procurementOpened) setProcurementOpened(true);
   const [mapEvidence, setMapEvidence] = useState<AssistantMessage | null>(null);
   const evidenceMessages = useMemo(() => (mapEvidence ? [...chat.messages, mapEvidence] : chat.messages), [chat.messages, mapEvidence]);
   const evidence = useEvidence(evidenceMessages);
@@ -332,10 +338,10 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
               </ErrorBoundary>
             </div>
           )}
-          {view === 'procurement' && leftViews.includes('procurement') && (
-            <div className="absolute inset-0 bg-bg">
+          {procurementOpened && leftViews.includes('procurement') && (
+            <div className={cn('absolute inset-0 bg-bg', view !== 'procurement' && HIDDEN_PANE)}>
               <ErrorBoundary fallback={(reset) => <RegionCrash reset={reset} />}>
-                <ProcurementPanel doc={doc} pdfText={text} onOpenSource={(partSource) => openFact(partSource, 'procurement')} />
+                <ProcurementPanel doc={doc} pdfText={text} initialStep={initialStep} onOpenSource={(partSource) => openFact(partSource, 'procurement')} onOpenDocument={() => setView('document')} />
               </ErrorBoundary>
             </div>
           )}

@@ -44,17 +44,17 @@ export function compareCode(marking: string, part: Pick<Part, 'partNumber' | 'ma
   return sameBase || edits(a, b) <= MAX_EDITS ? 'close' : null;
 }
 
-const RANK = { exact: 3, partial: 2, close: 1 };
+const RANK = { exact: 3, partial: 2, close: 1, type: 0 };
 
 export function demoIdentify(text: string, parts: readonly Part[]): PhotoMatch {
   const { brand, code } = splitBrand(text);
-  const recognized = { text, partNumber: code || null, manufacturer: brand, markings: [], readability: null };
-  if (normalizeCode(code).length < MIN_CODE) return { matchStatus: 'unreadable', recognized, matches: [], message: null };
+  const recognized = { text, partNumber: code || null, manufacturer: brand, markings: [], readability: null, visibleMarkings: [], partType: null, confidence: null, issues: [] };
+  if (normalizeCode(code).length < MIN_CODE) return { matchStatus: 'unreadable', recognized, matches: [], message: null, tips: [] };
   const matches = parts.flatMap((part): PhotoCandidate[] => {
     const match = compareCode(text, part);
     return match ? [{ partId: part.id, partNumber: part.partNumber, name: part.name, match, difference: match === 'exact' ? null : `${code} ≠ ${splitBrand(part.partNumber).code}`, sources: part.sources }] : [];
   }).sort((x, y) => RANK[y.match] - RANK[x.match]);
   const exact = matches.filter((match) => match.match === 'exact');
   const matchStatus = exact.length === 1 ? 'matched' : matches.length ? 'needs_confirmation' : 'no_match';
-  return { matchStatus, recognized, matches, message: null };
+  return { matchStatus, recognized, matches, message: null, tips: [] };
 }

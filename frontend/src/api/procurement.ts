@@ -1,5 +1,5 @@
 import type { EvidenceSource } from '@/types/chat';
-import type { CheckedAtOrigin, Confirmation, ConfirmationInput, MatchStatus, Offer, Part, PartCategory, PartList, PartOffers, PhotoCandidate, PhotoMatch, PriceList, PriceListInput, Quote, QuoteItem, QuoteRequestItem } from '@/types/procurement';
+import type { CheckedAtOrigin, Confirmation, ConfirmationInput, MatchStatus, Offer, Part, PartCategory, PartList, PartOffers, PartType, PhotoCandidate, PhotoIssue, PhotoMatch, PriceList, PriceListInput, Quote, QuoteItem, QuoteRequestItem } from '@/types/procurement';
 import { AppError, ERROR_BAD_RESPONSE, getJson, isRecord, postJson, send } from './client';
 import { toSource } from './conversations';
 
@@ -56,25 +56,39 @@ export function toPartList(value: unknown): PartList {
 
 function toCandidate(value: unknown): PhotoCandidate[] {
   if (!isRecord(value) || typeof value.partId !== 'string') return [];
-  return [{ partId: value.partId, partNumber: text(value.partNumber) ?? '', name: text(value.name) ?? '', match: oneOf(value.match, ['exact', 'close', 'partial'] as const, 'partial'), difference: text(value.difference), sources: sources(value.sources) }];
+  return [{ partId: value.partId, partNumber: text(value.partNumber) ?? '', name: text(value.name) ?? '', match: oneOf(value.match, ['exact', 'close', 'partial', 'type'] as const, 'partial'), difference: text(value.difference), sources: sources(value.sources) }];
 }
 
-const MATCH_STATUSES: readonly MatchStatus[] = ['matched', 'needs_confirmation', 'no_match', 'unreadable'];
+const MATCH_STATUSES: readonly MatchStatus[] = ['matched', 'needs_confirmation', 'no_match', 'type_only', 'unreadable'];
+const PART_TYPES: readonly PartType[] = [...CATEGORIES, 'unknown'];
+const ISSUES: readonly PhotoIssue[] = ['glare', 'blur', 'angle', 'partial', 'dark', 'far', 'no_marking', 'not_a_part'];
+const strings = (value: unknown): string[] => list(value).flatMap((item) => (typeof item === 'string' ? [item] : []));
 
 export function toPhotoMatch(value: unknown): PhotoMatch {
   if (!isRecord(value)) throw bad();
   const recognized = isRecord(value.recognized) ? value.recognized : {};
   return {
     matchStatus: oneOf(value.matchStatus, MATCH_STATUSES, 'unreadable'),
-    recognized: { text: text(recognized.text), partNumber: text(recognized.partNumber), manufacturer: text(recognized.manufacturer), markings: list(recognized.markings).flatMap((item) => (typeof item === 'string' ? [item] : [])), readability: text(recognized.readability) },
+    recognized: {
+      text: text(recognized.text),
+      partNumber: text(recognized.partNumber),
+      manufacturer: text(recognized.manufacturer),
+      markings: strings(recognized.markings),
+      readability: text(recognized.readability),
+      visibleMarkings: strings(recognized.visibleMarkings),
+      partType: PART_TYPES.find((type) => type === recognized.partType) ?? null,
+      confidence: recognized.confidence === 'high' || recognized.confidence === 'medium' || recognized.confidence === 'low' ? recognized.confidence : null,
+      issues: strings(recognized.issues).flatMap((issue) => ISSUES.filter((known) => known === issue)),
+    },
     matches: list(value.matches).flatMap(toCandidate),
     message: text(value.message),
+    tips: strings(value.tips),
   };
 }
 
 export function toConfirmation(value: unknown): Confirmation {
   if (!isRecord(value) || typeof value.id !== 'string' || typeof value.partId !== 'string') throw bad();
-  return { id: value.id, partId: value.partId, decision: value.decision === 'confirmed' ? 'confirmed' : 'rejected', recognizedPartNumber: text(value.recognizedPartNumber) ?? '', documentPartNumber: text(value.documentPartNumber) ?? '', confirmedBy: text(value.confirmedBy) ?? '', createdAt: text(value.createdAt) ?? '' };
+  return { id: value.id, partId: value.partId, decision: value.decision === 'confirmed' ? 'confirmed' : 'rejected', recognizedPartNumber: text(value.recognizedPartNumber), documentPartNumber: text(value.documentPartNumber) ?? '', confirmedBy: text(value.confirmedBy) ?? '', createdAt: text(value.createdAt) ?? '' };
 }
 
 export function toPriceList(value: unknown): PriceList {
@@ -92,6 +106,9 @@ export function toPriceList(value: unknown): PriceList {
   };
 }
 
+/** A link comes from a price file somebody uploaded, so only a web address may become one. */
+export const toHttpUrl = (value: unknown): string | null => (typeof value === 'string' && /^https?:\/\//i.test(value.trim()) ? value.trim() : null);
+
 /** An offer must say which row of which file it came from. Otherwise it is no offer at all. */
 export function toOffer(value: unknown): Offer[] {
   if (!isRecord(value) || typeof value.id !== 'string' || typeof value.priceListId !== 'string' || typeof value.sourceRow !== 'number') return [];
@@ -105,7 +122,7 @@ export function toOffer(value: unknown): Offer[] {
     currency: text(value.currency),
     stockStatus: oneOf(value.stockStatus, ['available', 'unavailable', 'unknown'] as const, 'unknown'),
     stockQuantity: num(value.stockQuantity),
-    url: text(value.url),
+    url: toHttpUrl(value.url),
     source: text(value.source) ?? 'price_list',
     priceListId: value.priceListId,
     sourceRow: value.sourceRow,

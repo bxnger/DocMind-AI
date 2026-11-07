@@ -1,4 +1,4 @@
-import { FolderOpen, GitCompareArrows, History, Home, PanelLeftClose, PanelLeftOpen, Search, Settings, Upload, X, UserSearch } from 'lucide-react';
+import { ClipboardList, Cog, FolderOpen, GitCompareArrows, History, Home, Network, PanelLeftClose, PanelLeftOpen, Search, Settings, Upload, X, UserSearch, type LucideIcon } from 'lucide-react';
 import { NavLink, Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
@@ -10,6 +10,7 @@ import { ThemeToggle } from '@/features/settings/ThemeToggle';
 import { useBackendHealth, useCapabilities } from '@/features/system/useSystem';
 import { useUpload } from '@/features/upload/UploadProvider';
 import { cn } from '@/lib/cn';
+import { SAMPLE_DOCUMENT_ID } from '@/services/sampleDocument';
 
 interface Props {
   collapsed: boolean;
@@ -23,8 +24,14 @@ interface Props {
 
 const NAV = [
   { to: '/', key: 'nav.home', Icon: Home, end: true },
+  { to: '/equipment', key: 'nav.equipment', Icon: Cog, end: false },
+  { to: '/procurement', key: 'nav.procurement', Icon: ClipboardList, end: false },
   { to: '/documents', key: 'nav.documents', Icon: FolderOpen, end: true },
+] as const;
+
+const TOOLS = [
   { to: '/compare', key: 'nav.compare', Icon: GitCompareArrows, end: false },
+  { to: `/documents/${SAMPLE_DOCUMENT_ID}`, key: 'nav.map', Icon: Network, end: true, state: { view: 'map' } },
   { to: '/hr', key: 'nav.hr', Icon: UserSearch, end: false },
   { to: '/recent', key: 'nav.recent', Icon: History, end: false },
   { to: '/settings', key: 'nav.settings', Icon: Settings, end: false },
@@ -37,8 +44,8 @@ function SidebarDocuments({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useTranslation();
   const documents = useDocuments();
   return (
-    <div className="mt-6 flex min-h-0 flex-1 flex-col">
-      <h2 className="micro-label mb-1 px-3">{t('nav.documents')}</h2>
+    <div className="mt-4">
+      <h2 className="micro-label mb-1 px-3">{t('nav.recentDocuments')}</h2>
       {documents.isPending && (
         <div className="space-y-2 px-3 py-1" role="status" aria-label={t('common.loading')}>
           <div className="skeleton h-3 w-4/5" />
@@ -48,7 +55,7 @@ function SidebarDocuments({ onNavigate }: { onNavigate?: () => void }) {
       )}
       {documents.isError && <p className="px-3 text-xs text-muted">{t('documents.sidebarError')}</p>}
       {documents.data?.length === 0 && <p className="px-3 text-xs text-muted">{t('documents.sidebarEmpty')}</p>}
-      <ul className="min-h-0 flex-1 space-y-px overflow-y-auto">
+      <ul className="space-y-px">
         {documents.data?.slice(0, SIDEBAR_DOCS).map((doc) => (
           <li key={doc.id}>
             <NavLink
@@ -89,6 +96,39 @@ function ConnectionLine({ compact }: { compact: boolean }) {
       />
       <span className={compact ? 'sr-only' : 'truncate'}>{label}</span>
     </span>
+  );
+}
+
+interface NavEntry {
+  to: string;
+  key: 'nav.home' | 'nav.equipment' | 'nav.procurement' | 'nav.documents' | 'nav.compare' | 'nav.map' | 'nav.hr' | 'nav.recent' | 'nav.settings';
+  Icon: LucideIcon;
+  end: boolean;
+  state?: unknown;
+}
+
+function NavItem({ item, collapsed, onClose }: { item: NavEntry; collapsed: boolean; onClose: (() => void) | undefined }) {
+  const { t } = useTranslation();
+  const { to, key, Icon, end, state } = item;
+  return (
+    <NavLink
+      to={to}
+      end={end}
+      state={state}
+      onClick={onClose}
+      title={collapsed ? t(key) : undefined}
+      aria-label={collapsed ? t(key) : undefined}
+      className={({ isActive }) =>
+        cn(
+          'pressable relative flex h-9 items-center gap-3 rounded-[10px] text-sm font-medium pointer-coarse:h-11',
+          collapsed ? 'justify-center' : 'px-3',
+          isActive ? 'bg-accent-tint text-fg' : 'text-muted hover:bg-hover hover:text-fg',
+        )
+      }
+    >
+      <Icon size={16} className="shrink-0" aria-hidden />
+      {!collapsed && <span className="truncate">{t(key)}</span>}
+    </NavLink>
   );
 }
 
@@ -149,30 +189,16 @@ export function Sidebar({ collapsed, drawer = false, canToggle, onToggle, onClos
         )}
       </div>
 
-      <nav aria-label={t('nav.main')} className="mt-4 space-y-px">
-        {NAV.filter(({ to }) => to !== '/compare' || capabilities.data?.comparison).map(({ to, key, Icon, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            onClick={onClose}
-            title={collapsed ? t(key) : undefined}
-            aria-label={collapsed ? t(key) : undefined}
-            className={({ isActive }) =>
-              cn(
-                'pressable relative flex h-9 items-center gap-3 rounded-[10px] text-sm font-medium pointer-coarse:h-11',
-                collapsed ? 'justify-center' : 'px-3',
-                isActive ? 'bg-accent-tint text-fg' : 'text-muted hover:bg-hover hover:text-fg',
-              )
-            }
-          >
-            <Icon size={16} className="shrink-0" aria-hidden />
-            {!collapsed && <span className="truncate">{t(key)}</span>}
-          </NavLink>
-        ))}
-      </nav>
-
-      {collapsed ? <div className="flex-1" /> : <SidebarDocuments onNavigate={onClose} />}
+      <div className="mt-4 flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <nav aria-label={t('nav.main')} className="space-y-px">
+          {NAV.map((item) => <NavItem key={item.to} item={item} collapsed={collapsed} onClose={onClose} />)}
+        </nav>
+        <nav aria-label={t('nav.tools')} data-testid="nav-tools" className={cn('mt-3 space-y-px', collapsed && 'border-t border-line pt-3')}>
+          {!collapsed && <h2 className="micro-label mb-1 px-3">{t('nav.tools')}</h2>}
+          {TOOLS.filter(({ to }) => to !== '/compare' || capabilities.data?.comparison).map((item) => <NavItem key={item.to} item={item} collapsed={collapsed} onClose={onClose} />)}
+        </nav>
+        {!collapsed && <SidebarDocuments onNavigate={onClose} />}
+      </div>
 
       <div className={cn('mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3', collapsed ? 'flex-col justify-center' : 'justify-between pl-2')}>
         <span className={collapsed ? undefined : 'min-w-0 basis-full'}><ConnectionLine compact={collapsed} /></span>

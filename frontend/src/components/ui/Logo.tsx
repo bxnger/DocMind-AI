@@ -17,8 +17,8 @@ export function Logo({ compact = false }: { compact?: boolean }) {
     <span className="inline-flex items-center gap-2" translate="no">
       <LogoMark />
       {!compact && (
-        <span className="text-[15px] font-semibold tracking-[-0.01em] text-fg">
-          DOCMIND <span className="font-normal text-muted">AI</span>
+        <span className="text-[15px] font-semibold tracking-[-0.01em] whitespace-nowrap text-fg max-[360px]:text-[13px]">
+          DOCMIND <span className="font-normal text-muted">INDUSTRY</span>
         </span>
       )}
     </span>

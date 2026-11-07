@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { fromMinor, toMinor } from '@/lib/money';
-import { toOffer, toPart, toPartList, toPhotoMatch, toPriceList, toQuote } from '@/api/procurement';
-import { readableQuote } from '@/features/procurement/PartRow';
-import { quoteItems } from '@/features/procurement/useProcurement';
+import { toHttpUrl, toOffer, toPart, toPartList, toPhotoMatch, toPriceList, toQuote } from '@/api/procurement';
+import { chooseExactOffers, isSheetComplete, quoteItems, readableQuote } from '@/features/procurement/sheetLines';
 import { DEMO_SUPPLIER, createDemoAdapter, csvCell, findParts, fixtureParts, parsePriceCsv } from './demoAdapter';
 import { compareCode, demoIdentify, normalizeCode } from './matching';
 
@@ -107,16 +106,46 @@ describe('the sheet sent for calculation', () => {
   });
   it('applies what the person changed', () => {
     const { items, withoutQuantity } = quoteItems(parts, {
-      a: { included: true, quantity: 5, offerId: 'o', note: '', confirmationId: 'c1' },
-      b: { included: true, quantity: 3, offerId: null, note: '', confirmationId: null },
-      c: { included: false, quantity: null, offerId: null, note: '', confirmationId: null },
+      a: { included: true, quantity: 5, offerId: 'o', note: '', confirmationId: 'c1', decision: 'confirmed' },
+      b: { included: true, quantity: 3, offerId: null, note: '', confirmationId: null, decision: null },
+      c: { included: false, quantity: null, offerId: null, note: '', confirmationId: null, decision: null },
     });
     expect(items).toEqual([{ partId: 'a', quantity: 5, offerId: 'o', confirmationId: 'c1' }, { partId: 'b', quantity: 3, offerId: null }]);
     expect(withoutQuantity).toBe(0);
   });
 });
 
+describe('choosing exact offers for the person', () => {
+  const offer = (id: string, price: string | null, extra = {}) => ({ id, price, match: 'exact', stockStatus: 'unknown', ...extra }) as never;
+  const line = { included: true, quantity: null, offerId: null, note: '', confirmationId: null, decision: null };
+  it('takes the cheapest exact offer with a price, by exact money', () => {
+    expect(chooseExactOffers([{ partId: 'a', partNumber: 'x', offers: [offer('o1', '10000.00'), offer('o2', '9999.99'), offer('o3', null)], similar: [] }], {})).toEqual({ a: 'o2' });
+  });
+  it('never takes a similar offer, or what the file says is out of stock', () => {
+    expect(chooseExactOffers([{ partId: 'a', partNumber: 'x', offers: [offer('o1', '1.00', { stockStatus: 'unavailable' })], similar: [offer('o2', '1.00', { match: 'close' })] }], {})).toEqual({});
+  });
+  it('leaves alone a line already decided, or left out', () => {
+    const offers = [{ partId: 'a', partNumber: 'x', offers: [offer('o1', '1.00')], similar: [] }];
+    expect(chooseExactOffers(offers, { a: { ...line, offerId: 'mine' } })).toEqual({});
+    expect(chooseExactOffers(offers, { a: { ...line, included: false } })).toEqual({});
+  });
+});
+
+describe('calling a sum complete', () => {
+  it('needs every line priced', () => {
+    expect(isSheetComplete({ unpriced: 0, totals: [{}] }, 0)).toBe(true);
+    expect(isSheetComplete({ unpriced: 1, totals: [{}] }, 0)).toBe(false);
+    expect(isSheetComplete({ unpriced: 0, totals: [{}] }, 1)).toBe(false);
+    expect(isSheetComplete({ unpriced: 0, totals: [] }, 0)).toBe(false);
+    expect(isSheetComplete(undefined, 0)).toBe(false);
+  });
+});
+
 describe('price files', () => {
+  it('keeps the supplier, title and date of each row, as in the verified supplier list', () => {
+    const parsed = parsePriceCsv('Артикул;Наименование;Цена;Валюта;Наличие;Ссылка;Поставщик;Дата\n6205-2RSH;Подшипник SKF;4805;KZT;1343;https://bcindustry.kz/x;BC Industry;2026-11-07');
+    expect(parsed?.rows[0]).toMatchObject({ sku: '6205-2RSH', title: 'Подшипник SKF', supplier: 'BC Industry', price: '4805.00', stockQuantity: 1343, url: 'https://bcindustry.kz/x', checkedAt: '2026-11-07' });
+  });
   it('reads Russian and English headers, and reports bad rows', () => {
     const parsed = parsePriceCsv('Артикул;Цена;Валюта;Дата\n6205-2RS1;4500,50;kzt;2026-11-01\n6205;abc;KZT;2026-11-01\n;1;KZT;');
     expect(parsed?.rows).toMatchObject([{ sku: '6205-2RS1', price: '4500.50', currency: 'KZT', row: 2, checkedAt: '2026-11-01' }]);
@@ -168,6 +197,16 @@ describe('answers of the real API, revision 2', () => {
     expect(match.recognized.markings).toEqual(['C3']);
     expect(toPhotoMatch({ matchStatus: 'confirmed' }).matchStatus).toBe('unreadable');
   });
+  it('reads the look of the part as a candidate, never as a part number', () => {
+    const match = toPhotoMatch({ matchStatus: 'type_only', recognized: { text: '', partNumber: null, manufacturer: null, markings: [], readability: 'unreadable', visibleMarkings: [], partType: 'bearing', confidence: 'medium', issues: ['no_marking', 'made_up'] }, matches: [{ partId: 'p1', partNumber: '6205-2RS', name: 'n', match: 'type', difference: 'd', sources: [source] }], message: 'm', tips: ['Снимите ближе'] });
+    expect(match).toMatchObject({ matchStatus: 'type_only', tips: ['Снимите ближе'], matches: [{ match: 'type', difference: 'd' }] });
+    expect(match.recognized).toMatchObject({ partNumber: null, partType: 'bearing', confidence: 'medium', issues: ['no_marking'] });
+  });
+  it('still reads an answer from before these fields existed', () => {
+    const match = toPhotoMatch({ matchStatus: 'matched', recognized: { text: 't', partNumber: 'x', markings: ['C3'] }, matches: [] });
+    expect(match.recognized).toMatchObject({ visibleMarkings: [], partType: null, confidence: null, issues: [], markings: ['C3'] });
+    expect(match.tips).toEqual([]);
+  });
   it('reads an offer with its origin and drops one without a source row', () => {
     const offer = { id: 'pl1:17', supplier: 'S', partNumber: '6205-2RS', match: 'exact', price: '4850.00', currency: 'KZT', stockStatus: 'available', stockQuantity: 40, url: null, source: 'price_list', priceListId: 'pl1', sourceRow: 17, checkedAt: '2026-11-08', checkedAtOrigin: 'file', demo: false };
     expect(toOffer(offer)[0]).toMatchObject({ price: '4850.00', stockQuantity: 40, checkedAtOrigin: 'file', demo: false });
@@ -175,6 +214,12 @@ describe('answers of the real API, revision 2', () => {
     expect(toOffer({ ...offer, stockStatus: undefined })[0]?.stockStatus).toBe('unknown');
     expect(toOffer({ ...offer, price: null })[0]?.price).toBeNull();
     expect(toOffer({ ...offer, match: 'whatever' })[0]?.match).toBe('close');
+  });
+  it('turns only a web address into a link', () => {
+    expect(toHttpUrl('https://bcindustry.kz/x')).toBe('https://bcindustry.kz/x');
+    expect(toHttpUrl('javascript:alert(1)')).toBeNull();
+    expect(toHttpUrl('data:text/html,x')).toBeNull();
+    expect(toHttpUrl(null)).toBeNull();
   });
   it('reads a price list', () => {
     expect(toPriceList({ id: 'pl1', supplier: 'S', fileName: 'f', rows: 3, skipped: [{ row: 17, reason: 'Нет цены' }], checkedAt: '2026-11-08', checkedAtOrigin: 'upload_form', demo: true, importedAt: 't' })).toMatchObject({ rows: 3, demo: true, checkedAtOrigin: 'upload_form' });

@@ -12,9 +12,9 @@ const lookup = (locale: object, action: string) => {
 };
 
 describe('modes', () => {
-  it('has exactly these modes, General by default', () => {
+  it('has exactly these modes, Production and procurement by default', () => {
     expect(USER_MODES).toEqual(['general', 'student', 'teacher', 'legal', 'business', 'procurement', 'hr']);
-    expect(DEFAULT_USER_MODE).toBe('general');
+    expect(DEFAULT_USER_MODE).toBe('procurement');
     expect(isUserMode('legal')).toBe(true);
     expect(isUserMode('admin')).toBe(false);
   });
@@ -108,8 +108,8 @@ describe('persistence', () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it('defaults to General for a first-time user', () => {
-    expect(loadUserMode()).toBe('general');
+  it('defaults to Production and procurement for a first-time user', () => {
+    expect(loadUserMode()).toBe('procurement');
   });
   it('survives a reload for every mode', () => {
     for (const mode of USER_MODES) {
@@ -117,15 +117,15 @@ describe('persistence', () => {
       expect(loadUserMode()).toBe(mode);
     }
   });
-  it('falls back to General for bad stored values', () => {
+  it('falls back to the default for bad stored values', () => {
     store.set('docmind.userMode', '"admin"');
-    expect(loadUserMode()).toBe('general');
+    expect(loadUserMode()).toBe('procurement');
     store.set('docmind.userMode', '{broken');
-    expect(loadUserMode()).toBe('general');
+    expect(loadUserMode()).toBe('procurement');
   });
   it('still works when storage is blocked', () => {
     vi.stubGlobal('localStorage', { getItem: () => { throw new Error('blocked'); }, setItem: () => { throw new Error('blocked'); } });
-    expect(loadUserMode()).toBe('general');
+    expect(loadUserMode()).toBe('procurement');
     expect(() => saveUserMode('legal')).not.toThrow();
   });
 });

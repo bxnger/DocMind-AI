@@ -1,121 +1,73 @@
-import { useRef, useState } from 'react';
-import { CircleAlert, Download, FlaskConical, PackageSearch, RotateCcw, Trash2, Upload } from 'lucide-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { ArrowLeft, ArrowRight, CircleAlert, FlaskConical, Hourglass, PackageSearch, RotateCcw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
-import { IconButton } from '@/components/ui/IconButton';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateBlock } from '@/components/ui/StateBlock';
 import { useCodeMessage, useErrorMessage } from '@/features/system/useErrorMessage';
 import { useCapabilities } from '@/features/system/useSystem';
-import { formatMoney, fromMinor, toMinor } from '@/lib/money';
+import { formatMoney } from '@/lib/money';
+import { readStored, writeStored } from '@/lib/storage';
+import { isDemoDocument } from '@/services/industryDemo';
 import type { DocumentText } from '@/services/chat/demo/textIndex';
 import type { EvidenceSource } from '@/types/chat';
 import type { DocumentModel } from '@/types/document';
-import type { Part, Quote } from '@/types/procurement';
+import type { Part } from '@/types/procurement';
 import { MarkingCheck } from './MarkingCheck';
+import { OffersStep } from './OffersStep';
 import { PartRow } from './PartRow';
+import { SheetStep } from './SheetStep';
 import { useProcurement, useProcurementAdapter, useSheetLines } from './useProcurement';
+import { STEPS, WorkflowStepper, isProcurementStep, type ProcurementStep } from './WorkflowStepper';
 
 interface Props {
   doc: DocumentModel;
   pdfText: DocumentText | undefined;
+  initialStep?: ProcurementStep | undefined;
   onOpenSource: (source: EvidenceSource) => void;
+  onOpenDocument: () => void;
 }
 
-function save(blob: Blob, name: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = name;
-  link.click();
-  URL.revokeObjectURL(url);
+function useStep(documentId: string, initial: ProcurementStep | undefined) {
+  const key = `docmind.chat.procurement.step.${documentId}`;
+  const [step, setStepState] = useState<ProcurementStep>(() => {
+    if (initial) return initial;
+    const stored = readStored<unknown>('session', key, 'parts');
+    return isProcurementStep(stored) ? stored : 'parts';
+  });
+  const setStep = (next: ProcurementStep) => {
+    setStepState(next);
+    writeStored('session', key, next);
+  };
+  return [step, setStep] as const;
 }
 
-function Budget({ quote, withoutQuantity }: { quote: Quote | undefined; withoutQuantity: number }) {
+export function ProcurementPanel({ doc, pdfText, initialStep, onOpenSource, onOpenDocument }: Props) {
   const { t, i18n } = useTranslation();
-  const [limit, setLimit] = useState('');
-  const totals = quote?.totals ?? [];
-  const single = totals.length === 1 ? totals[0] : undefined;
-  const limitMinor = toMinor(limit);
-  const totalMinor = single ? toMinor(single.amount) : null;
-  const open = (quote?.unpriced ?? 0) + withoutQuantity;
-  return (
-    <section data-testid="budget" aria-labelledby="budget-title" className="rounded-panel border border-line bg-card p-3">
-      <h3 id="budget-title" className="font-semibold">{t('procurement.budget.title')}</h3>
-      {totals.length === 0 ? <p className="mt-1 text-sm text-muted">{t('procurement.budget.none')}</p> : (
-        <ul className="mt-1 space-y-0.5">
-          {totals.map((total) => <li key={total.currency} data-testid="budget-total" className="tabular text-lg font-semibold">{formatMoney(total.amount, total.currency, i18n.language)}</li>)}
-        </ul>
-      )}
-      {totals.length > 1 && <p className="text-xs text-muted">{t('procurement.budget.separate')}</p>}
-      {open > 0
-        ? <p data-testid="budget-incomplete" className="mt-1 text-xs text-warning">{t('procurement.budget.incomplete', { count: open })}</p>
-        : totals.length > 0 && <p className="mt-1 text-xs text-success">{t('procurement.budget.complete')}</p>}
-      <label className="mt-2 block max-w-52 text-xs text-muted">
-        {t('procurement.budget.limit')}
-        <input value={limit} inputMode="decimal" data-testid="budget-limit" onChange={(event) => setLimit(event.target.value)} className="tabular mt-0.5 h-9 w-full rounded-control border border-line bg-bg px-2 text-sm text-fg outline-none focus:border-accent" />
-      </label>
-      {single && limitMinor !== null && totalMinor !== null && (
-        <p data-testid="budget-compare" className={totalMinor > limitMinor ? 'mt-1 text-sm text-danger' : 'mt-1 text-sm text-success'}>
-          {totalMinor > limitMinor
-            ? t('procurement.budget.over', { amount: formatMoney(fromMinor(totalMinor - limitMinor), single.currency, i18n.language) })
-            : t('procurement.budget.within', { amount: formatMoney(fromMinor(limitMinor - totalMinor), single.currency, i18n.language) })}
-        </p>
-      )}
-      <p className="mt-2 text-xs text-muted">{t('procurement.budget.noOrder')}</p>
-    </section>
-  );
-}
-
-export function ProcurementPanel({ doc, pdfText, onOpenSource }: Props) {
-  const { t } = useTranslation();
   const errorMessage = useErrorMessage();
   const codeMessage = useCodeMessage();
-  const client = useQueryClient();
   const capabilities = useCapabilities();
   const adapter = useProcurementAdapter(doc, pdfText);
-  const { lines, update } = useSheetLines(doc.id);
-  const [supplier, setSupplier] = useState('');
-  const [checkedAt, setCheckedAt] = useState('');
-  const [testFile, setTestFile] = useState(false);
-  const [priceError, setPriceError] = useState<string | null>(null);
-  const [skipped, setSkipped] = useState(0);
-  const priceInput = useRef<HTMLInputElement>(null);
-  const { partList, parts, priceLists, offers, quote, items, withoutQuantity } = useProcurement(doc.id, adapter, lines);
-  const refresh = () => client.invalidateQueries({ queryKey: ['procurement', doc.id] });
+  const { lines, update, updateMany } = useSheetLines(doc.id);
+  const [step, setStep] = useStep(doc.id, initialStep);
+  const { partList, parts, priceLists, offers, quote, items, withoutQuantity } = useProcurement(doc.id, adapter, lines, doc.status === 'ready');
 
-  const uploadPrices = useMutation({
-    mutationFn: async (file: File) => {
-      if (!adapter) throw new Error('Not ready');
-      return adapter.uploadPriceList(file, { supplier: supplier.trim(), checkedAt, demo: testFile });
-    },
-    onSuccess: (list) => {
-      setPriceError(null);
-      setSkipped(list.skipped.length);
-      void refresh();
-    },
-    onError: (error: unknown) => setPriceError(error instanceof Error && 'demoPriceListError' in error ? t('errors.codes.PRICE_LIST_INVALID') : errorMessage(error)),
-  });
-  const removePrices = useMutation({
-    mutationFn: async (id: string) => {
-      if (!adapter) throw new Error('Not ready');
-      await adapter.deletePriceList(id);
-    },
-    onSuccess: () => void refresh(),
-  });
-  const exportFile = useMutation({
-    mutationFn: async (format: 'csv' | 'xlsx') => {
-      if (!adapter) throw new Error('Not ready');
-      save(await adapter.exportQuote(items, format), `${doc.name.replace(/\.[^.]+$/, '')}-procurement${adapter.isDemo ? '-DEMO' : ''}.${format}`);
-    },
-  });
+  if (doc.status !== 'ready') {
+    return (
+      <div className="flex h-full items-center justify-center overflow-y-auto">
+        <div data-testid="procurement-waiting">
+          <StateBlock tone={doc.status === 'failed' ? 'danger' : 'neutral'} icon={doc.status === 'failed' ? <CircleAlert size={18} aria-hidden /> : <Hourglass size={18} aria-hidden />} title={t(doc.status === 'failed' ? 'procurement.docFailedTitle' : 'procurement.docWaitingTitle')} description={t(doc.status === 'failed' ? 'procurement.docFailedBody' : 'procurement.docWaitingBody')} />
+        </div>
+      </div>
+    );
+  }
 
   const list = partList.data;
   if (!adapter || partList.isPending || list?.status === 'processing') {
+    const percent = list?.progress != null ? Math.round(list.progress * 100) : null;
     return (
-      <div role="status" aria-label={t('procurement.loading')} className="mx-auto w-full max-w-3xl space-y-3 p-6">
-        <p className="text-sm text-muted">{t('procurement.loading')}</p>
+      <div role="status" aria-label={t('procurement.loading')} data-testid="procurement-loading" className="mx-auto w-full max-w-3xl space-y-3 p-6">
+        <p className="tabular text-sm text-muted">{t('procurement.loading')}{percent !== null ? ` ${percent}%` : ''}</p>
         <Skeleton className="h-16" />
         <Skeleton className="h-40" />
       </div>
@@ -129,30 +81,39 @@ export function ProcurementPanel({ doc, pdfText, onOpenSource }: Props) {
     );
   }
 
-  const verified = parts.filter((part) => part.verified || part.sources.length === 0);
-  const unverified = parts.filter((part) => !part.verified && part.sources.length > 0);
-  const row = (part: Part) => (
-    <PartRow
-      key={part.id}
-      part={part}
-      line={lines[part.id]}
-      offers={offers.data?.find((item) => item.partId === part.id)}
-      quoteItem={items.some((item) => item.partId === part.id) ? quote.data?.items.find((item) => item.partId === part.id) : undefined}
-      onChange={(change) => update(part.id, change)}
-      onOpenSource={onOpenSource}
-    />
-  );
+  const isDemoDoc = isDemoDocument(doc.name);
   const fixtures = adapter.isDemo && parts.length > 0 && parts.every((part) => part.sources.length === 0);
   const equipment = list?.equipment;
-  const failure = exportFile.error ?? quote.error ?? offers.error ?? removePrices.error;
+  const failure = quote.error ?? offers.error;
+  const verified = parts.filter((part) => part.verified || part.sources.length === 0);
+  const unverified = parts.filter((part) => !part.verified && part.sources.length > 0);
+  const confirmations = Object.values(lines).filter((line) => line.decision === 'confirmed').length;
+  const chosen = parts.filter((part) => lines[part.id]?.offerId).length;
+  const totals = items.length ? (quote.data?.totals ?? []) : [];
+  const notes: Record<ProcurementStep, string> = {
+    parts: t('procurement.steps.partsNote', { count: parts.length }),
+    camera: confirmations ? t('procurement.steps.cameraDone', { count: confirmations }) : t('procurement.steps.cameraNote'),
+    offers: t('procurement.steps.offersNote', { chosen, total: parts.length }),
+    sheet: totals.length ? totals.map((total) => formatMoney(total.amount, total.currency, i18n.language)).join(' · ') : t('procurement.steps.sheetNote'),
+  };
+  const done: Record<ProcurementStep, boolean> = { parts: parts.length > 0, camera: confirmations > 0, offers: chosen > 0, sheet: false };
+  const index = STEPS.indexOf(step);
+  const previous = STEPS[index - 1];
+  const next = STEPS[index + 1];
+  const row = (part: Part) => (
+    <PartRow key={part.id} part={part} line={lines[part.id]} canCheckPhoto={adapter.canReadPhotos} onChange={(change) => update(part.id, change)} onOpenSource={onOpenSource} onCheckPhoto={() => setStep('camera')} />
+  );
+  const go = (target: ProcurementStep) => {
+    setStep(target);
+    document.querySelector('[data-testid="procurement-panel"]')?.scrollTo({ top: 0 });
+  };
 
   return (
     <div data-testid="procurement-panel" className="h-full overflow-y-auto">
-      <div className="mx-auto w-full max-w-3xl space-y-3 px-3 py-4 sm:px-6">
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 className="min-w-0 flex-1 font-display text-lg font-semibold">{t('procurement.title')}</h2>
-          <Button size="sm" data-testid="export-csv" icon={<Download size={14} aria-hidden />} disabled={items.length === 0} loading={exportFile.isPending && exportFile.variables === 'csv'} onClick={() => exportFile.mutate('csv')}>{t('procurement.export.csv')}</Button>
-          {!adapter.isDemo && <Button size="sm" icon={<Download size={14} aria-hidden />} disabled={items.length === 0} loading={exportFile.isPending && exportFile.variables === 'xlsx'} onClick={() => exportFile.mutate('xlsx')}>{t('procurement.export.xlsx')}</Button>}
+      <div className="mx-auto w-full max-w-[860px] space-y-3 px-3 py-4 sm:px-6">
+        <div>
+          <h2 className="font-display text-lg font-semibold">{t('procurement.title')}</h2>
+          {equipment && (equipment.name || equipment.model) && <p data-testid="equipment" className="text-sm"><span className="text-muted">{t('procurement.equipment')}:</span> {[equipment.name, equipment.model, equipment.manufacturer].filter(Boolean).join(' · ')}</p>}
         </div>
         {adapter.isDemo && (
           <p data-testid="procurement-demo" role="note" className="flex gap-2 rounded-control bg-warning-tint p-2.5 text-xs text-warning">
@@ -160,74 +121,41 @@ export function ProcurementPanel({ doc, pdfText, onOpenSource }: Props) {
             <span><strong className="font-semibold">{t('procurement.demoTitle')}</strong> {t('procurement.demoBody')}{fixtures ? ` ${t('procurement.demoFixtures')}` : ''}</span>
           </p>
         )}
-        {equipment && (equipment.name || equipment.model) && <p data-testid="equipment" className="text-sm"><span className="text-muted">{t('procurement.equipment')}:</span> {[equipment.name, equipment.model, equipment.manufacturer].filter(Boolean).join(' · ')}</p>}
+        {isDemoDoc && <p data-testid="demo-document-note" role="note" className="rounded-control border border-line bg-sidebar p-2.5 text-xs text-muted">{t('procurement.demoDocument')}</p>}
+        <WorkflowStepper current={step} done={done} notes={notes} onSelect={go} onOpenDocument={onOpenDocument} />
         {failure && <p role="alert" data-testid="procurement-error" className="text-sm text-danger">{errorMessage(failure)}</p>}
 
-        <MarkingCheck adapter={adapter} parts={parts} maxImageBytes={capabilities.data?.limits.maxImageBytes ?? null} onDecided={(confirmation) => update(confirmation.partId, { confirmationId: confirmation.id })} />
-
-        <section data-testid="price-lists" aria-labelledby="prices-title" className="rounded-panel border border-line bg-card p-3">
-          <h3 id="prices-title" className="font-semibold">{t('procurement.prices.title')}</h3>
-          <p className="text-xs text-muted">{t('procurement.prices.fromFile')}</p>
-          {Boolean(priceLists.data?.length) && (
-            <ul className="mt-1 space-y-1">
-              {priceLists.data?.map((item) => (
-                <li key={item.id} data-testid="price-list" className="flex items-center gap-2 rounded-lg bg-sidebar px-2 py-1 text-sm">
-                  <span className="min-w-0 flex-1 truncate" title={item.fileName}>{item.supplier || item.fileName}{item.demo ? ` · ${t('procurement.demoBadge')}` : ''}</span>
-                  <span className="tabular shrink-0 text-xs text-muted">{t('procurement.prices.rows', { count: item.rows })}</span>
-                  <IconButton dense label={t('procurement.prices.remove', { name: item.supplier || item.fileName })} icon={<Trash2 size={14} aria-hidden />} onClick={() => removePrices.mutate(item.id)} />
-                </li>
-              ))}
-            </ul>
+        <div hidden={step !== 'parts'} data-testid="step-panel-parts" className="space-y-3">
+          {parts.length === 0 ? (
+            <StateBlock icon={<PackageSearch size={18} aria-hidden />} title={t('procurement.emptyTitle')} description={t('procurement.emptyBody')} />
+          ) : (
+            <>
+              <p className="text-sm text-muted">{t('procurement.partsIntro')}</p>
+              {verified.length > 0 && <ul className="space-y-2">{verified.map(row)}</ul>}
+              {unverified.length > 0 && (
+                <section data-testid="unverified-parts" aria-labelledby="unverified-title">
+                  <h3 id="unverified-title" className="font-semibold text-warning">{t('procurement.needsCheck', { count: unverified.length })}</h3>
+                  <p className="mb-2 text-xs text-muted">{t('procurement.needsCheckHint')}</p>
+                  <ul className="space-y-2">{unverified.map(row)}</ul>
+                </section>
+              )}
+            </>
           )}
-          <div className="mt-2 flex flex-wrap items-end gap-2">
-            <label className="min-w-0 flex-1 basis-40 text-xs text-muted">
-              {t('procurement.prices.supplier')}
-              <input value={supplier} onChange={(event) => setSupplier(event.target.value)} placeholder={t('procurement.prices.supplierPlaceholder')} className="mt-0.5 h-9 w-full rounded-control border border-line bg-bg px-2 text-sm text-fg outline-none placeholder:text-muted focus:border-accent" />
-            </label>
-            <label className="w-40 text-xs text-muted">
-              {t('procurement.prices.date')}
-              <input type="date" value={checkedAt} onChange={(event) => setCheckedAt(event.target.value)} className="mt-0.5 h-9 w-full rounded-control border border-line bg-bg px-2 text-sm text-fg outline-none focus:border-accent" />
-            </label>
-            <Button icon={<Upload size={14} aria-hidden />} loading={uploadPrices.isPending} onClick={() => priceInput.current?.click()}>{t('procurement.prices.upload')}</Button>
-            <input
-              ref={priceInput}
-              type="file"
-              hidden
-              data-testid="price-file"
-              accept={adapter.isDemo ? '.csv' : '.csv,.xlsx'}
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                event.target.value = '';
-                if (file) uploadPrices.mutate(file);
-              }}
-            />
-          </div>
-          <label className="mt-1 inline-flex min-h-6 items-center gap-1.5 text-xs text-muted pointer-coarse:min-h-10">
-            <input type="checkbox" checked={testFile} onChange={(event) => setTestFile(event.target.checked)} className="size-4 accent-[var(--color-accent)]" />
-            {t('procurement.prices.test')}
-          </label>
-          <p className="mt-1 text-xs text-muted">{t('procurement.prices.file')}{adapter.isDemo ? ` ${t('procurement.prices.demoFile')}` : ''}</p>
-          {priceError && <p role="alert" data-testid="price-error" className="mt-1 text-sm text-danger">{priceError}</p>}
-          {skipped > 0 && <p role="status" data-testid="price-skipped" className="mt-1 text-xs text-warning">{t('procurement.prices.skipped', { count: skipped })}</p>}
-        </section>
+        </div>
+        <div hidden={step !== 'camera'} data-testid="step-panel-camera">
+          <MarkingCheck adapter={adapter} parts={parts} maxImageBytes={capabilities.data?.limits.maxImageBytes ?? null} showExamples={isDemoDoc} onDecided={(confirmation) => update(confirmation.partId, { confirmationId: confirmation.id, decision: confirmation.decision })} onOpenSource={onOpenSource} />
+        </div>
+        <div hidden={step !== 'offers'} data-testid="step-panel-offers">
+          <OffersStep adapter={adapter} parts={parts} lines={lines} lists={priceLists.data} offers={offers.data} quoteItems={items.length ? quote.data?.items : undefined} showExamples={isDemoDoc} onChange={update} onChangeMany={updateMany} />
+        </div>
+        <div hidden={step !== 'sheet'} data-testid="step-panel-sheet">
+          <SheetStep adapter={adapter} documentName={doc.name} parts={parts} lines={lines} lists={priceLists.data} quote={quote.data} items={items} withoutQuantity={withoutQuantity} onChange={update} onOpenSource={onOpenSource} />
+        </div>
 
-        <Budget quote={items.length ? quote.data : undefined} withoutQuantity={withoutQuantity} />
-        {quote.data?.warnings.map((warning) => <p key={warning} data-testid="quote-warning" className="text-xs text-warning">{warning}</p>)}
-
-        {parts.length === 0 ? (
-          <StateBlock icon={<PackageSearch size={18} aria-hidden />} title={t('procurement.emptyTitle')} description={t('procurement.emptyBody')} />
-        ) : (
-          <>
-            {verified.length > 0 && <ul className="space-y-2">{verified.map(row)}</ul>}
-            {unverified.length > 0 && (
-              <section data-testid="unverified-parts" aria-labelledby="unverified-title">
-                <h3 id="unverified-title" className="font-semibold text-warning">{t('procurement.needsCheck', { count: unverified.length })}</h3>
-                <p className="mb-2 text-xs text-muted">{t('procurement.needsCheckHint')}</p>
-                <ul className="space-y-2">{unverified.map(row)}</ul>
-              </section>
-            )}
-          </>
-        )}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
+          {previous ? <Button data-testid="step-previous" variant="ghost" icon={<ArrowLeft size={14} aria-hidden />} onClick={() => go(previous)}>{t(`procurement.steps.${previous}`)}</Button> : <span />}
+          {next && <Button data-testid="step-next" variant="primary" onClick={() => go(next)}>{t(`procurement.steps.${next}`)}<ArrowRight size={14} aria-hidden /></Button>}
+        </div>
       </div>
     </div>
   );

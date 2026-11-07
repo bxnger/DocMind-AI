@@ -1,3 +1,4 @@
+import { toHttpUrl } from '@/api/procurement';
 import { fromMinor, toMinor } from '@/lib/money';
 import type { Confirmation, Offer, Part, PartList, PriceList, Quote, QuoteItem, QuoteRequestItem } from '@/types/procurement';
 import type { EvidenceSource } from '@/types/chat';
@@ -62,6 +63,7 @@ function parseLine(line: string, separator: string): string[] {
 
 const HEADERS: Record<string, readonly string[]> = {
   sku: ['артикул', 'sku', 'part number', 'partnumber', 'код'],
+  title: ['наименование', 'название', 'name', 'title', 'атауы'],
   price: ['цена', 'price', 'баға'],
   currency: ['валюта', 'currency'],
   stock: ['наличие', 'stock', 'қойма', 'остаток'],
@@ -73,6 +75,8 @@ const HEADERS: Record<string, readonly string[]> = {
 export interface PriceRow {
   row: number;
   sku: string;
+  title: string | null;
+  supplier: string | null;
   price: string;
   currency: string;
   checkedAt: string | null;
@@ -100,7 +104,7 @@ export function parsePriceCsv(content: string, defaultCurrency = 'KZT'): { rows:
     else if (price === null) skipped.push({ row, reason: 'PRICE_INVALID' });
     else {
       const stock = Number(at(cells, 'stock'));
-      rows.push({ row, sku: at(cells, 'sku'), price: fromMinor(price), currency: (at(cells, 'currency') || defaultCurrency).toUpperCase(), checkedAt: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null, stockQuantity: at(cells, 'stock') && Number.isFinite(stock) ? stock : null, url: at(cells, 'url') || null });
+      rows.push({ row, sku: at(cells, 'sku'), title: at(cells, 'title') || null, supplier: at(cells, 'supplier') || null, price: fromMinor(price), currency: (at(cells, 'currency') || defaultCurrency).toUpperCase(), checkedAt: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null, stockQuantity: at(cells, 'stock') && Number.isFinite(stock) ? stock : null, url: toHttpUrl(at(cells, 'url')) });
     }
   });
   return { rows, skipped };
@@ -123,8 +127,8 @@ const BUILT_IN: PriceList = { id: 'demo-list', supplier: DEMO_SUPPLIER, fileName
 const builtInRows = (part: Part): PriceRow[] => {
   const code = splitBrand(part.partNumber).code;
   return [
-    { row: 1, sku: code, price: '4500.00', currency: 'KZT', checkedAt: DEMO_DATE, stockQuantity: null, url: null },
-    { row: 2, sku: `${code}/C3`, price: '5200.00', currency: 'KZT', checkedAt: DEMO_DATE, stockQuantity: null, url: null },
+    { row: 1, sku: code, title: null, supplier: null, price: '4500.00', currency: 'KZT', checkedAt: DEMO_DATE, stockQuantity: null, url: null },
+    { row: 2, sku: `${code}/C3`, title: null, supplier: null, price: '5200.00', currency: 'KZT', checkedAt: DEMO_DATE, stockQuantity: null, url: null },
   ];
 };
 
@@ -138,8 +142,8 @@ export function createDemoAdapter(pages: readonly SourceText[], documentId = 'd'
 
   const toOffer = (list: PriceList, row: PriceRow, match: Offer['match'], partKey: string): Offer => ({
     id: `${list.id}:${partKey}:${row.row}`,
-    supplier: list.supplier,
-    title: row.sku,
+    supplier: row.supplier ?? list.supplier,
+    title: row.title ?? row.sku,
     partNumber: row.sku,
     match,
     price: row.price,
@@ -207,7 +211,7 @@ export function createDemoAdapter(pages: readonly SourceText[], documentId = 'd'
     isDemo: true,
     canReadPhotos: true,
     parts: async () => partList,
-    identify: async () => ({ matchStatus: 'unreadable', recognized: { text: null, partNumber: null, manufacturer: null, markings: [], readability: null }, matches: [], message: null }),
+    identify: async () => ({ matchStatus: 'unreadable', recognized: { text: null, partNumber: null, manufacturer: null, markings: [], readability: null, visibleMarkings: [], partType: null, confidence: null, issues: [] }, matches: [], message: null, tips: [] }),
     identifyText: async (text) => demoIdentify(text, parts),
     confirm: async (partId, input) => {
       const confirmation: Confirmation = { id: nextId('confirmation'), partId, decision: input.decision, recognizedPartNumber: input.recognizedPartNumber, documentPartNumber: parts.find((part) => part.id === partId)?.partNumber ?? '', confirmedBy: 'user', createdAt: new Date().toISOString() };

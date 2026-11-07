@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "DOCMIND AI"
+    "title": "DOCMIND INDUSTRY"
   },
   "common": {
     "cancel": "Cancel",
@@ -24,7 +24,12 @@
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "compare": "Compare",
-    "hr": "Resume and vacancy"
+    "hr": "Resume and vacancy",
+    "equipment": "Equipment",
+    "procurement": "Procurement",
+    "tools": "More tools",
+    "map": "Knowledge map",
+    "recentDocuments": "Latest documents"
   },
   "system": {
     "online": "Server online",
@@ -95,8 +100,8 @@
     "sessionReplaced": "This session has ended, so its documents are no longer available. You can upload them again."
   },
   "home": {
-    "title": "Ask your documents. Check every answer.",
-    "subtitle": "Upload a PDF or DOCX and ask in Russian, Kazakh or English. Each answer shows the exact quote and its place in the document, one click away.",
+    "title": "A smart assistant for industry",
+    "subtitle": "Analyze technical documentation, find parts, check them by photo and prepare purchases with AI.",
     "exampleLabel": "Example from the sample document",
     "openSample": "Open the sample document",
     "latest": "Latest documents",
@@ -130,7 +135,37 @@
       "hrNotice": "What notice period does the agreement set?",
       "hrCap": "Is there a limit on liability in this agreement?"
     },
-    "tryLabel": "Try it on the sample"
+    "tryLabel": "Try it on the sample",
+    "analyze": "Analyze a technical document",
+    "demo": "See the demonstration",
+    "demoFailed": "The demonstration file couldn't be loaded. Check the connection and try again.",
+    "dropHint": "Or drop a file anywhere in this window.",
+    "demoNote": "The demonstration opens a made-up machine passport and goes through the same steps as your own file. Prepared data is labelled.",
+    "flowTitle": "From document to purchase sheet",
+    "chatTitle": "Still a full AI chat with your documents",
+    "chatBody": "Ask about any PDF or DOCX in Russian, Kazakh or English. Every answer shows its exact quote and place in the document.",
+    "flow": {
+      "upload": {
+        "title": "Upload documentation",
+        "body": "A machine passport, manual, specification or repair document."
+      },
+      "parts": {
+        "title": "Extract parts",
+        "body": "Part numbers, quantities and characteristics, each with a quote and page."
+      },
+      "photo": {
+        "title": "Check by photo",
+        "body": "AI reads the marking and compares it with the document. You decide."
+      },
+      "offers": {
+        "title": "Match offers",
+        "body": "Exact part numbers from suppliers' price lists, similar ones kept apart."
+      },
+      "budget": {
+        "title": "Calculate the budget",
+        "body": "Quantities times prices, totals by currency and an Excel file."
+      }
+    }
   },
   "documents": {
     "title": "Documents",
@@ -760,7 +795,7 @@
     "qty": "Quantity",
     "include": "Include {{code}} in the sheet",
     "note": "Note",
-    "notePlaceholder": "Note for this line",
+    "notePlaceholder": "Note for yourself, not exported",
     "noQty": "Not stated in the document. Type it to include this line.",
     "userQty": "Changed by you",
     "source": "Open the source: {{place}}",
@@ -772,25 +807,34 @@
     "chosen": "Chosen",
     "clearOffer": "Clear choice",
     "row": "row {{row}}",
-    "open": "supplier's page",
+    "open": "product page",
     "line": "Line total",
     "back": "Back to the sheet",
     "budget": {
       "title": "Budget",
-      "total": "Total",
       "none": "Choose offers to see a total.",
-      "incomplete_one": "Not final: {{count}} line has no offer or quantity.",
-      "incomplete_other": "Not final: {{count}} lines have no offer or quantity.",
-      "complete": "All included lines are priced.",
       "limit": "Budget limit",
       "over": "Over the limit by {{amount}}",
       "within": "Within the limit, {{amount}} left",
       "separate": "Amounts in different currencies are not added up or converted.",
-      "noOrder": "Nothing is ordered from here: this sheet is for a person to decide."
+      "noOrder": "Nothing is ordered from here: this sheet is for a person to decide.",
+      "fullTotal": "Total for the chosen offers",
+      "partialTotal": "Subtotal for the offers found",
+      "priced_one": "{{count}} line priced",
+      "priced_other": "{{count}} lines priced",
+      "incomplete_one": "{{count}} line has no price or quantity and is not in the sum.",
+      "incomplete_other": "{{count}} lines have no price or quantity and are not in the sum.",
+      "excluded_one": "{{count}} line left out by you",
+      "excluded_other": "{{count}} lines left out by you",
+      "usesDemo": "The sum includes made-up DEMO prices.",
+      "usesSimilar": "The sum includes a similar part number. Check that it fits.",
+      "excludes": "Delivery, VAT and discounts are not added unless they are in the price itself.",
+      "calculated": "Calculated by the server: {{date}}"
     },
     "export": {
       "csv": "Export CSV",
-      "xlsx": "Export XLSX"
+      "xlsx": "Export XLSX",
+      "needLines": "The file appears once a line has a quantity."
     },
     "equipment": "Equipment",
     "byStandard": "by standard",
@@ -816,17 +860,16 @@
       "document_only": "From the document"
     },
     "marking": {
-      "title": "Check a part or its marking",
-      "hint": "Take a photo or choose one. The match below is automatic: only your decision counts as confirmation.",
+      "title": "AI camera: check a part by its marking",
+      "hint": "Photograph the marking or choose a photo. The match is automatic. Only your decision counts as confirmation.",
       "photo": "Photo of the part or marking",
-      "add": "Add a photo",
-      "reading": "Reading the marking…",
-      "field": "Part number on the marking",
+      "reading": "AI is reading the marking…",
+      "field": "Part number to record. Correct it if AI misread it.",
       "compare": "Compare with the document",
       "which": "Which part of the document is this?",
       "confirm": "Yes, this is the part",
       "reject": "No, it isn't",
-      "retake": "Choose another photo",
+      "retake": "Retake",
       "another": "Check another",
       "document": "In the document",
       "found": "On the marking",
@@ -835,13 +878,60 @@
         "matched": "Same as the document",
         "needs_confirmation": "Needs your decision",
         "no_match": "Not in the document",
-        "unreadable": "Couldn't be read"
+        "unreadable": "Couldn't be read",
+        "type_only": "Candidates by kind of part"
       },
       "explain": {
         "matched": "The part number matches one part exactly. Compare with the photo and confirm.",
         "needs_confirmation": "Not an exact match, or several candidates. A similar designation is not a confirmed substitute.",
         "no_match": "This designation isn't among the document's parts.",
-        "unreadable": "Take a clearer photo, or type the part number if you can read it."
+        "unreadable": "Take a clearer photo, or type the part number if you can read it.",
+        "type_only": "No part number was read. These are parts of the same kind in the document, not a match of part numbers. Compare them and decide."
+      },
+      "takePhoto": "Take a photo of the part",
+      "uploadPhoto": "Upload a photo",
+      "notStored": "The photo stays on this device and isn't stored on the server.",
+      "manufacturer": "Manufacturer",
+      "markings": "Other markings",
+      "readabilityLabel": "Readability",
+      "candidates": "Possible matches in the document",
+      "examplesTitle": "Prepared pictures with a marking drawn on them",
+      "example": {
+        "exact": "Same as the document",
+        "close": "A similar marking",
+        "blurry": "An unreadable picture",
+        "type": "A part with no marking"
+      },
+      "kind": {
+        "exact": "Exact match",
+        "close": "Similar, not the same",
+        "partial": "Partial match",
+        "type": "Same kind of part only"
+      },
+      "readability": {
+        "high": "high",
+        "medium": "medium",
+        "low": "low",
+        "unreadable": "unreadable"
+      },
+      "notRead": "not read",
+      "partType": "Kind of part",
+      "estimate": "AI estimate from the shape, not a fact",
+      "confidence": {
+        "high": "high confidence",
+        "medium": "medium confidence",
+        "low": "low confidence"
+      },
+      "issuesLabel": "In the way",
+      "issue": {
+        "glare": "glare",
+        "blur": "blur",
+        "angle": "angle",
+        "partial": "part of the marking is cut off",
+        "dark": "too dark",
+        "far": "too far",
+        "no_marking": "no marking visible",
+        "not_a_part": "this doesn't look like a part"
       }
     },
     "prices": {
@@ -858,10 +948,66 @@
       "file": "CSV or XLSX, up to 5 MB, with a part number and a price.",
       "demoFile": "In demonstration mode only CSV can be read.",
       "skipped_one": "{{count}} row skipped.",
-      "skipped_other": "{{count}} rows skipped."
+      "skipped_other": "{{count}} rows skipped.",
+      "examplesTitle": "Prepared files for this demonstration",
+      "addVerified": "Real supplier pages",
+      "addDemo": "Made-up DEMO prices",
+      "examplesBody": "Real pages: prices copied by hand from two Kazakhstan suppliers' product pages on the date in the file, not a live check. They are for designations of the 6205 family other than the one in the document, so they show as similar. DEMO: invented prices and supplier.",
+      "demoSupplier": "DEMO supplier (made up)"
     },
     "needsCheck": "Needs checking ({{count}})",
-    "needsCheckHint": "These part numbers were not found word for word in the document. Open the source and check them."
+    "needsCheckHint": "These part numbers were not found word for word in the document. Open the source and check them.",
+    "partsIntro": "Open any quote to see the place in the document. Quantities come from the document, and you can change them.",
+    "demoDocument": "Demonstration document: this machine and its parts are made up for the showing. It is processed like any other file.",
+    "docWaitingTitle": "The document is being processed",
+    "docWaitingBody": "Parts can be extracted as soon as it is ready.",
+    "docFailedTitle": "This document couldn't be processed",
+    "docFailedBody": "Upload it again or try another file.",
+    "checkPhoto": "Check by photo",
+    "fromFile": "price list {{file}}, row {{row}}",
+    "offersCoverage": "Offers found for {{found}} of {{total}} parts.",
+    "chooseExact_one": "Choose exact matches ({{count}})",
+    "chooseExact_other": "Choose exact matches ({{count}})",
+    "noListsTitle": "No price lists yet",
+    "noListsBody": "Upload a supplier's price list to see offers. There is no live search of websites.",
+    "category": {
+      "bearing": "Bearing",
+      "seal": "Seal",
+      "belt": "Belt",
+      "filter": "Filter",
+      "fastener": "Fastener",
+      "motor": "Motor",
+      "electrical": "Electrical",
+      "hydraulic": "Hydraulic",
+      "other": "Other"
+    },
+    "steps": {
+      "label": "Purchase preparation steps",
+      "document": "Document",
+      "parts": "Parts",
+      "camera": "Check by photo",
+      "offers": "Offers",
+      "sheet": "Purchase sheet",
+      "of": "Step {{number}} of {{total}}:",
+      "partsNote_one": "{{count}} part",
+      "partsNote_other": "{{count}} parts",
+      "cameraNote": "optional",
+      "cameraDone_one": "{{count}} confirmed",
+      "cameraDone_other": "{{count}} confirmed",
+      "offersNote": "chosen {{chosen}} of {{total}}",
+      "sheetNote": "no total yet"
+    },
+    "lineStatus": {
+      "noQuantity": "No quantity: type it to include this line.",
+      "offerMissing": "The chosen offer no longer exists.",
+      "noOffer": "No offer chosen: not in the total."
+    },
+    "sheet": {
+      "part": "Part",
+      "unitPrice": "Unit price",
+      "lineTotal": "Line total",
+      "supplier": "Supplier and source"
+    }
   },
   "hr": {
     "title": "Resume and vacancy",
@@ -920,6 +1066,35 @@
       "partly": "Partly supported",
       "contradicted": "Contradicts the document",
       "not_found": "No evidence found"
+    },
+    "notFoundReason": {
+      "no_matching_excerpt": "The document has no passage on this, so the claim could be neither confirmed nor refuted.",
+      "model_refused": "AI read the closest passages and found nothing that confirms or refutes the claim.",
+      "no_citation": "The check came back with no quote from the document, so no result is shown.",
+      "citations_failed_verification": "The quotes didn't match the document's text, so no result is shown.",
+      "empty_answer": "The check came back empty. Try again or rephrase the claim."
     }
+  },
+  "industry": {
+    "equipmentTitle": "Equipment",
+    "equipmentBody": "Each machine's documents and the parts found in them. Upload a passport, manual, specification or repair document.",
+    "procurementTitle": "Procurement",
+    "procurementBody": "Your suppliers' price lists, and the purchase sheet of each document.",
+    "sheetsTitle": "Purchase sheets",
+    "openParts": "Open parts",
+    "findParts": "Find parts",
+    "openSheet": "Open sheet",
+    "emptyTitle": "No documents yet",
+    "emptyBody": "Upload technical documentation, or open the demonstration from the home page.",
+    "statusNotStarted": "parts not extracted yet",
+    "statusFailed": "extraction failed",
+    "statusError": "status unavailable",
+    "statusDemo": "demonstration search",
+    "statusParts_one": "{{count}} part",
+    "statusParts_other": "{{count}} parts",
+    "demoDocumentTag": "demonstration",
+    "chosenOffers_one": "{{count}} offer chosen",
+    "chosenOffers_other": "{{count}} offers chosen",
+    "pricesDemo": "This server doesn't store price lists yet. Inside a document's sheet you can try a CSV in demonstration mode."
   }
 }
