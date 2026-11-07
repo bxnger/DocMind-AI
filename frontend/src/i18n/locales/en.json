@@ -103,7 +103,19 @@
       "notice": "What is the notice period for termination?",
       "interest": "How much late payment interest applies?",
       "cap": "Is there a cap on liability?",
-      "leave": "Does the agreement cover parental leave?"
+      "leave": "Does the agreement cover parental leave?",
+      "studentNotice": "Find the termination notice period in the sample agreement.",
+      "studentInterest": "What is the late-payment interest rate in this sample?",
+      "studentCap": "Locate the clause limiting liability in the agreement.",
+      "teacherNotice": "Which clause sets the notice period for termination?",
+      "teacherInterest": "Find the clause about late-payment interest.",
+      "teacherCap": "Which clause would you use to explain liability limits?",
+      "legalCap": "What limit of liability does the sample contract specify?",
+      "legalNotice": "What notice is required to terminate the contract?",
+      "legalInterest": "What late-payment interest does the agreement establish?",
+      "businessInterest": "What is the contractual cost of late payment?",
+      "businessCap": "How does the agreement limit financial liability?",
+      "businessNotice": "What notice period affects termination planning?"
     },
     "tryLabel": "Try it on the sample"
   },
