@@ -18,7 +18,7 @@ from app.extraction import ocr_languages
 from app.pipeline import recover_unfinished
 from app.ratelimit import RateLimiter
 from app.store import Store
-from app.routers import comparisons, conversations, documents, procurement, sessions
+from app.routers import claims, comparisons, conversations, documents, procurement, sessions
 from app.schemas import Capabilities, build_capabilities
 
 logger = logging.getLogger("app")
@@ -186,6 +186,7 @@ def create_app(settings: Settings | None = None, store: Store | None = None) -> 
     app.include_router(sessions.router, prefix="/api/v1")
     app.include_router(documents.router, prefix="/api/v1")
     app.include_router(conversations.router, prefix="/api/v1")
+    app.include_router(claims.router, prefix="/api/v1")
     app.include_router(comparisons.router, prefix="/api/v1")
     app.include_router(procurement.router, prefix="/api/v1")
     return app
