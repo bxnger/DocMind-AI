@@ -12,7 +12,7 @@ import { formatMoney, fromMinor, toMinor } from '@/lib/money';
 import type { DocumentText } from '@/services/chat/demo/textIndex';
 import type { EvidenceSource } from '@/types/chat';
 import type { DocumentModel } from '@/types/document';
-import type { Quote } from '@/types/procurement';
+import type { Part, Quote } from '@/types/procurement';
 import { MarkingCheck } from './MarkingCheck';
 import { PartRow } from './PartRow';
 import { useProcurement, useProcurementAdapter, useSheetLines } from './useProcurement';
@@ -129,6 +129,19 @@ export function ProcurementPanel({ doc, pdfText, onOpenSource }: Props) {
     );
   }
 
+  const verified = parts.filter((part) => part.verified || part.sources.length === 0);
+  const unverified = parts.filter((part) => !part.verified && part.sources.length > 0);
+  const row = (part: Part) => (
+    <PartRow
+      key={part.id}
+      part={part}
+      line={lines[part.id]}
+      offers={offers.data?.find((item) => item.partId === part.id)}
+      quoteItem={items.some((item) => item.partId === part.id) ? quote.data?.items.find((item) => item.partId === part.id) : undefined}
+      onChange={(change) => update(part.id, change)}
+      onOpenSource={onOpenSource}
+    />
+  );
   const fixtures = adapter.isDemo && parts.length > 0 && parts.every((part) => part.sources.length === 0);
   const equipment = list?.equipment;
   const failure = exportFile.error ?? quote.error ?? offers.error ?? removePrices.error;
@@ -204,19 +217,16 @@ export function ProcurementPanel({ doc, pdfText, onOpenSource }: Props) {
         {parts.length === 0 ? (
           <StateBlock icon={<PackageSearch size={18} aria-hidden />} title={t('procurement.emptyTitle')} description={t('procurement.emptyBody')} />
         ) : (
-          <ul className="space-y-2">
-            {parts.map((part) => (
-              <PartRow
-                key={part.id}
-                part={part}
-                line={lines[part.id]}
-                offers={offers.data?.find((item) => item.partId === part.id)}
-                quoteItem={items.some((item) => item.partId === part.id) ? quote.data?.items.find((item) => item.partId === part.id) : undefined}
-                onChange={(change) => update(part.id, change)}
-                onOpenSource={onOpenSource}
-              />
-            ))}
-          </ul>
+          <>
+            {verified.length > 0 && <ul className="space-y-2">{verified.map(row)}</ul>}
+            {unverified.length > 0 && (
+              <section data-testid="unverified-parts" aria-labelledby="unverified-title">
+                <h3 id="unverified-title" className="font-semibold text-warning">{t('procurement.needsCheck', { count: unverified.length })}</h3>
+                <p className="mb-2 text-xs text-muted">{t('procurement.needsCheckHint')}</p>
+                <ul className="space-y-2">{unverified.map(row)}</ul>
+              </section>
+            )}
+          </>
         )}
       </div>
     </div>

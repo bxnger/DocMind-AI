@@ -857,7 +857,9 @@
       "demoFile": "In demonstration mode only CSV can be read.",
       "skipped_one": "{{count}} row skipped.",
       "skipped_other": "{{count}} rows skipped."
-    }
+    },
+    "needsCheck": "Needs checking ({{count}})",
+    "needsCheckHint": "These part numbers were not found word for word in the document. Open the source and check them."
   },
   "hr": {
     "title": "Resume and vacancy",
