@@ -31,7 +31,7 @@ export function useAssistant(doc: DocumentModel, source: DocumentSource, pdf: Pd
   // Real answers do not depend on the PDF's text, so finishing to read it must not touch them.
   const liveAdapter = useMemo(() => (liveReady ? createLiveChatAdapter(doc.id, doc.name) : null), [doc.id, doc.name, liveReady]);
   const demoAdapter = useMemo(
-    () => (mode === 'demo' && text && hasSearchableText(text) ? createDemoChatAdapter(doc.id, text, isSampleDocument(doc.id) ? sampleQuestionAliases(t) : undefined) : null),
+    () => (mode === 'demo' && text && hasSearchableText(text) ? createDemoChatAdapter(doc.id, text, isSampleDocument(doc.id) ? sampleQuestionAliases((key) => t(key as never)) : undefined) : null),
     [doc.id, mode, text, translator.language, t],
   );
   const adapter = mode === 'live' ? liveAdapter : demoAdapter;
