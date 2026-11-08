@@ -1,7 +1,38 @@
 # Deploying the backend for the public demo (Vercel frontend + one small server)
 
-Nothing here has been run on a public server yet: it is a plan, written against the code of `backend/security-hardening`
-(`app/config.py`, `app/main.py`, `app/worker.py`). Prices and free tiers change: check them before paying.
+## Live server (done 08.11.2026)
+
+`https://api.docmind.kz` — Hoster.kz Cloud 4-4-100 (4 vCPU, 4 GB, 100 GB NVMe, Astana), IP `89.126.199.206`, Ubuntu 24.04.
+DNS: A record `api.docmind.kz` → that IP (Hoster.kz DNS hosting). Checked live after the setup: health, capabilities
+(`ocr: true`), `/docs` 404, CORS (both Vercel previews, the Vercel production domain, `https://localhost`,
+`capacitor://localhost` allowed; `http://localhost:5173` and foreign origins refused), http → https 308,
+`run_demo.py ... tv320` and `kn80` without failures, isolation between two sessions, the real client IP behind Caddy.
+
+- **Python 3.14 is required.** Ubuntu's 3.12 fails at start (`TypeError: 'function' object is not subscriptable` in
+  `app/store.py`: the class has a method `list`, and 3.12 evaluates the annotation `list[dict]` eagerly). Python 3.14
+  (lazy annotations, the version the tests run on) is installed by `uv` into `/opt/docmind/python`; the venv is
+  `/opt/docmind/venv` (`/opt/docmind/venv-py312` is the failed first try, safe to delete).
+- Code: `/opt/docmind/releases/<commit>` from `git archive HEAD backend`, `/opt/docmind/app` is a symlink to the current
+  release. Settings and keys: `/etc/docmind/backend.env` (root:docmind 640). Data: `/var/lib/docmind`.
+- Units: `docmind-api` (uvicorn on 127.0.0.1:8000, one process) and `caddy` (Let's Encrypt certificate, auto renewal).
+  Firewall `ufw`: 22, 80, 443 only; `fail2ban` for SSH. Access: SSH key `~/.ssh/docmind_vps` on Erasyl's laptop.
+- The Telegram bot stays on the laptop (one poller per token).
+
+Update to a new commit (from the worktree, `C=$(git rev-parse --short HEAD)`):
+
+```
+git archive --format=tar.gz -o docmind-$C.tar.gz HEAD backend
+scp -i ~/.ssh/docmind_vps docmind-$C.tar.gz root@89.126.199.206:/root/
+ssh -i ~/.ssh/docmind_vps root@89.126.199.206 "mkdir -p /opt/docmind/releases/$C && tar -xzf /root/docmind-$C.tar.gz -C /opt/docmind/releases/$C \
+  && /opt/docmind/venv/bin/pip install -q -r /opt/docmind/releases/$C/backend/requirements.txt \
+  && ln -sfn /opt/docmind/releases/$C /opt/docmind/app && systemctl restart docmind-api"
+```
+
+Rollback: point the symlink back at the previous release and `systemctl restart docmind-api`. Logs:
+`journalctl -u docmind-api -f`. Switch AI off: add `AI_EMERGENCY_STOP=1` to `backend.env`, restart.
+
+The plan below was written before the server existed; the steps above are what was actually done.
+Prices and free tiers change: check them before paying.
 
 ## Why a server and not a serverless platform
 
