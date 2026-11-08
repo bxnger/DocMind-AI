@@ -111,8 +111,8 @@ def run(base: str, name: str) -> dict:
     # 3. Real price list -> offers (exact and similar kept apart)
     with open(HERE / "real_prices_kz.csv", "rb") as fh:
         price_list = c.post(api + "/price-lists", files={"file": ("real_prices_kz.csv", fh, "text/csv")}).json()
-    step("real price list", price_list.get("rows") == 5 and not price_list.get("isDemo"),
-         {"rows": price_list.get("rows"), "skipped": price_list.get("skipped"), "isDemo": price_list.get("isDemo")})
+    step("real price list", price_list.get("rows") == 5 and price_list.get("demo") is False,
+         {"rows": price_list.get("rows"), "skipped": price_list.get("skipped"), "demo": price_list.get("demo")})
     part_ids = [p["id"] for p in parts["parts"]]
     offers = {norm(i["partNumber"]): i for i in c.post(api + "/procurement/offers",
                                                          json={"documentId": doc["id"], "partIds": part_ids}).json()["items"]}
