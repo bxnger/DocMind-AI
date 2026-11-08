@@ -3,6 +3,7 @@ import { Check, Copy, ExternalLink } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/cn';
+import { isMobileApp } from '@/mobile/mobileMode';
 import type { EvidenceSource } from '@/types/chat';
 import { useCopyCitation } from './useCopyCitation';
 
@@ -17,6 +18,9 @@ interface Props {
 }
 
 const COLLAPSED_LINES = 4;
+/** On a phone a source is a compact row: tap it to open the passage, expand it to read the whole quote and copy it. */
+const PHONE = isMobileApp();
+const PHONE_LINES = 2;
 
 export function SourceCard({ id, source, active, selected, onActivate, onOpen }: Props) {
   const { t } = useTranslation();
@@ -40,7 +44,8 @@ export function SourceCard({ id, source, active, selected, onActivate, onOpen }:
       data-selected={selected || undefined}
       aria-current={selected || undefined}
       className={cn(
-        'group relative rounded-control border bg-card p-3 transition-colors duration-150',
+        'group relative rounded-control border bg-card transition-colors duration-150',
+        PHONE ? 'p-2.5' : 'p-3',
         selected
           ? 'border-accent-line bg-card-raised shadow-[inset_2px_0_0_var(--color-accent)]'
           : active
@@ -69,14 +74,14 @@ export function SourceCard({ id, source, active, selected, onActivate, onOpen }:
         )}
       </header>
       {/* The serif face and accent rule mark this as the document's words, not the assistant's. */}
-      <blockquote className="mt-3 border-l-2 border-accent-2 pl-3">
+      <blockquote className={cn('border-l-2 border-accent-2 pl-3', PHONE ? 'mt-1.5' : 'mt-3')}>
         <p
           ref={quoteRef}
-          className="font-quote text-[15px] leading-[23px] break-words text-fg/90"
+          className={cn('font-quote break-words text-fg/90', PHONE ? 'text-[14px] leading-[21px]' : 'text-[15px] leading-[23px]')}
           style={
             expanded
               ? undefined
-              : { display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: COLLAPSED_LINES, overflow: 'hidden' }
+              : { display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: PHONE ? PHONE_LINES : COLLAPSED_LINES, overflow: 'hidden' }
           }
         >
           {source.quote}
@@ -87,12 +92,13 @@ export function SourceCard({ id, source, active, selected, onActivate, onOpen }:
           type="button"
           onClick={() => setExpanded(!expanded)}
           aria-expanded={expanded}
-          className="relative z-10 mt-1 ml-3 inline-flex min-h-6 items-center text-xs font-medium text-muted hover:text-fg"
+          data-testid="source-expand"
+          className="relative z-10 mt-1 ml-3 inline-flex min-h-6 items-center text-xs font-medium text-muted hover:text-fg pointer-coarse:min-h-11"
         >
           {expanded ? t('sources.showLess') : t('sources.showMore')}
         </button>
       )}
-      <footer className="relative z-10 mt-3 flex flex-wrap items-center gap-1">
+      {(!PHONE || expanded) && <footer className="relative z-10 mt-3 flex flex-wrap items-center gap-1">
         <Button variant={selected ? 'primary' : 'secondary'} size="sm" icon={<ExternalLink size={14} aria-hidden />} onClick={() => onOpen(source)}>
           {source.page !== null ? t('sources.openPage', { page: source.page }) : t('evidence.inspect')}
         </Button>
@@ -104,7 +110,7 @@ export function SourceCard({ id, source, active, selected, onActivate, onOpen }:
         >
           {copied ? t('sources.copied') : t('sources.copy')}
         </Button>
-      </footer>
+      </footer>}
     </article>
   );
 }

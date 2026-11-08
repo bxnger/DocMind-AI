@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
 import { ModeSelect } from '@/features/userModes/ModeSelector';
 import type { LeftView, Pane } from '@/features/workspace/workspaceView';
+import { isNativeApp } from '@/features/native/platform';
 import { cn } from '@/lib/cn';
 
 type Main = 'document' | 'assistant' | 'procurement';
@@ -23,10 +24,20 @@ const MORE: ReadonlyArray<{ view: 'verify' | 'map' | 'facts'; Icon: LucideIcon }
   { view: 'facts', Icon: ListChecks },
 ];
 
-/** The keyboard needs the room, so the bar steps aside while someone is typing. */
+/**
+ * The keyboard needs the room, so the bar steps aside while it is open. In the app the keyboard itself says so: Back can
+ * close it while the field keeps its focus. In a browser preview, focus in a text field stands in for it.
+ */
 function useTyping(): boolean {
   const [typing, setTyping] = useState(false);
   useEffect(() => {
+    if (isNativeApp()) {
+      const handles: Array<Promise<{ remove: () => Promise<void> }>> = [];
+      void import('@capacitor/keyboard').then(({ Keyboard }) => {
+        handles.push(Keyboard.addListener('keyboardWillShow', () => setTyping(true)), Keyboard.addListener('keyboardWillHide', () => setTyping(false)));
+      });
+      return () => handles.forEach((handle) => void handle.then((h) => h.remove()));
+    }
     const isField = (target: EventTarget | null) => target instanceof HTMLTextAreaElement || (target instanceof HTMLInputElement && !['checkbox', 'radio', 'file', 'button'].includes(target.type));
     const onIn = (event: FocusEvent) => setTyping(isField(event.target));
     const onOut = () => setTyping(false);
