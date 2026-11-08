@@ -32,9 +32,11 @@ FIRST_WORD = re.compile(r"^\W*([A-Za-z_]+)")
 INSTRUCTION = (
     "Check the statement below against the excerpts. Reply in exactly this form. First line: one word. "
     "SUPPORTED when an excerpt says the same. "
-    "CONTRADICTED only when an excerpt states a different value for the very same thing (a different number, date, name or "
+    "CONTRADICTED when an excerpt states a different value for the very same thing (a different number, date, name or "
     "condition): the excerpt must contain that other value. "
-    "PARTLY when one part is right and another part is contradicted. "
+    "PARTLY instead of CONTRADICTED when the statement joins two or more values (\"A is 2, and B is 3\") and at least one "
+    "of them is right. Where a value is (the part, the place) is not a value of its own: \"in the gearbox there are 2 "
+    "bearings\" when the excerpt says 4 is CONTRADICTED. "
     "NOT_FOUND when the excerpts do not state the thing the statement is about, even if they mention related topics: a "
     "missing price, number, date or name is NOT_FOUND, never CONTRADICTED. "
     "Second line (not for NOT_FOUND): one or two sentences naming the exact value the excerpts give, each followed by the "

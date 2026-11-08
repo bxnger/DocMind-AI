@@ -1,0 +1,1640 @@
+[
+ {
+  "claim": "Подшипник 6205-2RS установлен в количестве 4 шт.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 2,
+  "pages": [
+   2
+  ],
+  "pageOk": true,
+  "explanation": "На валу II коробки скоростей установлено четыре подшипника 6205-2RS [1].",
+  "reason": null,
+  "quotes": [
+   "Коробка скоростей, вал II: подшипник 6205-2RS — 4 шт."
+  ],
+  "highlighted": true,
+  "run": 1,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "На задней опоре шпинделя стоит подшипник 6210-2RS, 2 шт.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 2,
+  "pages": [
+   2
+  ],
+  "pageOk": true,
+  "explanation": "Шпиндель (задняя опора) содержит подшипник 6210-2RS в количестве 2 штук [1].",
+  "reason": null,
+  "quotes": [
+   "Шпиндель, задняя опора: подшипник 6210-2RS — 2 шт."
+  ],
+  "highlighted": true,
+  "run": 1,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "В фартуке установлено 2 подшипника 6203.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 2,
+  "pages": [
+   2
+  ],
+  "pageOk": true,
+  "explanation": "В фартуке установлено 2 подшипника 6203 [1].",
+  "reason": null,
+  "quotes": [
+   "Фартук: подшипник 6203 — 2 шт."
+  ],
+  "highlighted": true,
+  "run": 1,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Ремень А-1250 нужен в количестве 3 шт.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Ремень приводной клиновой А-1250 требуется в количестве 3 штук [1].",
+  "reason": null,
+  "quotes": [
+   "Прочие комплектующие Ремень приводной клиновой А-1250 — 3 шт."
+  ],
+  "highlighted": true,
+  "run": 1,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Мощность электродвигателя станка 4 кВт.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Мощность электродвигателя составляет 4 кВт [1].",
+  "reason": null,
+  "quotes": [
+   "Электродвигатель АИР100L4, 4 кВт, 1500 об/мин — 1 шт."
+  ],
+  "highlighted": true,
+  "run": 1,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Двигатель станка 7,5 кВт.",
+  "expected": "contradicted",
+  "verdict": "contradicted",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Мощность электродвигателя составляет 4 кВт [3].",
+  "reason": null,
+  "quotes": [
+   "Электродвигатель АИР100L4, 4 кВт, 1500 об/мин — 1 шт."
+  ],
+  "highlighted": true,
+  "run": 1,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "В коробке скоростей стоят 2 подшипника 6205-2RS.",
+  "expected": "contradicted",
+  "verdict": "contradicted",
+  "ok": true,
+  "expectedPage": 2,
+  "pages": [
+   2
+  ],
+  "pageOk": true,
+  "explanation": "В коробке скоростей на валу II установлено 4 подшипника 6205-2RS [1].",
+  "reason": null,
+  "quotes": [
+   "Коробка скоростей, вал II: подшипник 6205-2RS — 4 шт."
+  ],
+  "highlighted": true,
+  "run": 1,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Ремень А-1250 нужен в количестве 5 шт.",
+  "expected": "contradicted",
+  "verdict": "contradicted",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Ремень приводной клиновой А-1250 требуется в количестве 3 шт. [1].",
+  "reason": null,
+  "quotes": [
+   "Прочие комплектующие Ремень приводной клиновой А-1250 — 3 шт."
+  ],
+  "highlighted": true,
+  "run": 1,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Подшипники меняют не реже одного раза в 5 лет.",
+  "expected": "contradicted",
+  "verdict": "contradicted",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Замену подшипников следует выполнять не реже одного раза в 2 года [1].",
+  "reason": null,
+  "quotes": [
+   "Замену подшипников выполнять при плановом ремонте, не реже одного раза в 2 года."
+  ],
+  "highlighted": true,
+  "run": 1,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Частота вращения двигателя 1500 об/мин.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Частота вращения электродвигателя составляет 1500 об/мин [1].",
+  "reason": null,
+  "quotes": [
+   "Электродвигатель АИР100L4, 4 кВт, 1500 об/мин — 1 шт."
+  ],
+  "highlighted": true,
+  "run": 1,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Станок весит 2 тонны.",
+  "expected": "not_found",
+  "verdict": "not_found",
+  "ok": true,
+  "expectedPage": null,
+  "pages": [],
+  "pageOk": true,
+  "explanation": "",
+  "reason": "model_refused",
+  "quotes": [],
+  "highlighted": null,
+  "run": 1,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Гарантия на станок 12 месяцев.",
+  "expected": "not_found",
+  "verdict": "not_found",
+  "ok": true,
+  "expectedPage": null,
+  "pages": [],
+  "pageOk": true,
+  "explanation": "",
+  "reason": "model_refused",
+  "quotes": [],
+  "highlighted": null,
+  "run": 1,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Цена подшипника 6205-2RS — 4 850 тенге.",
+  "expected": "not_found",
+  "verdict": "not_found",
+  "ok": true,
+  "expectedPage": null,
+  "pages": [],
+  "pageOk": true,
+  "explanation": "",
+  "reason": "model_refused",
+  "quotes": [],
+  "highlighted": null,
+  "run": 1,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Станок изготовлен в Караганде.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 1,
+  "pages": [
+   1
+  ],
+  "pageOk": true,
+  "explanation": "Изготовителем станка является ТОО «Учебный станкозавод», находящееся в городе Караганда [1].",
+  "reason": null,
+  "quotes": [
+   "Станок токарно-винторезный ТВ-320 Руководство по эксплуатации Изготовитель: ТОО «Учебный станкозавод», г."
+  ],
+  "highlighted": true,
+  "run": 1,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Двигатель 4 кВт, а ремень А-1250 нужен в количестве 10 шт.",
+  "expected": "partly",
+  "verdict": "partly",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "В документации указан электродвигатель мощностью 4 кВт, а приводной клиновой ремень А-1250 требуется в количестве 3 шт. [1]",
+  "reason": null,
+  "quotes": [
+   "Прочие комплектующие Ремень приводной клиновой А-1250 — 3 шт."
+  ],
+  "highlighted": true,
+  "run": 1,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Агрегат выпущен в 2025 году.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 1,
+  "pages": [
+   1
+  ],
+  "pageOk": true,
+  "explanation": "В паспорте указан 2025 год выпуска агрегата [1].",
+  "reason": null,
+  "quotes": [
+   "Агрегат электронасосный КН-80/50 Паспорт и перечень запасных частей Год выпуска: 2025."
+  ],
+  "highlighted": true,
+  "run": 1,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Подача насоса 80 м3/ч.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 1,
+  "pages": [
+   1
+  ],
+  "pageOk": true,
+  "explanation": "Подача агрегата составляет 80 м3/ч [1].",
+  "reason": null,
+  "quotes": [
+   "Подача 80 м3/ч, напор 50 м, частота вращения 2900 об/мин."
+  ],
+  "highlighted": true,
+  "run": 1,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Подача насоса 120 м3/ч.",
+  "expected": "contradicted",
+  "verdict": "contradicted",
+  "ok": true,
+  "expectedPage": 1,
+  "pages": [
+   1
+  ],
+  "pageOk": true,
+  "explanation": "Подача агрегата составляет 80 м3/ч [1].",
+  "reason": null,
+  "quotes": [
+   "Подача 80 м3/ч, напор 50 м, частота вращения 2900 об/мин."
+  ],
+  "highlighted": true,
+  "run": 1,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Подшипник 6306-2Z — 2 шт.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 2,
+  "pages": [
+   2
+  ],
+  "pageOk": true,
+  "explanation": "Подшипник 6306-2Z (опора со стороны муфты) в количестве 2 шт [1].",
+  "reason": null,
+  "quotes": [
+   "Подшипники и уплотнения Подшипник 6306-2Z (опора со стороны муфты) — 2 шт."
+  ],
+  "highlighted": true,
+  "run": 1,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Кольцо уплотнительное 045-050-30 — 2 шт.",
+  "expected": "contradicted",
+  "verdict": "contradicted",
+  "ok": true,
+  "expectedPage": 2,
+  "pages": [
+   2
+  ],
+  "pageOk": true,
+  "explanation": "В документации указано количество уплотнительных колец 045-050-30 — 4 шт. [1]",
+  "reason": null,
+  "quotes": [
+   "Кольцо уплотнительное 045-050-30 — 4 шт."
+  ],
+  "highlighted": true,
+  "run": 1,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Электродвигатель АИР132M4 мощностью 11 кВт.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Мощность электродвигателя АИР132M4 составляет 11 кВт [1].",
+  "reason": null,
+  "quotes": [
+   "Электродвигатель АИР132M4, 11 кВт, 1450 об/мин — 1 шт."
+  ],
+  "highlighted": true,
+  "run": 1,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Электродвигатель насоса 15 кВт.",
+  "expected": "contradicted",
+  "verdict": "contradicted",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Мощность электродвигателя составляет 11 кВт [1].",
+  "reason": null,
+  "quotes": [
+   "Электродвигатель АИР132M4, 11 кВт, 1450 об/мин — 1 шт."
+  ],
+  "highlighted": true,
+  "run": 1,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Гарантийный срок 18 месяцев.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Гарантийный срок составляет 18 месяцев [1].",
+  "reason": null,
+  "quotes": [
+   "Гарантийный срок 18 месяцев."
+  ],
+  "highlighted": true,
+  "run": 1,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Гарантийный срок 24 месяца.",
+  "expected": "contradicted",
+  "verdict": "contradicted",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Гарантийный срок составляет 18 месяцев [1].",
+  "reason": null,
+  "quotes": [
+   "Гарантийный срок 18 месяцев."
+  ],
+  "highlighted": true,
+  "run": 1,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Подшипники меняют каждые 6000 часов.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 2,
+  "pages": [
+   2
+  ],
+  "pageOk": true,
+  "explanation": "Межсервисный интервал замены подшипников составляет 6000 ч [1].",
+  "reason": null,
+  "quotes": [
+   "Межсервисный интервал замены подшипников 6000 ч."
+  ],
+  "highlighted": true,
+  "run": 1,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Насос весит 320 кг.",
+  "expected": "not_found",
+  "verdict": "not_found",
+  "ok": true,
+  "expectedPage": null,
+  "pages": [],
+  "pageOk": true,
+  "explanation": "",
+  "reason": "model_refused",
+  "quotes": [],
+  "highlighted": null,
+  "run": 1,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Рабочее давление насоса 16 бар.",
+  "expected": "not_found",
+  "verdict": "not_found",
+  "ok": true,
+  "expectedPage": null,
+  "pages": [],
+  "pageOk": true,
+  "explanation": "",
+  "reason": "model_refused",
+  "quotes": [],
+  "highlighted": null,
+  "run": 1,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Агрегат произведён в Германии.",
+  "expected": "not_found",
+  "verdict": "not_found",
+  "ok": true,
+  "expectedPage": null,
+  "pages": [],
+  "pageOk": true,
+  "explanation": "",
+  "reason": "model_refused",
+  "quotes": [],
+  "highlighted": null,
+  "run": 1,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Фильтр ФС-50 нужен в количестве 2 шт., а муфта МУВП-2 — 3 шт.",
+  "expected": "partly",
+  "verdict": "partly",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Муфта упругая втулочно-пальцевая МУВП-2 поставляется в количестве 1 шт. [1]. Фильтр сетчатый ФС-50 в количестве 2 шт. [1].",
+  "reason": null,
+  "quotes": [
+   "Привод и фильтрация Муфта упругая втулочно-пальцевая МУВП-2 — 1 шт."
+  ],
+  "highlighted": true,
+  "run": 1,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Напор насоса 50 м.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 1,
+  "pages": [
+   1
+  ],
+  "pageOk": true,
+  "explanation": "Напор агрегата составляет 50 м [1].",
+  "reason": null,
+  "quotes": [
+   "Подача 80 м3/ч, напор 50 м, частота вращения 2900 об/мин."
+  ],
+  "highlighted": true,
+  "run": 1,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Подшипник 6205-2RS установлен в количестве 4 шт.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 2,
+  "pages": [
+   2
+  ],
+  "pageOk": true,
+  "explanation": "Подшипник 6205-2RS установлен в количестве 4 штук на валу II коробки скоростей [1].",
+  "reason": null,
+  "quotes": [
+   "Коробка скоростей, вал II: подшипник 6205-2RS — 4 шт."
+  ],
+  "highlighted": true,
+  "run": 2,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "На задней опоре шпинделя стоит подшипник 6210-2RS, 2 шт.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 2,
+  "pages": [
+   2
+  ],
+  "pageOk": true,
+  "explanation": "На задней опоре шпинделя установлено два подшипника 6210-2RS [1].",
+  "reason": null,
+  "quotes": [
+   "Шпиндель, задняя опора: подшипник 6210-2RS — 2 шт."
+  ],
+  "highlighted": true,
+  "run": 2,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "В фартуке установлено 2 подшипника 6203.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 2,
+  "pages": [
+   2
+  ],
+  "pageOk": true,
+  "explanation": "В фартуке установлено 2 подшипника 6203 [1].",
+  "reason": null,
+  "quotes": [
+   "Фартук: подшипник 6203 — 2 шт."
+  ],
+  "highlighted": true,
+  "run": 2,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Ремень А-1250 нужен в количестве 3 шт.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Ремень приводной клиновой А-1250 требуется в количестве 3 шт [1].",
+  "reason": null,
+  "quotes": [
+   "Прочие комплектующие Ремень приводной клиновой А-1250 — 3 шт."
+  ],
+  "highlighted": true,
+  "run": 2,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Мощность электродвигателя станка 4 кВт.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Мощность электродвигателя составляет 4 кВт [1].",
+  "reason": null,
+  "quotes": [
+   "Электродвигатель АИР100L4, 4 кВт, 1500 об/мин — 1 шт."
+  ],
+  "highlighted": true,
+  "run": 2,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Двигатель станка 7,5 кВт.",
+  "expected": "contradicted",
+  "verdict": "contradicted",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Электродвигатель станка имеет мощность 4 кВт [3].",
+  "reason": null,
+  "quotes": [
+   "Электродвигатель АИР100L4, 4 кВт, 1500 об/мин — 1 шт."
+  ],
+  "highlighted": true,
+  "run": 2,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "В коробке скоростей стоят 2 подшипника 6205-2RS.",
+  "expected": "contradicted",
+  "verdict": "contradicted",
+  "ok": true,
+  "expectedPage": 2,
+  "pages": [
+   2
+  ],
+  "pageOk": true,
+  "explanation": "В коробке скоростей (вал II) используются 4 подшипника 6205-2RS [1].",
+  "reason": null,
+  "quotes": [
+   "Коробка скоростей, вал II: подшипник 6205-2RS — 4 шт."
+  ],
+  "highlighted": true,
+  "run": 2,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Ремень А-1250 нужен в количестве 5 шт.",
+  "expected": "contradicted",
+  "verdict": "contradicted",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Ремень приводной клиновой А-1250 требуется в количестве 3 шт. [1]",
+  "reason": null,
+  "quotes": [
+   "Прочие комплектующие Ремень приводной клиновой А-1250 — 3 шт."
+  ],
+  "highlighted": true,
+  "run": 2,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Подшипники меняют не реже одного раза в 5 лет.",
+  "expected": "contradicted",
+  "verdict": "contradicted",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Замену подшипников следует выполнять при плановом ремонте не реже одного раза в 2 года [1].",
+  "reason": null,
+  "quotes": [
+   "Замену подшипников выполнять при плановом ремонте, не реже одного раза в 2 года."
+  ],
+  "highlighted": true,
+  "run": 2,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Частота вращения двигателя 1500 об/мин.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Частота вращения электродвигателя составляет 1500 об/мин [1].",
+  "reason": null,
+  "quotes": [
+   "Электродвигатель АИР100L4, 4 кВт, 1500 об/мин — 1 шт."
+  ],
+  "highlighted": true,
+  "run": 2,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Станок весит 2 тонны.",
+  "expected": "not_found",
+  "verdict": "not_found",
+  "ok": true,
+  "expectedPage": null,
+  "pages": [],
+  "pageOk": true,
+  "explanation": "",
+  "reason": "model_refused",
+  "quotes": [],
+  "highlighted": null,
+  "run": 2,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Гарантия на станок 12 месяцев.",
+  "expected": "not_found",
+  "verdict": "not_found",
+  "ok": true,
+  "expectedPage": null,
+  "pages": [],
+  "pageOk": true,
+  "explanation": "",
+  "reason": "model_refused",
+  "quotes": [],
+  "highlighted": null,
+  "run": 2,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Цена подшипника 6205-2RS — 4 850 тенге.",
+  "expected": "not_found",
+  "verdict": "not_found",
+  "ok": true,
+  "expectedPage": null,
+  "pages": [],
+  "pageOk": true,
+  "explanation": "",
+  "reason": "model_refused",
+  "quotes": [],
+  "highlighted": null,
+  "run": 2,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Станок изготовлен в Караганде.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 1,
+  "pages": [
+   1
+  ],
+  "pageOk": true,
+  "explanation": "Станок изготовлен в городе Караганда [1].",
+  "reason": null,
+  "quotes": [
+   "Станок токарно-винторезный ТВ-320 Руководство по эксплуатации Изготовитель: ТОО «Учебный станкозавод», г."
+  ],
+  "highlighted": true,
+  "run": 2,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Двигатель 4 кВт, а ремень А-1250 нужен в количестве 10 шт.",
+  "expected": "partly",
+  "verdict": "partly",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Ремень приводной клиновой А-1250 нужен в количестве 3 шт [1]. Электродвигатель имеет мощность 4 кВт [1].",
+  "reason": null,
+  "quotes": [
+   "Прочие комплектующие Ремень приводной клиновой А-1250 — 3 шт."
+  ],
+  "highlighted": true,
+  "run": 2,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Агрегат выпущен в 2025 году.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 1,
+  "pages": [
+   1
+  ],
+  "pageOk": true,
+  "explanation": "Агрегат выпущен в 2025 году [1].",
+  "reason": null,
+  "quotes": [
+   "Агрегат электронасосный КН-80/50 Паспорт и перечень запасных частей Год выпуска: 2025."
+  ],
+  "highlighted": true,
+  "run": 2,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Подача насоса 80 м3/ч.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 1,
+  "pages": [
+   1
+  ],
+  "pageOk": true,
+  "explanation": "Подача агрегата составляет 80 м3/ч [1].",
+  "reason": null,
+  "quotes": [
+   "Подача 80 м3/ч, напор 50 м, частота вращения 2900 об/мин."
+  ],
+  "highlighted": true,
+  "run": 2,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Подача насоса 120 м3/ч.",
+  "expected": "contradicted",
+  "verdict": "contradicted",
+  "ok": true,
+  "expectedPage": 1,
+  "pages": [
+   1
+  ],
+  "pageOk": true,
+  "explanation": "Подача агрегата составляет 80 м3/ч [1].",
+  "reason": null,
+  "quotes": [
+   "Подача 80 м3/ч, напор 50 м, частота вращения 2900 об/мин."
+  ],
+  "highlighted": true,
+  "run": 2,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Подшипник 6306-2Z — 2 шт.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 2,
+  "pages": [
+   2
+  ],
+  "pageOk": true,
+  "explanation": "Подшипник 6306-2Z (опора со стороны муфты) в количестве 2 шт [1].",
+  "reason": null,
+  "quotes": [
+   "Подшипники и уплотнения Подшипник 6306-2Z (опора со стороны муфты) — 2 шт."
+  ],
+  "highlighted": true,
+  "run": 2,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Кольцо уплотнительное 045-050-30 — 2 шт.",
+  "expected": "contradicted",
+  "verdict": "contradicted",
+  "ok": true,
+  "expectedPage": 2,
+  "pages": [
+   2
+  ],
+  "pageOk": true,
+  "explanation": "В документации указано количество уплотнительных колец 045-050-30, равное 4 шт [1].",
+  "reason": null,
+  "quotes": [
+   "Кольцо уплотнительное 045-050-30 — 4 шт."
+  ],
+  "highlighted": true,
+  "run": 2,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Электродвигатель АИР132M4 мощностью 11 кВт.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Электродвигатель имеет марку АИР132M4 и мощность 11 кВт [1].",
+  "reason": null,
+  "quotes": [
+   "Электродвигатель АИР132M4, 11 кВт, 1450 об/мин — 1 шт."
+  ],
+  "highlighted": true,
+  "run": 2,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Электродвигатель насоса 15 кВт.",
+  "expected": "contradicted",
+  "verdict": "contradicted",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Мощность электродвигателя составляет 11 кВт [1].",
+  "reason": null,
+  "quotes": [
+   "Электродвигатель АИР132M4, 11 кВт, 1450 об/мин — 1 шт."
+  ],
+  "highlighted": true,
+  "run": 2,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Гарантийный срок 18 месяцев.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Гарантийный срок составляет 18 месяцев [1].",
+  "reason": null,
+  "quotes": [
+   "Гарантийный срок 18 месяцев."
+  ],
+  "highlighted": true,
+  "run": 2,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Гарантийный срок 24 месяца.",
+  "expected": "contradicted",
+  "verdict": "contradicted",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Гарантийный срок составляет 18 месяцев [1].",
+  "reason": null,
+  "quotes": [
+   "Гарантийный срок 18 месяцев."
+  ],
+  "highlighted": true,
+  "run": 2,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Подшипники меняют каждые 6000 часов.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 2,
+  "pages": [
+   2
+  ],
+  "pageOk": true,
+  "explanation": "Межсервисный интервал замены подшипников составляет 6000 часов [1].",
+  "reason": null,
+  "quotes": [
+   "Межсервисный интервал замены подшипников 6000 ч."
+  ],
+  "highlighted": true,
+  "run": 2,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Насос весит 320 кг.",
+  "expected": "not_found",
+  "verdict": "not_found",
+  "ok": true,
+  "expectedPage": null,
+  "pages": [],
+  "pageOk": true,
+  "explanation": "",
+  "reason": "model_refused",
+  "quotes": [],
+  "highlighted": null,
+  "run": 2,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Рабочее давление насоса 16 бар.",
+  "expected": "not_found",
+  "verdict": "not_found",
+  "ok": true,
+  "expectedPage": null,
+  "pages": [],
+  "pageOk": true,
+  "explanation": "",
+  "reason": "model_refused",
+  "quotes": [],
+  "highlighted": null,
+  "run": 2,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Агрегат произведён в Германии.",
+  "expected": "not_found",
+  "verdict": "not_found",
+  "ok": true,
+  "expectedPage": null,
+  "pages": [],
+  "pageOk": true,
+  "explanation": "",
+  "reason": "model_refused",
+  "quotes": [],
+  "highlighted": null,
+  "run": 2,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Фильтр ФС-50 нужен в количестве 2 шт., а муфта МУВП-2 — 3 шт.",
+  "expected": "partly",
+  "verdict": "partly",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Фильтр сетчатый ФС-50 указан в количестве 2 шт., а муфта упругая втулочно-пальцевая МУВП-2 — в количестве 1 шт. [1]",
+  "reason": null,
+  "quotes": [
+   "Привод и фильтрация Муфта упругая втулочно-пальцевая МУВП-2 — 1 шт."
+  ],
+  "highlighted": true,
+  "run": 2,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Напор насоса 50 м.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 1,
+  "pages": [
+   1
+  ],
+  "pageOk": true,
+  "explanation": "Напор насоса составляет 50 м [1].",
+  "reason": null,
+  "quotes": [
+   "Подача 80 м3/ч, напор 50 м, частота вращения 2900 об/мин."
+  ],
+  "highlighted": true,
+  "run": 2,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Подшипник 6205-2RS установлен в количестве 4 шт.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 2,
+  "pages": [
+   2
+  ],
+  "pageOk": true,
+  "explanation": "Подшипник 6205-2RS установлен в количестве 4 шт. [1]",
+  "reason": null,
+  "quotes": [
+   "Коробка скоростей, вал II: подшипник 6205-2RS — 4 шт."
+  ],
+  "highlighted": true,
+  "run": 3,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "На задней опоре шпинделя стоит подшипник 6210-2RS, 2 шт.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 2,
+  "pages": [
+   2
+  ],
+  "pageOk": true,
+  "explanation": "На задней опоре шпинделя установлен подшипник 6210-2RS в количестве 2 шт. [1]",
+  "reason": null,
+  "quotes": [
+   "Шпиндель, задняя опора: подшипник 6210-2RS — 2 шт."
+  ],
+  "highlighted": true,
+  "run": 3,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "В фартуке установлено 2 подшипника 6203.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 2,
+  "pages": [
+   2
+  ],
+  "pageOk": true,
+  "explanation": "Для фартука указано 2 подшипника 6203 [1].",
+  "reason": null,
+  "quotes": [
+   "Фартук: подшипник 6203 — 2 шт."
+  ],
+  "highlighted": true,
+  "run": 3,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Ремень А-1250 нужен в количестве 3 шт.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "В перечне прочих комплектующих указано, что ремень приводной клиновой А-1250 требуется в количестве 3 шт. [1]",
+  "reason": null,
+  "quotes": [
+   "Прочие комплектующие Ремень приводной клиновой А-1250 — 3 шт."
+  ],
+  "highlighted": true,
+  "run": 3,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Мощность электродвигателя станка 4 кВт.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Мощность электродвигателя составляет 4 кВт [1].",
+  "reason": null,
+  "quotes": [
+   "Электродвигатель АИР100L4, 4 кВт, 1500 об/мин — 1 шт."
+  ],
+  "highlighted": true,
+  "run": 3,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Двигатель станка 7,5 кВт.",
+  "expected": "contradicted",
+  "verdict": "contradicted",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Мощность электродвигателя составляет 4 кВт [3].",
+  "reason": null,
+  "quotes": [
+   "Электродвигатель АИР100L4, 4 кВт, 1500 об/мин — 1 шт."
+  ],
+  "highlighted": true,
+  "run": 3,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "В коробке скоростей стоят 2 подшипника 6205-2RS.",
+  "expected": "contradicted",
+  "verdict": "contradicted",
+  "ok": true,
+  "expectedPage": 2,
+  "pages": [
+   2
+  ],
+  "pageOk": true,
+  "explanation": "В коробке скоростей на валу II установлено 4 подшипника 6205-2RS [1].",
+  "reason": null,
+  "quotes": [
+   "Коробка скоростей, вал II: подшипник 6205-2RS — 4 шт."
+  ],
+  "highlighted": true,
+  "run": 3,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Ремень А-1250 нужен в количестве 5 шт.",
+  "expected": "contradicted",
+  "verdict": "contradicted",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Ремень приводной клиновой А-1250 требуется в количестве 3 штук [1].",
+  "reason": null,
+  "quotes": [
+   "Прочие комплектующие Ремень приводной клиновой А-1250 — 3 шт."
+  ],
+  "highlighted": true,
+  "run": 3,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Подшипники меняют не реже одного раза в 5 лет.",
+  "expected": "contradicted",
+  "verdict": "contradicted",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Замену подшипников следует выполнять не реже одного раза в 2 года [1].",
+  "reason": null,
+  "quotes": [
+   "Замену подшипников выполнять при плановом ремонте, не реже одного раза в 2 года."
+  ],
+  "highlighted": true,
+  "run": 3,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Частота вращения двигателя 1500 об/мин.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Частота вращения электродвигателя составляет 1500 об/мин [1].",
+  "reason": null,
+  "quotes": [
+   "Электродвигатель АИР100L4, 4 кВт, 1500 об/мин — 1 шт."
+  ],
+  "highlighted": true,
+  "run": 3,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Станок весит 2 тонны.",
+  "expected": "not_found",
+  "verdict": "not_found",
+  "ok": true,
+  "expectedPage": null,
+  "pages": [],
+  "pageOk": true,
+  "explanation": "",
+  "reason": "model_refused",
+  "quotes": [],
+  "highlighted": null,
+  "run": 3,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Гарантия на станок 12 месяцев.",
+  "expected": "not_found",
+  "verdict": "not_found",
+  "ok": true,
+  "expectedPage": null,
+  "pages": [],
+  "pageOk": true,
+  "explanation": "",
+  "reason": "model_refused",
+  "quotes": [],
+  "highlighted": null,
+  "run": 3,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Цена подшипника 6205-2RS — 4 850 тенге.",
+  "expected": "not_found",
+  "verdict": "not_found",
+  "ok": true,
+  "expectedPage": null,
+  "pages": [],
+  "pageOk": true,
+  "explanation": "",
+  "reason": "model_refused",
+  "quotes": [],
+  "highlighted": null,
+  "run": 3,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Станок изготовлен в Караганде.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 1,
+  "pages": [
+   1
+  ],
+  "pageOk": true,
+  "explanation": "Изготовителем станка является ТОО «Учебный станкозавод», находящееся в городе Караганда [1].",
+  "reason": null,
+  "quotes": [
+   "Станок токарно-винторезный ТВ-320 Руководство по эксплуатации Изготовитель: ТОО «Учебный станкозавод», г."
+  ],
+  "highlighted": true,
+  "run": 3,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Двигатель 4 кВт, а ремень А-1250 нужен в количестве 10 шт.",
+  "expected": "partly",
+  "verdict": "partly",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Ремень приводной клиновой А-1250 требуется в количестве 3 шт. [1]. Электродвигатель имеет мощность 4 кВт [1].",
+  "reason": null,
+  "quotes": [
+   "Прочие комплектующие Ремень приводной клиновой А-1250 — 3 шт."
+  ],
+  "highlighted": true,
+  "run": 3,
+  "document": "tv320_manual.pdf"
+ },
+ {
+  "claim": "Агрегат выпущен в 2025 году.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 1,
+  "pages": [
+   1
+  ],
+  "pageOk": true,
+  "explanation": "Агрегат выпущен в 2025 году [1].",
+  "reason": null,
+  "quotes": [
+   "Агрегат электронасосный КН-80/50 Паспорт и перечень запасных частей Год выпуска: 2025."
+  ],
+  "highlighted": true,
+  "run": 3,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Подача насоса 80 м3/ч.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 1,
+  "pages": [
+   1
+  ],
+  "pageOk": true,
+  "explanation": "Подача агрегата составляет 80 м3/ч [1].",
+  "reason": null,
+  "quotes": [
+   "Подача 80 м3/ч, напор 50 м, частота вращения 2900 об/мин."
+  ],
+  "highlighted": true,
+  "run": 3,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Подача насоса 120 м3/ч.",
+  "expected": "contradicted",
+  "verdict": "contradicted",
+  "ok": true,
+  "expectedPage": 1,
+  "pages": [
+   1
+  ],
+  "pageOk": true,
+  "explanation": "Подача агрегата составляет 80 м3/ч [1].",
+  "reason": null,
+  "quotes": [
+   "Подача 80 м3/ч, напор 50 м, частота вращения 2900 об/мин."
+  ],
+  "highlighted": true,
+  "run": 3,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Подшипник 6306-2Z — 2 шт.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 2,
+  "pages": [
+   2
+  ],
+  "pageOk": true,
+  "explanation": "Подшипник 6306-2Z (опора со стороны муфты) в количестве 2 шт [1].",
+  "reason": null,
+  "quotes": [
+   "Подшипники и уплотнения Подшипник 6306-2Z (опора со стороны муфты) — 2 шт."
+  ],
+  "highlighted": true,
+  "run": 3,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Кольцо уплотнительное 045-050-30 — 2 шт.",
+  "expected": "contradicted",
+  "verdict": "contradicted",
+  "ok": true,
+  "expectedPage": 2,
+  "pages": [
+   2
+  ],
+  "pageOk": true,
+  "explanation": "В паспорте указано, что количество колец уплотнительных 045-050-30 составляет 4 шт. [1].",
+  "reason": null,
+  "quotes": [
+   "Кольцо уплотнительное 045-050-30 — 4 шт."
+  ],
+  "highlighted": true,
+  "run": 3,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Электродвигатель АИР132M4 мощностью 11 кВт.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "В паспорте агрегата указан электродвигатель АИР132M4 мощностью 11 кВт [1].",
+  "reason": null,
+  "quotes": [
+   "Электродвигатель АИР132M4, 11 кВт, 1450 об/мин — 1 шт."
+  ],
+  "highlighted": true,
+  "run": 3,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Электродвигатель насоса 15 кВт.",
+  "expected": "contradicted",
+  "verdict": "contradicted",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Электродвигатель насоса имеет мощность 11 кВт [1].",
+  "reason": null,
+  "quotes": [
+   "Электродвигатель АИР132M4, 11 кВт, 1450 об/мин — 1 шт."
+  ],
+  "highlighted": true,
+  "run": 3,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Гарантийный срок 18 месяцев.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Гарантийный срок составляет 18 месяцев [1].",
+  "reason": null,
+  "quotes": [
+   "Гарантийный срок 18 месяцев."
+  ],
+  "highlighted": true,
+  "run": 3,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Гарантийный срок 24 месяца.",
+  "expected": "contradicted",
+  "verdict": "contradicted",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "Гарантийный срок составляет 18 месяцев [1].",
+  "reason": null,
+  "quotes": [
+   "Гарантийный срок 18 месяцев."
+  ],
+  "highlighted": true,
+  "run": 3,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Подшипники меняют каждые 6000 часов.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 2,
+  "pages": [
+   2
+  ],
+  "pageOk": true,
+  "explanation": "Межсервисный интервал замены подшипников составляет 6000 часов [1].",
+  "reason": null,
+  "quotes": [
+   "Межсервисный интервал замены подшипников 6000 ч."
+  ],
+  "highlighted": true,
+  "run": 3,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Насос весит 320 кг.",
+  "expected": "not_found",
+  "verdict": "not_found",
+  "ok": true,
+  "expectedPage": null,
+  "pages": [],
+  "pageOk": true,
+  "explanation": "",
+  "reason": "model_refused",
+  "quotes": [],
+  "highlighted": null,
+  "run": 3,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Рабочее давление насоса 16 бар.",
+  "expected": "not_found",
+  "verdict": "not_found",
+  "ok": true,
+  "expectedPage": null,
+  "pages": [],
+  "pageOk": true,
+  "explanation": "",
+  "reason": "model_refused",
+  "quotes": [],
+  "highlighted": null,
+  "run": 3,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Агрегат произведён в Германии.",
+  "expected": "not_found",
+  "verdict": "not_found",
+  "ok": true,
+  "expectedPage": null,
+  "pages": [],
+  "pageOk": true,
+  "explanation": "",
+  "reason": "model_refused",
+  "quotes": [],
+  "highlighted": null,
+  "run": 3,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Фильтр ФС-50 нужен в количестве 2 шт., а муфта МУВП-2 — 3 шт.",
+  "expected": "partly",
+  "verdict": "partly",
+  "ok": true,
+  "expectedPage": 3,
+  "pages": [
+   3
+  ],
+  "pageOk": true,
+  "explanation": "В паспорте указано, что фильтр сетчатый ФС-50 требуется в количестве 2 шт. [1], а муфта упругая втулочно-пальцевая МУВП-2 — 1 шт. [1].",
+  "reason": null,
+  "quotes": [
+   "Привод и фильтрация Муфта упругая втулочно-пальцевая МУВП-2 — 1 шт."
+  ],
+  "highlighted": true,
+  "run": 3,
+  "document": "kn80_pump_passport.pdf"
+ },
+ {
+  "claim": "Напор насоса 50 м.",
+  "expected": "supported",
+  "verdict": "supported",
+  "ok": true,
+  "expectedPage": 1,
+  "pages": [
+   1
+  ],
+  "pageOk": true,
+  "explanation": "Напор насоса составляет 50 м [1].",
+  "reason": null,
+  "quotes": [
+   "Подача 80 м3/ч, напор 50 м, частота вращения 2900 об/мин."
+  ],
+  "highlighted": true,
+  "run": 3,
+  "document": "kn80_pump_passport.pdf"
+ }
+]
