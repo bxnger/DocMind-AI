@@ -45,6 +45,10 @@ Rules:
 - Copy partNumber exactly as written in the excerpt (same letters, spaces, dashes). If no part number is written, use null.
 - quantity only if the excerpt states it, else null. Never guess a value; use null for anything not written.
 - One entry per distinct part. Skip tools, documents and section titles.
+- A number is a part number only when the excerpt shows it names a part (a part name, a parts table, a specification).
+  Seat, car, platform, flight, order, invoice, phone and document numbers are not parts.
+- If the excerpts are not a technical document about equipment (a ticket, a receipt, a letter, a contract, a CV),
+  return {"equipment": null, "parts": []}.
 - Names in {language}.
 """
 
@@ -261,6 +265,9 @@ async def run_extraction(store: Store, answerer, doc: dict, owner_id: str, recor
         excerpts = candidate_excerpts(store.chunks_for_documents([doc["id"]]))
         head = store.chunks_for_documents([doc["id"]])[:2]
         batches = [excerpts[i:i + EXCERPTS_PER_CALL] for i in range(0, len(excerpts), EXCERPTS_PER_CALL)][:MAX_AI_CALLS]
+        # Nothing in the document reads like a part (no part word, no "шт", no part number label): the AI still names
+        # the equipment from the first chunks, but parts it would list there have no part context behind them.
+        parts_context = bool(batches)
         if not batches and head:
             batches = [head]
         complete = getattr(answerer, "complete_json", None) or getattr(answerer, "complete_text", None)
@@ -292,7 +299,7 @@ async def run_extraction(store: Store, answerer, doc: dict, owner_id: str, recor
                 continue
             if equipment is None:
                 equipment = checked_equipment(store, doc, answer.get("equipment"), batch)
-            for item in answer.get("parts") or []:
+            for item in (answer.get("parts") or []) if parts_context else []:
                 if isinstance(item, dict):
                     part = checked_ai_part(store, doc, item, batch)
                     if part:

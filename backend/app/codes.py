@@ -55,6 +55,9 @@ def code_match(document_code: str, other_code: str) -> str | None:
 
 BEARING_WORD = re.compile(r"подшипн|подш\.|bearing|мойынтірек|подшип", re.IGNORECASE)
 SUFFIX = r"(?:2RS1|2RSH|2RS|2RZ|2Z|ZZ|RS|Z|ECP|ECJ|EC|EK|E|K|MA|MB|M|C3|C4|TN9|P5|P6|NR|J|BE|B|AC|A|CD)"
+# Suffixes that only bearings carry. A single letter (154A, 203B, 222K) is also a seat, a flat or a form number, so a
+# designation with only weak suffixes needs a bearing word nearby, like a bare number does.
+STRONG_SUFFIX = re.compile(r"2RS1|2RSH|2RS|2RZ|2Z|ZZ|RS|C3|C4|TN9|P5|P6|ECP|ECJ")
 BEARING = re.compile(
     rf"(?<![\w./-])(?:(NUP|NU|NJ|NN|NA|N|UCP|UCF|UC)\s?)?(\d{{3,5}})((?:[-\s]?{SUFFIX})*)(?![\w/])",
 )
@@ -129,15 +132,16 @@ def find_bearings(text: str) -> list[tuple[str, int, int]]:
             end -= 1
         if _looks_like_amount(latin, start, end):
             continue
-        if not prefix and not suffix.strip(" -"):
-            if len(number) < 4 or number[0] not in "1234567" or (len(number) == 4 and 1950 <= int(number) <= 2099):
+        bare = not suffix.strip(" -")
+        if not prefix and number[0] not in "1234567":
+            continue
+        if not prefix and (bare or not STRONG_SUFFIX.search(suffix)):
+            if bare and (len(number) < 4 or (len(number) == 4 and 1950 <= int(number) <= 2099)):
                 continue  # 2026 next to "bearing" is a year, not a designation
             # The bearing word comes before the number ("подшипник 6205"), or right after it in a table cell.
             window = text[max(0, start - 100):end + 15]  # the original letters: "подшипник" has Cyrillic о, н
             if not BEARING_WORD.search(window):
                 continue
-        elif not prefix and number[0] not in "1234567":
-            continue
         found.append((text[start:end], start, end))
     return found
 

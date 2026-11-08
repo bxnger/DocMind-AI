@@ -170,6 +170,25 @@ def test_bearings_are_found_but_amounts_and_years_are_not():
     assert [found[0] for found in find_bearings("Подшипник 6205 — 2 шт.")] == ["6205"]
 
 
+def test_a_number_with_one_letter_is_a_bearing_only_next_to_a_bearing_word():
+    """Found live: a train ticket "Место 154А Терминал" was listed as bearing 154A (Cyrillic А read as the A suffix)."""
+    for text in ("Вагон 05 Место 154А Терминал 2", "Перрон 7, место 203B", "Seat 222K, gate 12", "Заказ 7310 B от 08.11"):
+        assert find_bearings(text) == [], text
+    assert [f[0] for f in find_bearings("Подшипник 7310 B — 2 шт.")] == ["7310 B"]
+    assert [f[0] for f in find_bearings("Angular contact bearing 306K")] == ["306K"]
+    for strong in ("6205-2RS", "6305 ZZ", "6204 C3", "62032RS", "NU 210", "22210 E TN9"):  # bearing-only suffix or prefix
+        assert find_bearings(f"Поз. 4: {strong}"), strong
+
+
+def test_a_document_without_part_context_gives_no_parts(client):
+    """A ticket has no part word, count or part number label: whatever the AI lists there is not a part."""
+    reply = {"equipment": None, "parts": [{"excerpt": 1, "name": "Терминал", "category": "other", "partNumber": "154А"}]}
+    use(client, JsonAnswerer(reply))
+    result = parts_of(client, ready(client, ("Электронный билет. Поезд 081Ц Алматы — Астана. Вагон 05, место 154А.",
+                                             "Посадка: Терминал 2. Пассажир: Иванов И. Стоимость 12 450 тенге."), "ticket.pdf"))
+    assert result["parts"] == [] and result["summary"]["total"] == 0
+
+
 def test_prices_and_stock_are_read_without_inventing():
     assert parse_price("4 850,00 ₸") == (__import__("decimal").Decimal("4850.00"), "KZT")
     assert parse_price("") == (None, None)
