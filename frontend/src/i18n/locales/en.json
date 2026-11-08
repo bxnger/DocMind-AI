@@ -892,7 +892,7 @@
       },
       "takePhoto": "Take a photo of the part",
       "uploadPhoto": "Upload a photo",
-      "notStored": "The photo stays on this device and isn't stored on the server.",
+      "notStored": "The photo is sent to the DOCMIND server and an external AI model to read the marking. The server doesn't keep it. Don't photograph anything else.",
       "manufacturer": "Manufacturer",
       "markings": "Inscriptions on the photo",
       "readabilityLabel": "Readability",
@@ -1121,5 +1121,81 @@
     "chosenOffers_one": "{{count}} offer chosen",
     "chosenOffers_other": "{{count}} offers chosen",
     "pricesDemo": "This server doesn't store price lists yet. Inside a document's sheet you can try a CSV in demonstration mode."
+  },
+  "mobile": {
+    "back": "Back",
+    "tabs": "Sections",
+    "offline": "No connection to the server. Documents and analysis are unavailable until it's back.",
+    "tab": {
+      "home": "Home",
+      "documents": "Documents",
+      "scanner": "Scanner",
+      "procurement": "Purchases",
+      "profile": "Profile"
+    },
+    "userType": {
+      "company": "Company",
+      "engineer": "Engineer or technician",
+      "procurement": "Procurement specialist",
+      "personal": "Personal use"
+    },
+    "onboarding": {
+      "skip": "Skip",
+      "title": "An assistant for equipment and purchases",
+      "body": "Upload technical documentation, check parts with the camera and prepare purchases. Every finding leads to a quote in the document.",
+      "value": {
+        "docs": {
+          "title": "Parts from documentation",
+          "body": "Part numbers, quantities and specifications, with page and quote."
+        },
+        "scan": {
+          "title": "Marking scanner",
+          "body": "AI reads the marking, and you decide whether it matches."
+        },
+        "buy": {
+          "title": "Purchases and Excel",
+          "body": "Supplier offers, price checks and the final purchase sheet."
+        }
+      },
+      "next": "Next",
+      "whoTitle": "Who will be using it?",
+      "whoBody": "This sets the starting mode. You can skip it and change it later in Profile.",
+      "organization": "Organization (optional)",
+      "organizationPlaceholder": "For example, Plant LLP",
+      "private": "This stays on this device and isn't sent to the server.",
+      "start": "Get started"
+    },
+    "home": {
+      "hello": "Hello,",
+      "guest": "guest",
+      "analyzeBody": "PDF or DOCX: parts, quotes and chat",
+      "scan": "Scan a part",
+      "scanBody": "Check a marking against the documentation",
+      "recent": "Recent documents",
+      "firstTitle": "How to start",
+      "first1": "Upload a passport, manual or specification.",
+      "first2": "Check the parts found against their quotes.",
+      "first3": "Photograph a part and prepare the purchase.",
+      "askAbout": "Ask about {{name}}"
+    },
+    "documents": {
+      "upload": "Upload a document",
+      "formats": "PDF or DOCX. Scans are read too.",
+      "empty": "Upload your first document to begin."
+    },
+    "scanner": {
+      "title": "Check a part against the documentation",
+      "body": "The marking is compared with the parts of the document you choose. Choose the machine's document and photograph the part.",
+      "choose": "Document to check against",
+      "open": "Scan",
+      "newDocument": "Upload another document",
+      "privacy": "The photo is sent to the DOCMIND server and an external AI model to read the marking, and the server doesn't keep it."
+    },
+    "profile": {
+      "who": "Who is using it",
+      "allSettings": "All settings",
+      "privacy": "Your profile stays on this device. Documents and photos are processed on the DOCMIND server and by an external AI model.",
+      "restart": "Show the welcome again"
+    }
   }
 }

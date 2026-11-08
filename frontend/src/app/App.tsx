@@ -5,6 +5,9 @@ import { BrowserRouter, Route, Routes } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { AppShell } from '@/components/layout/AppShell';
 import { useNativeBackButton } from '@/features/native/useNativeBackButton';
+import { useStatusBar } from '@/features/native/useStatusBar';
+import { isMobileApp } from '@/mobile/mobileMode';
+import { MobileRoutes } from '@/mobile/MobileRoutes';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ToastProvider } from '@/components/ui/Toast';
 import { useMotionPreference } from '@/features/settings/preferences';
@@ -59,6 +62,7 @@ function SessionNotice() {
 /** Only does something inside the Android or iOS app. */
 function NativeBridge() {
   useNativeBackButton();
+  useStatusBar();
   return null;
 }
 
@@ -70,6 +74,9 @@ function DocumentLanguage() {
   }, [i18n.language, t]);
   return null;
 }
+
+/** Decided once: the phone interface inside the app (or its browser preview), the website's interface elsewhere. */
+const MOBILE = isMobileApp();
 
 export function App() {
   const motion = useMotionPreference();
@@ -83,27 +90,29 @@ export function App() {
             <UploadProvider>
               <DocumentLanguage />
               <NativeBridge />
+              {MOBILE ? <MobileRoutes /> : (
               <Routes>
-                <Route element={<AppShell />}>
-                  <Route index element={<HomePage />} />
-                  <Route path="documents" element={<DocumentsPage />} />
-                  <Route
-                    path="documents/:id"
-                    element={
-                      <Suspense fallback={<Skeleton className="m-4 h-[calc(100%-32px)]" />}>
-                        <WorkspacePage />
-                      </Suspense>
-                    }
-                  />
-                  <Route path="compare" element={<ComparePage />} />
-                  <Route path="hr" element={<HrPage />} />
-                  <Route path="equipment" element={<EquipmentPage />} />
-                  <Route path="procurement" element={<ProcurementPage />} />
-                  <Route path="recent" element={<RecentPage />} />
-                  <Route path="settings" element={<SettingsPage />} />
-                  <Route path="*" element={<NotFoundPage />} />
-                </Route>
-              </Routes>
+                  <Route element={<AppShell />}>
+                    <Route index element={<HomePage />} />
+                    <Route path="documents" element={<DocumentsPage />} />
+                    <Route
+                      path="documents/:id"
+                      element={
+                        <Suspense fallback={<Skeleton className="m-4 h-[calc(100%-32px)]" />}>
+                          <WorkspacePage />
+                        </Suspense>
+                      }
+                    />
+                    <Route path="compare" element={<ComparePage />} />
+                    <Route path="hr" element={<HrPage />} />
+                    <Route path="equipment" element={<EquipmentPage />} />
+                    <Route path="procurement" element={<ProcurementPage />} />
+                    <Route path="recent" element={<RecentPage />} />
+                    <Route path="settings" element={<SettingsPage />} />
+                    <Route path="*" element={<NotFoundPage />} />
+                  </Route>
+                </Routes>
+              )}
             </UploadProvider>
             </SessionScope>
           </BrowserRouter>

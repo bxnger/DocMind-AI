@@ -77,7 +77,7 @@ export const Composer = forwardRef<ComposerHandle, Props>(function Composer(
   };
 
   return (
-    <div data-composer className="shrink-0 p-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
+    <div data-composer className="shrink-0 p-3 pb-[calc(12px+var(--sa-bottom))]">
       <form
         onSubmit={(event) => {
           event.preventDefault();

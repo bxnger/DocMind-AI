@@ -18,14 +18,18 @@
     "test": "vitest run",
     "generate:sample": "node scripts/generate-sample-pdf.mjs",
     "build:mobile": "npm run build && cap sync android",
-    "cap:open:android": "cap open android"
+    "cap:open:android": "cap open android",
+    "build:ios": "npm run build && cap sync ios",
+    "cap:open:ios": "cap open ios"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.0",
     "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.6.0",
     "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/ios": "^8.6.0",
     "@capacitor/share": "^8.0.3",
+    "@capacitor/status-bar": "^8.0.4",
     "@fontsource-variable/inter": "^5.3.0",
     "@fontsource-variable/source-serif-4": "^5.3.1",
     "@tanstack/react-query": "^5.105.3",

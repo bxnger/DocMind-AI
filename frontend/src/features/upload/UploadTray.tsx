@@ -101,7 +101,7 @@ export function UploadTray() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 4 }}
           transition={{ duration: 0.2 }}
-          className="fixed right-4 bottom-[calc(16px+env(safe-area-inset-bottom))] z-30 w-[min(380px,calc(100vw-32px))] rounded-panel border border-line bg-card shadow-float"
+          className="fixed right-4 bottom-[calc(16px+var(--sa-bottom)+var(--tab-bar-height,0px))] z-30 w-[min(380px,calc(100vw-32px))] rounded-panel border border-line bg-card shadow-float"
         >
           <header className="flex h-10 items-center justify-between border-b border-line pr-2 pl-3">
             <h2 className="text-sm font-medium">{t('upload.trayTitle', { count: items.length })}</h2>

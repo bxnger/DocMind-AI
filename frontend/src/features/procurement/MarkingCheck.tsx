@@ -139,6 +139,7 @@ export function MarkingCheck({ adapter, parts, maxImageBytes, showExamples, onDe
         </span>
         <Button data-testid="marking-upload" icon={<ImageUp size={14} aria-hidden />} disabled={upload.isPending} onClick={() => gallery.current?.click()}>{t('procurement.marking.uploadPhoto')}</Button>
       </div>
+      <p data-testid="photo-privacy" className="mt-2 text-xs text-muted">{t('procurement.marking.notStored')}</p>
       {showExamples && (
         <div data-testid="photo-examples" className="mt-2 rounded-control border border-line bg-sidebar p-2">
           <p className="text-xs font-medium">{t('procurement.marking.examplesTitle')}</p>
@@ -155,7 +156,6 @@ export function MarkingCheck({ adapter, parts, maxImageBytes, showExamples, onDe
         <div ref={previewRef} className="mt-3 flex flex-wrap gap-3 border-t border-line pt-3">
           <div className="relative shrink-0">
             <img src={preview} alt={t('procurement.marking.photo')} className="h-32 max-w-full rounded-control border border-line object-contain" />
-            <p className="mt-1 max-w-52 text-[11px] text-muted">{t('procurement.marking.notStored')}</p>
           </div>
           <div className="min-w-0 flex-1 basis-56 space-y-2">
             {upload.isPending && <p role="status" data-testid="marking-reading" className="flex items-center gap-2 text-sm text-muted"><Loader2 size={14} className="spin" aria-hidden />{t('procurement.marking.reading')}</p>}
