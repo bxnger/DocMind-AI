@@ -1,7 +1,9 @@
 import { ChevronRight, GitCompareArrows, History, Network, RotateCcw, Settings, ShieldCheck, UserSearch, type LucideIcon } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { isNativeApp } from '@/features/native/platform';
 import { PrivacyFacts } from '@/features/settings/PrivacyFacts';
+import { InterfaceChoice } from '../InterfaceChoice';
 import { AppearanceSection, LanguageSection } from '@/features/settings/SettingsSections';
 import { ModeSelect } from '@/features/userModes/ModeSelector';
 import { setUserMode } from '@/features/userModes/useUserMode';
@@ -60,6 +62,7 @@ export function MobileProfile() {
         </ul>
       </section>
       <PrivacyFacts />
+      {!isNativeApp() && <InterfaceChoice />}
       <p className="flex items-start gap-2 text-xs text-muted"><ShieldCheck size={14} className="mt-0.5 shrink-0" aria-hidden />{t('mobile.profile.privacy')}</p>
       <button type="button" data-testid="profile-restart" onClick={() => { saveProfile({ ...profile, completed: false }); void navigate('/welcome'); }} className="pressable flex min-h-11 items-center gap-2 text-sm text-muted">
         <RotateCcw size={14} aria-hidden />{t('mobile.profile.restart')}

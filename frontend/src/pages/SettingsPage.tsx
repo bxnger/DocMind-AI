@@ -1,6 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { isNativeApp } from '@/features/native/platform';
 import { PrivacyFacts } from '@/features/settings/PrivacyFacts';
+import { InterfaceChoice } from '@/mobile/InterfaceChoice';
 import {
   AboutSection,
   AccountSection,
@@ -20,6 +22,7 @@ export function SettingsPage() {
         <LocalDataSection />
         <AboutSection />
         <div className="mt-6"><PrivacyFacts /></div>
+        {!isNativeApp() && <div className="mt-4"><InterfaceChoice /></div>}
       </div>
     </PageContainer>
   );

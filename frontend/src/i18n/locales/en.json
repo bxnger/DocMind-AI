@@ -953,7 +953,7 @@
       "skipped_one": "{{count}} row skipped.",
       "skipped_other": "{{count}} rows skipped.",
       "examplesTitle": "Prepared files for this demonstration",
-      "addVerified": "Supplier product pages (6205-2RSH)",
+      "addVerified": "Supplier product pages (similar to 6205)",
       "addDemo": "Made-up DEMO prices",
       "examplesBody": "Supplier price lists: prices copied by hand from the sites on the date in the file, not yet a check. \"Price checked on the supplier's site\" appears only after \"Check price on the site\". The product pages are other designations of the 6205 family, so they show as similar. Available from the supplier doesn't mean a local warehouse. DEMO: invented prices and supplier, best not mixed with real ones.",
       "demoSupplier": "DEMO supplier (made up)",
@@ -1220,6 +1220,13 @@
       "noOffersGroup_one": "No offers: {{count}} part",
       "noOffersGroup_other": "No offers: {{count}} parts",
       "noOffersHint": "The uploaded price lists don't have these part numbers. They aren't in the sum. Upload another supplier's list."
+    },
+    "interface": {
+      "title": "Interface",
+      "body": "Phones open the mobile version, computers and tablets the full one. You can choose yourself.",
+      "auto": "Automatic",
+      "phone": "For phones",
+      "desktop": "Full version"
     }
   },
   "privacy": {
