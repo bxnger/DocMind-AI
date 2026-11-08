@@ -1,0 +1,241 @@
+{
+  "scenario": "tv320",
+  "backend": "https://win-347ek05mdnv.tailf14622.ts.net",
+  "startedAt": "2026-11-08 16:18:33",
+  "steps": [
+    {
+      "step": "health",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "cors": "https://localhost"
+      }
+    },
+    {
+      "step": "capabilities",
+      "ok": true,
+      "detail": {
+        "claimCheck": true,
+        "parts": true,
+        "photoIdentify": true,
+        "priceLists": true,
+        "procurement": true,
+        "hr": false,
+        "priceCheck": true
+      }
+    },
+    {
+      "step": "document ready",
+      "ok": true,
+      "detail": {
+        "pages": 3,
+        "status": "ready"
+      }
+    },
+    {
+      "step": "parts 9/9, quantities and quotes",
+      "ok": true,
+      "detail": {
+        "parts": [
+          {
+            "partNumber": "3182120",
+            "found": true,
+            "quantity": 1,
+            "expected": 1,
+            "verified": true,
+            "page": 2
+          },
+          {
+            "partNumber": "6210-2RS",
+            "found": true,
+            "quantity": 2,
+            "expected": 2,
+            "verified": true,
+            "page": 2
+          },
+          {
+            "partNumber": "6205-2RS",
+            "found": true,
+            "quantity": 4,
+            "expected": 4,
+            "verified": true,
+            "page": 2
+          },
+          {
+            "partNumber": "6203",
+            "found": true,
+            "quantity": 2,
+            "expected": 2,
+            "verified": true,
+            "page": 2
+          },
+          {
+            "partNumber": "NU 207 ECP",
+            "found": true,
+            "quantity": 1,
+            "expected": 1,
+            "verified": true,
+            "page": 2
+          },
+          {
+            "partNumber": "А-1250",
+            "found": true,
+            "quantity": 3,
+            "expected": 3,
+            "verified": true,
+            "page": 3
+          },
+          {
+            "partNumber": "1.2-40x60-1",
+            "found": true,
+            "quantity": 2,
+            "expected": 2,
+            "verified": true,
+            "page": 3
+          },
+          {
+            "partNumber": "ФМ-12",
+            "found": true,
+            "quantity": 1,
+            "expected": 1,
+            "verified": true,
+            "page": 3
+          },
+          {
+            "partNumber": "АИР100L4",
+            "found": true,
+            "quantity": 1,
+            "expected": 1,
+            "verified": true,
+            "page": 3
+          }
+        ],
+        "extra": []
+      }
+    },
+    {
+      "step": "photo marking_6205.png -> 6205-2RS",
+      "ok": true,
+      "detail": {
+        "matchStatus": "matched",
+        "matches": [
+          [
+            "6205-2RS",
+            "exact"
+          ]
+        ],
+        "read": "6205-2RS"
+      }
+    },
+    {
+      "step": "user confirms the photo match",
+      "ok": true,
+      "detail": {
+        "confirmationId": "c79bfd158f7d6"
+      }
+    },
+    {
+      "step": "real price list",
+      "ok": true,
+      "detail": {
+        "rows": 5,
+        "skipped": [],
+        "isDemo": null
+      }
+    },
+    {
+      "step": "6203: exact offer 6203",
+      "ok": true,
+      "detail": {
+        "offers": [
+          [
+            "6203",
+            "2620.00",
+            "exact"
+          ]
+        ]
+      }
+    },
+    {
+      "step": "6205-2RS: 6205 only as similar, never exact",
+      "ok": true,
+      "detail": {
+        "offers": [],
+        "similar": [
+          [
+            "6205",
+            "close"
+          ]
+        ]
+      }
+    },
+    {
+      "step": "site check pl8a7d6ddebf:2",
+      "ok": true,
+      "detail": {
+        "priceOrigin": "site_checked",
+        "price": "2620.00",
+        "filePrice": "2620.00",
+        "reason": null,
+        "checkedAt": "2026-11-08T11:18:47+00:00",
+        "url": "https://industrialmotion.kz/product/radialnyy-sharikopodshipnik-6203"
+      }
+    },
+    {
+      "step": "quote",
+      "ok": true,
+      "detail": {
+        "priced": [
+          [
+            "6203",
+            2,
+            "2620.00",
+            "5240.00",
+            "site_checked"
+          ]
+        ],
+        "totals": [
+          {
+            "currency": "KZT",
+            "amount": "5240.00",
+            "items": 1
+          }
+        ],
+        "warnings": [
+          "8 поз. без цены не входят в итог"
+        ]
+      }
+    },
+    {
+      "step": "xlsx",
+      "ok": true,
+      "detail": {
+        "file": "demo_tv320.xlsx",
+        "columns": 23,
+        "priced": [
+          {
+            "Артикул": "6203",
+            "Количество": null,
+            "Цена": 2620,
+            "Источник цены": "проверено на сайте",
+            "Проверено (время Казахстана, UTC+5)": "08.11.2026 16:18",
+            "Совпадение артикула": "точный",
+            "Наличие": "есть у поставщика"
+          }
+        ]
+      }
+    }
+  ],
+  "failures": [],
+  "noExactOffer": [
+    "1.2-40x60-1",
+    "3182120",
+    "6205-2RS",
+    "6210-2RS",
+    "NU 207 ECP",
+    "А-1250",
+    "АИР100L4",
+    "ФМ-12"
+  ],
+  "finishedAt": "2026-11-08 16:18:49"
+}

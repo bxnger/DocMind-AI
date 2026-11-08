@@ -1,0 +1,150 @@
+{
+  "scenario": "kn80",
+  "backend": "https://win-347ek05mdnv.tailf14622.ts.net",
+  "startedAt": "2026-11-08 16:18:51",
+  "steps": [
+    {
+      "step": "health",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "cors": "https://localhost"
+      }
+    },
+    {
+      "step": "capabilities",
+      "ok": true,
+      "detail": {
+        "claimCheck": true,
+        "parts": true,
+        "photoIdentify": true,
+        "priceLists": true,
+        "procurement": true,
+        "hr": false,
+        "priceCheck": true
+      }
+    },
+    {
+      "step": "document ready",
+      "ok": true,
+      "detail": {
+        "pages": 3,
+        "status": "ready"
+      }
+    },
+    {
+      "step": "parts 8/8, quantities and quotes",
+      "ok": true,
+      "detail": {
+        "parts": [
+          {
+            "partNumber": "6306-2Z",
+            "found": true,
+            "quantity": 2,
+            "expected": 2,
+            "verified": true,
+            "page": 2
+          },
+          {
+            "partNumber": "7208 BEP",
+            "found": true,
+            "quantity": 1,
+            "expected": 1,
+            "verified": true,
+            "page": 2
+          },
+          {
+            "partNumber": "ТУ-35",
+            "found": true,
+            "quantity": 1,
+            "expected": 1,
+            "verified": true,
+            "page": 2
+          },
+          {
+            "partNumber": "045-050-30",
+            "found": true,
+            "quantity": 4,
+            "expected": 4,
+            "verified": true,
+            "page": 2
+          },
+          {
+            "partNumber": "МУВП-2",
+            "found": true,
+            "quantity": 1,
+            "expected": 1,
+            "verified": true,
+            "page": 3
+          },
+          {
+            "partNumber": "АИР132M4",
+            "found": true,
+            "quantity": 1,
+            "expected": 1,
+            "verified": true,
+            "page": 3
+          },
+          {
+            "partNumber": "ФС-50",
+            "found": true,
+            "quantity": 2,
+            "expected": 2,
+            "verified": true,
+            "page": 3
+          },
+          {
+            "partNumber": "РК-80",
+            "found": true,
+            "quantity": 1,
+            "expected": 1,
+            "verified": true,
+            "page": 3
+          }
+        ],
+        "extra": []
+      }
+    },
+    {
+      "step": "real price list",
+      "ok": true,
+      "detail": {
+        "rows": 5,
+        "skipped": [],
+        "isDemo": null
+      }
+    },
+    {
+      "step": "quote",
+      "ok": true,
+      "detail": {
+        "priced": [],
+        "totals": [],
+        "warnings": [
+          "8 поз. без цены не входят в итог"
+        ]
+      }
+    },
+    {
+      "step": "xlsx",
+      "ok": true,
+      "detail": {
+        "file": "demo_kn80.xlsx",
+        "columns": 23,
+        "priced": []
+      }
+    }
+  ],
+  "failures": [],
+  "noExactOffer": [
+    "045-050-30",
+    "6306-2Z",
+    "7208 BEP",
+    "АИР132M4",
+    "МУВП-2",
+    "РК-80",
+    "ТУ-35",
+    "ФС-50"
+  ],
+  "finishedAt": "2026-11-08 16:19:07"
+}
