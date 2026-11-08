@@ -50,6 +50,17 @@ def describe_llm(settings: Settings, env: Mapping[str, str]) -> str:
     return f"provider={provider!r} is not supported, expected anthropic, gemini or groq"
 
 
+# The iOS app (Capacitor) loads its pages from capacitor://localhost: the one non-https origin production accepts.
+# Exact strings only, no wildcard: any other scheme or a "*" still stops the start.
+APP_ORIGINS = frozenset({"capacitor://localhost"})
+
+
+def production_origin(origin: str) -> bool:
+    if origin in APP_ORIGINS:
+        return True
+    return origin.startswith("https://") and "*" not in origin and len(origin) > len("https://")
+
+
 VERSION = "0.3.0"
 SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
@@ -114,8 +125,8 @@ def create_app(settings: Settings | None = None, store: Store | None = None) -> 
     settings = settings or get_settings()
     configure_logging()
     production = settings.app_env == "production"
-    if production and any(origin == "*" or not origin.startswith("https://") for origin in settings.cors_origins):
-        raise RuntimeError("In production CORS_ORIGINS must list exact https origins")
+    if production and any(not production_origin(origin) for origin in settings.cors_origins):
+        raise RuntimeError("In production CORS_ORIGINS must list exact https origins (or the iOS app's capacitor://localhost)")
     logger.info("LLM %s", describe_llm(settings, os.environ))
 
     @asynccontextmanager

@@ -429,10 +429,24 @@ def test_api_docs_exist_only_in_development(tmp_path, env, expected):
         assert client.get(path).status_code == expected
 
 
-@pytest.mark.parametrize("origins", [("*",), ("http://app.example",), ("https://a.example", "*")])
+@pytest.mark.parametrize("origins", [
+    ("*",), ("http://app.example",), ("https://a.example", "*"), ("https://*.vercel.app",), ("https://",),
+    ("capacitor://evil.example",), ("capacitor://*",), ("ionic://localhost",), ("http://localhost",),
+])
 def test_production_refuses_loose_cors(tmp_path, origins):
     with pytest.raises(RuntimeError):
         create_app(Settings(data_dir=tmp_path, app_env="production", cors_origins=origins))
+
+
+def test_production_accepts_the_mobile_app_origins(tmp_path):
+    """Android (Capacitor) is https://localhost, iOS is capacitor://localhost: both exact, both allowed in production."""
+    origins = ("https://app.example", "https://localhost", "capacitor://localhost")
+    client = TestClient(create_app(Settings(data_dir=tmp_path, app_env="production", cors_origins=origins)))
+    for origin in origins:
+        answer = client.options(f"{API}/health", headers={"Origin": origin, "Access-Control-Request-Method": "GET"})
+        assert answer.headers["access-control-allow-origin"] == origin
+    other = client.options(f"{API}/health", headers={"Origin": "capacitor://evil", "Access-Control-Request-Method": "GET"})
+    assert "access-control-allow-origin" not in other.headers
 
 
 def test_cors_allows_only_the_listed_origin(store):
