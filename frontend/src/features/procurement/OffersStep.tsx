@@ -17,15 +17,23 @@ interface Props {
   offers: readonly PartOffers[] | undefined;
   quoteItems: readonly QuoteItem[] | undefined;
   showExamples: boolean;
+  /** Phones: parts without any offer go into one folded group, below the ones to decide on. */
+  collapseEmpty?: boolean;
   onChange: (partId: string, change: Partial<SheetLine>) => void;
   onChangeMany: (changes: Record<string, Partial<SheetLine>>) => void;
 }
 
-export function OffersStep({ adapter, parts, lines, lists, offers, quoteItems, showExamples, onChange, onChangeMany }: Props) {
+export function OffersStep({ adapter, parts, lines, lists, offers, quoteItems, showExamples, onChange, onChangeMany, collapseEmpty = false }: Props) {
   const { t, i18n } = useTranslation();
   const included = parts.filter((part) => lines[part.id]?.included ?? true);
   const exact = offers ? chooseExactOffers(offers, lines) : {};
   const canPick = Object.keys(exact).length;
+  const hasNoOffers = (partId: string) => {
+    const item = offers?.find((candidate) => candidate.partId === partId);
+    return Boolean(item) && item?.offers.length === 0 && item.similar.length === 0;
+  };
+  const withChoices = included.filter((part) => !hasNoOffers(part.id));
+  const empty = included.filter((part) => hasNoOffers(part.id));
   const withOffers = offers?.filter((item) => item.offers.length > 0 || item.similar.length > 0).length ?? 0;
 
   return (
@@ -39,7 +47,7 @@ export function OffersStep({ adapter, parts, lines, lists, offers, quoteItems, s
       </div>
       {!lists?.length && <StateBlock icon={<Store size={18} aria-hidden />} title={t('procurement.noListsTitle')} description={t('procurement.noListsBody')} />}
       <ul className="space-y-2">
-        {included.map((part) => {
+        {(collapseEmpty ? withChoices : included).map((part) => {
           const item = offers?.find((candidate) => candidate.partId === part.id);
           const line = lines[part.id];
           const quote = quoteItems?.find((candidate) => candidate.partId === part.id);
@@ -67,6 +75,15 @@ export function OffersStep({ adapter, parts, lines, lists, offers, quoteItems, s
           );
         })}
       </ul>
+      {collapseEmpty && empty.length > 0 && (
+        <details data-testid="offers-empty" className="rounded-panel border border-line bg-card p-3">
+          <summary className="min-h-11 cursor-pointer content-center font-medium">{t('mobile.summary.noOffersGroup', { count: empty.length })}</summary>
+          <ul className="mt-1 space-y-1 text-sm">
+            {empty.map((part) => <li key={part.id} className="flex justify-between gap-2"><span className="font-medium break-words">{part.partNumber}</span><span className="text-muted">{part.name}</span></li>)}
+          </ul>
+          <p className="mt-2 text-xs text-muted">{t('mobile.summary.noOffersHint')}</p>
+        </details>
+      )}
     </div>
   );
 }

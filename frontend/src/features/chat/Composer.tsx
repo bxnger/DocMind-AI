@@ -103,7 +103,7 @@ export const Composer = forwardRef<ComposerHandle, Props>(function Composer(
           }}
           aria-label={t('chat.inputLabel')}
           placeholder={disabledReason ?? t('chat.placeholder')}
-          className="block w-full resize-none bg-transparent px-3 pt-3 pb-1 outline-none placeholder:text-muted disabled:cursor-not-allowed"
+          className="block w-full resize-none bg-transparent px-3 pt-3 pb-1 outline-none placeholder:text-muted disabled:cursor-not-allowed pointer-coarse:text-[16px]"
         />
         <div className="flex items-center gap-2 py-2 pr-2 pl-3">
           <span className="flex min-w-0 flex-1 items-center gap-1 text-xs text-muted" title={documentName}>

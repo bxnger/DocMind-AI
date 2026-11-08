@@ -13,6 +13,8 @@ import type { DocumentText } from '@/services/chat/demo/textIndex';
 import type { EvidenceSource } from '@/types/chat';
 import type { DocumentModel } from '@/types/document';
 import type { Part } from '@/types/procurement';
+import { isMobileApp } from '@/mobile/mobileMode';
+import { ProcurementSummary } from '@/mobile/ProcurementSummary';
 import { MarkingCheck } from './MarkingCheck';
 import { OffersStep } from './OffersStep';
 import { PartRow } from './PartRow';
@@ -27,6 +29,9 @@ interface Props {
   onOpenSource: (source: EvidenceSource) => void;
   onOpenDocument: () => void;
 }
+
+/** Phones get a summary and fold away parts with nothing to choose; the website keeps its layout. */
+const PHONE = isMobileApp();
 
 function useStep(documentId: string, initial: ProcurementStep | undefined) {
   const key = `docmind.chat.procurement.step.${documentId}`;
@@ -123,6 +128,7 @@ export function ProcurementPanel({ doc, pdfText, initialStep, onOpenSource, onOp
         )}
         {isDemoDoc && <p data-testid="demo-document-note" role="note" className="rounded-control border border-line bg-sidebar p-2.5 text-xs text-muted">{t('procurement.demoDocument')}</p>}
         <WorkflowStepper current={step} done={done} notes={notes} onSelect={go} onOpenDocument={onOpenDocument} />
+        {PHONE && <ProcurementSummary parts={parts} lines={lines} offers={offers.data} quote={items.length ? quote.data : undefined} next={next} onNext={() => next && go(next)} />}
         {failure && <p role="alert" data-testid="procurement-error" className="text-sm text-danger">{errorMessage(failure)}</p>}
 
         <div hidden={step !== 'parts'} data-testid="step-panel-parts" className="space-y-3">
@@ -146,7 +152,7 @@ export function ProcurementPanel({ doc, pdfText, initialStep, onOpenSource, onOp
           <MarkingCheck adapter={adapter} parts={parts} maxImageBytes={capabilities.data?.limits.maxImageBytes ?? null} showExamples={isDemoDoc} onDecided={(confirmation) => update(confirmation.partId, { confirmationId: confirmation.id, decision: confirmation.decision })} onOpenSource={onOpenSource} />
         </div>
         <div hidden={step !== 'offers'} data-testid="step-panel-offers">
-          <OffersStep adapter={adapter} parts={parts} lines={lines} lists={priceLists.data} offers={offers.data} quoteItems={items.length ? quote.data?.items : undefined} showExamples={isDemoDoc} onChange={update} onChangeMany={updateMany} />
+          <OffersStep adapter={adapter} parts={parts} lines={lines} lists={priceLists.data} offers={offers.data} quoteItems={items.length ? quote.data?.items : undefined} showExamples={isDemoDoc} onChange={update} onChangeMany={updateMany} collapseEmpty={PHONE} />
         </div>
         <div hidden={step !== 'sheet'} data-testid="step-panel-sheet">
           <SheetStep adapter={adapter} documentName={doc.name} parts={parts} lines={lines} lists={priceLists.data} offers={offers.data} quote={quote.data} items={items} withoutQuantity={withoutQuantity} onChange={update} onOpenSource={onOpenSource} />

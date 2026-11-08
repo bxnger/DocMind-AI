@@ -9,7 +9,7 @@ const flatten = (value: object, prefix = ''): Array<[string, string]> =>
   );
 
 /** Product names, formats and key names keep their Latin spelling in every language. */
-const ALLOWED = new Set(['AI', 'API', 'DOCMIND', 'DOCX', 'CSV', 'XLSX', 'Excel', 'DEMO', 'INDUSTRY', 'JPEG', 'PNG', 'WEBP', 'PDF', 'OCR', 'Telegram', 'Enter', 'Shift', 'Esc']);
+const ALLOWED = new Set(['AI', 'API', 'DOCMIND', 'DOCX', 'CSV', 'XLSX', 'Excel', 'Google', 'Gemini', 'DEMO', 'INDUSTRY', 'JPEG', 'PNG', 'WEBP', 'PDF', 'OCR', 'Telegram', 'Enter', 'Shift', 'Esc']);
 const latinWords = (text: string) => (text.replace(/\{\{\w+\}\}/g, '').match(/[A-Za-z]{2,}/g) ?? []).filter((word) => !ALLOWED.has(word));
 
 describe('no mixed-language interface text', () => {

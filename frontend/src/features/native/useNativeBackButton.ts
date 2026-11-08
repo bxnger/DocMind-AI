@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import { backAction, isNativeApp } from './platform';
 
 /** Open layers that Escape already closes: dialogs, the mobile menu and the evidence panel. */
-const OVERLAYS = '[role="dialog"], [role="alertdialog"], [data-testid="evidence-inspector"]';
+const OVERLAYS = 'dialog[open], [role="dialog"], [role="alertdialog"], [data-testid="evidence-inspector"]';
 
 /** Android's Back button: close what is open, then go back in the app, and only then leave it. */
 export function useNativeBackButton(): void {
@@ -16,7 +16,11 @@ export function useNativeBackButton(): void {
       App.addListener('backButton', ({ canGoBack }) => {
         const action = backAction({ overlayOpen: Boolean(document.querySelector(OVERLAYS)), canGoBack: canGoBack || window.history.length > 1 });
         if (action === 'close-overlay') {
-          (document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+          // A native <dialog> closes on its cancel event: a synthetic Escape key does not reach it.
+          const dialogs = document.querySelectorAll('dialog[open]');
+          const dialog = dialogs[dialogs.length - 1];
+          if (dialog) dialog.dispatchEvent(new Event('cancel', { cancelable: true }));
+          else (document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
         } else if (action === 'go-back') {
           void navigate(-1);
         } else {

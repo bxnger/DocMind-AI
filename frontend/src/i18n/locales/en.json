@@ -892,7 +892,7 @@
       },
       "takePhoto": "Take a photo of the part",
       "uploadPhoto": "Upload a photo",
-      "notStored": "The photo is sent to the DOCMIND server and an external AI model to read the marking. The server doesn't keep it. Don't photograph anything else.",
+      "notStored": "The photo is sent to the DOCMIND server and to Google Gemini to read the marking. The server doesn't keep it. On the free plan, Google may use the data it receives under its own terms. Don't photograph anything else.",
       "manufacturer": "Manufacturer",
       "markings": "Inscriptions on the photo",
       "readabilityLabel": "Readability",
@@ -1189,13 +1189,46 @@
       "choose": "Document to check against",
       "open": "Scan",
       "newDocument": "Upload another document",
-      "privacy": "The photo is sent to the DOCMIND server and an external AI model to read the marking, and the server doesn't keep it."
+      "privacy": "The photo is sent to the DOCMIND server and to Google Gemini. More under Data and privacy in Profile."
     },
     "profile": {
       "who": "Who is using it",
       "allSettings": "All settings",
-      "privacy": "Your profile stays on this device. Documents and photos are processed on the DOCMIND server and by an external AI model.",
+      "privacy": "Your profile is kept only on this device.",
       "restart": "Show the welcome again"
+    },
+    "doc": {
+      "document": "Document",
+      "assistant": "Assistant",
+      "parts": "Parts",
+      "more": "More",
+      "sections": "Document sections",
+      "moreTitle": "More tools",
+      "toolHint": {
+        "verify": "Check a claim against the document",
+        "map": "The document's topics and how they connect",
+        "facts": "Dates, deadlines and amounts with quotes"
+      }
+    },
+    "summary": {
+      "label": "Parts summary",
+      "fromDocument": "From the document",
+      "toCheck": "Need checking",
+      "byPhoto": "Confirmed by photo",
+      "noOffers": "No offers",
+      "next": "Next: {{step}}",
+      "noOffersGroup_one": "No offers: {{count}} part",
+      "noOffersGroup_other": "No offers: {{count}} parts",
+      "noOffersHint": "The uploaded price lists don't have these part numbers. They aren't in the sum. Upload another supplier's list."
     }
+  },
+  "privacy": {
+    "title": "Data and privacy",
+    "storage": "Documents are stored on the DOCMIND server and deleted with the session after 72 hours.",
+    "ocr": "Scans are recognized (OCR) on the DOCMIND server.",
+    "ai": "For AI answers, the needed passages of documents are sent to Google Gemini.",
+    "photos": "Photos of parts are sent to the DOCMIND server and to Google Gemini. The server doesn't keep photos.",
+    "provider": "On the free Gemini plan in use, Google may use the data it receives under its own terms.",
+    "advice": "Don't upload documents or photos that must not be shared with third parties."
   }
 }

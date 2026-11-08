@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { PrivacyFacts } from '@/features/settings/PrivacyFacts';
 import {
   AboutSection,
   AccountSection,
@@ -18,6 +19,7 @@ export function SettingsPage() {
         <AccountSection />
         <LocalDataSection />
         <AboutSection />
+        <div className="mt-6"><PrivacyFacts /></div>
       </div>
     </PageContainer>
   );

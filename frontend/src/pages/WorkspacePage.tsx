@@ -1,3 +1,5 @@
+import { DocumentNav } from '@/mobile/DocumentNav';
+import { isMobileApp } from '@/mobile/mobileMode';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ArrowLeft, FileQuestion, HardDrive, RotateCcw, ScanLine, Trash2 } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
@@ -91,6 +93,9 @@ function RegionCrash({ reset }: { reset: () => void }) {
   );
 }
 
+/** The phone interface, decided once like the app's routes. */
+const PHONE = isMobileApp();
+
 function WorkspaceView({ doc }: { doc: DocumentModel }) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -123,7 +128,9 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
   const placeOfBlock = (fragment: Fragment) => docxBlocks.data?.[fragment.page - 1]?.section ?? t('compare.inText');
   const isSampleDoc = isSampleDocument(doc.id);
   const userMode = useUserMode();
-  const leftViews = LEFT_VIEWS(isSampleDoc, userMode);
+  // On a phone the parts and purchase are a main place of every real document, whatever the mode.
+  const phone = PHONE && !split;
+  const leftViews = LEFT_VIEWS(isSampleDoc, phone ? 'procurement' : userMode);
   useEffect(() => {
     if (prefill) composer.current?.insert(prefill);
     // Only once, when the document opens.
@@ -261,11 +268,11 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
             {t('workspace.browserCopy')}
           </span>
         )}
-        {!split && <ThemeToggle />}
-        {!isSample && !doc.isDemo && (
+        {!split && !phone && <ThemeToggle />}
+        {!isSample && !doc.isDemo && !phone && (
           <IconButton label={t('common.delete')} icon={<Trash2 size={16} aria-hidden />} onClick={() => setDeleting(true)} />
         )}
-        {!split && (
+        {!split && !phone && (
           <div role="tablist" aria-label={t('workspace.panes')} className="order-last flex w-full overflow-x-auto [scrollbar-width:none] rounded-[10px] border border-line bg-card p-0.5 [@media(max-height:500px)]:order-none [@media(max-height:500px)]:w-64">
             {SEGMENTS.filter((value) => value === 'assistant' || (leftViews.includes(value) && !(value === 'facts' && userMode === 'procurement'))).map((value) => (
               <button
@@ -391,6 +398,19 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
         </div>
       </div>
 
+      {phone && (
+        <DocumentNav
+          pane={pane}
+          view={view}
+          views={leftViews}
+          canDelete={!isSample && !doc.isDemo}
+          onGo={(nextPane, nextView) => {
+            setPane(nextPane);
+            setView(nextView);
+          }}
+          onDelete={() => setDeleting(true)}
+        />
+      )}
       <DeleteDocumentDialog doc={deleting ? doc : null} onClose={() => setDeleting(false)} onDeleted={() => navigate('/documents')} />
     </div>
   );
