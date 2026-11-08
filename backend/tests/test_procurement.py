@@ -473,6 +473,14 @@ def test_demo_price_lists_hide_links_and_bad_files_are_refused(client):
     price_list(client, PRICES, demo="true")
     offer = client.post("/api/v1/procurement/offers", json={"documentId": document_id, "partIds": [part["id"]]}).json()["items"][0]["offers"][0]
     assert offer["demo"] is True and offer["url"] is None
+    body = {"documentId": document_id, "items": [{"partId": part["id"], "offerId": offer["id"]}]}
+    quote = client.post("/api/v1/procurement/quote", json=body).json()
+    assert any("DEMO" in warning for warning in quote["warnings"])
+    from openpyxl import load_workbook
+
+    rows = list(load_workbook(io.BytesIO(client.post("/api/v1/procurement/quote/export?format=xlsx", json=body).content)).active.iter_rows(values_only=True))
+    line = dict(zip(rows[0], rows[1]))
+    assert line["Источник цены"].startswith("DEMO") and line["DEMO"] == "да"
     bad = client.post("/api/v1/price-lists", files={"file": ("x.csv", "a;b\n1;2\n".encode(), "text/csv")})
     assert bad.status_code == 422 and bad.json()["error"]["code"] == "PRICE_LIST_INVALID"
 

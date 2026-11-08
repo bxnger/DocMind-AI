@@ -337,6 +337,14 @@ def stock_text(offer: dict) -> str:
         text = f"{text}, {offer['stockQuantity']} шт."
     return text
 PRICE_ORIGIN_NAMES = {"file": "прайс-лист", "site_checked": "проверено на сайте"}
+DEMO_ORIGIN_NAME = "DEMO — придуманная цена, не для закупки"
+
+
+def price_origin_name(offer: dict) -> str:
+    """A demo price says so in the column people read first, not only in the DEMO column at the end."""
+    if offer.get("demo"):
+        return DEMO_ORIGIN_NAME
+    return PRICE_ORIGIN_NAMES.get(offer.get("priceOrigin"), "")
 DATE_ORIGIN_NAMES = {"file": "дата из прайса", "upload_form": "дата указана при загрузке прайса",
                      "import_date": "дата загрузки прайса, не дата цены", "site": "проверено на сайте поставщика"}
 MATCH_NAMES = {"exact": "точный", "close": "похожий, проверьте совместимость"}
@@ -356,7 +364,7 @@ def export_rows(quote: dict) -> list[list]:
         rows.append([number, item["name"], item["partNumber"] or "", item["quantity"], item["unit"] or "",
                      item["unitPrice"] or "", item["currency"] or "", item["lineTotal"] or "", offer.get("supplier", ""),
                      offer.get("url") or "", price_date, pages, item["identification"]["status"], item["status"],
-                     PRICE_ORIGIN_NAMES.get(offer.get("priceOrigin"), ""), date_note, offer.get("manufacturer") or "",
+                     price_origin_name(offer), date_note, offer.get("manufacturer") or "",
                      MATCH_NAMES.get(offer.get("match"), ""), offer.get("priceListFile") or "",
                      offer.get("sourceRow", ""), ("да" if offer.get("demo") else "нет") if offer else "",
                      stock_text(offer), kazakhstan_time(offer.get("checkedAt"))])

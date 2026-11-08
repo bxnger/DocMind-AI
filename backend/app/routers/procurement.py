@@ -339,6 +339,9 @@ def build_quote(body: QuoteRequest, store: Store, owner_id: str) -> dict:
             "matchWarning": match_warning, "identification": identification, "_sources": part["sources"],
         })
     items, totals, unpriced = calculate(items)
+    demo_priced = sum(1 for item in items if item["status"] == "priced" and (item["offer"] or {}).get("demo"))
+    if demo_priced:
+        warnings.append(f"{demo_priced} поз. с ценами DEMO: цены придуманы для показа, по ним нельзя закупать")
     if unpriced:
         warnings.append(f"{unpriced} поз. без цены не входят в итог")
     if len(totals) > 1:
