@@ -13,7 +13,8 @@ import { useCapabilities } from '@/features/system/useSystem';
 import { SAMPLE_DOCUMENT_ID } from '@/services/sampleDocument';
 import { MODE_SAMPLE_QUESTIONS } from '@/features/userModes/sampleQuestions';
 import { useUserMode } from '@/features/userModes/useUserMode';
-import { BearingDrawing, IndustryPipeline } from '@/features/industry/IndustryPipeline';
+import { IndustryPipeline } from '@/features/industry/IndustryPipeline';
+import { BearingHero } from '@/features/industry/hero3d/BearingHero';
 import { useWorkflowStart } from '@/features/industry/useWorkflowStart';
 import { useUpload } from '@/features/upload/UploadProvider';
 import { formatBytes } from '@/lib/format';
@@ -91,9 +92,9 @@ export function HomePage() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="mx-auto w-full max-w-[1120px] px-4 py-6 md:px-8 md:py-8">
-        <section data-testid="industry-hero" className="blueprint relative overflow-hidden rounded-panel border border-line bg-card px-5 py-7 md:px-8 md:py-10">
-          <BearingDrawing className="pointer-events-none absolute top-1/2 -right-10 hidden size-[300px] -translate-y-1/2 opacity-70 lg:block xl:right-4" />
-          <div className="relative max-w-[640px]">
+        <section data-testid="industry-hero" className="blueprint relative grid grid-cols-[minmax(0,1fr)] items-center gap-4 overflow-hidden rounded-panel border border-line bg-card px-5 py-7 sm:grid-cols-[minmax(0,1fr)_auto] md:px-8 md:py-10">
+          <BearingHero className="mx-auto size-[180px] sm:order-last sm:size-[200px] md:size-[240px] lg:size-[300px] xl:size-[340px]" />
+          <div className="relative min-w-0 max-w-[640px]">
             <p className="micro-label mb-2" translate="no">DOCMIND INDUSTRY</p>
             <h1 className="font-display text-[28px] leading-[34px] font-medium tracking-[-0.02em] sm:text-[36px] sm:leading-[42px] md:text-[44px] md:leading-[50px]">{t('home.title')}</h1>
             <p className="mt-3 text-base text-muted sm:text-md">{t('home.subtitle')}</p>

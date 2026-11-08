@@ -32,23 +32,3 @@ export function IndustryPipeline() {
     </section>
   );
 }
-
-/** A radial bearing in section, drawn as a technical sheet would. It carries no data, so it is hidden from screen readers. */
-export function BearingDrawing({ className }: { className?: string }) {
-  const balls = Array.from({ length: 9 }, (_, index) => (index * 2 * Math.PI) / 9);
-  return (
-    <svg viewBox="0 0 240 240" fill="none" aria-hidden className={className}>
-      <g className="stroke-line-strong" strokeWidth="1">
-        <path d="M120 6v228M6 120h228" strokeDasharray="10 4 2 4" />
-        <circle cx="120" cy="120" r="104" />
-        <circle cx="120" cy="120" r="90" />
-        <circle cx="120" cy="120" r="50" />
-        <circle cx="120" cy="120" r="36" />
-      </g>
-      <g className="stroke-accent" strokeWidth="1.4">
-        {balls.map((angle) => <circle key={angle} cx={120 + 70 * Math.cos(angle)} cy={120 + 70 * Math.sin(angle)} r="15" />)}
-      </g>
-      <circle cx="120" cy="120" r="70" className="stroke-accent-2" strokeWidth="1" strokeDasharray="3 5" />
-    </svg>
-  );
-}

@@ -44,7 +44,8 @@
     "react-markdown": "^10.1.0",
     "react-pdf": "^11.0.0",
     "react-router": "^8.5.1",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "three": "^0.171.0"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.6.0",
@@ -53,6 +54,7 @@
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@types/three": "^0.171.0",
     "@vitejs/plugin-react": "^6.2.1",
     "eslint": "^10.14.0",
     "eslint-plugin-react-hooks": "^7.1.1",

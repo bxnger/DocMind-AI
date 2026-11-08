@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useDocuments } from '@/features/documents/useDocuments';
+import { BearingHero } from '@/features/industry/hero3d/BearingHero';
 import { useOpenWorkflow, useWorkflowStart } from '@/features/industry/useWorkflowStart';
 import { isDemoDocument } from '@/services/industryDemo';
 import { useProfile } from '../profile';
@@ -23,9 +24,12 @@ export function MobileHome() {
 
   return (
     <MobileScreen title={t('mobile.tab.home')}>
-      <section aria-labelledby="home-hello">
-        <p className="text-sm text-muted">{t('mobile.home.hello')}</p>
-        <h2 id="home-hello" data-testid="home-greeting" className="font-display text-2xl font-medium break-words">{greeting}</h2>
+      <section aria-labelledby="home-hello" className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm text-muted">{t('mobile.home.hello')}</p>
+          <h2 id="home-hello" data-testid="home-greeting" className="font-display text-2xl font-medium break-words">{greeting}</h2>
+        </div>
+        <BearingHero className="size-[112px] shrink-0" />
       </section>
       <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
         <button type="button" data-testid="home-analyze" onClick={analyze} className="pressable flex min-h-20 items-center gap-3 rounded-panel bg-accent p-4 text-left text-on-accent">
