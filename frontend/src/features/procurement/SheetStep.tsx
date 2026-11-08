@@ -3,6 +3,7 @@ import { Download, FileText, FlaskConical } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
+import { saveFile } from '@/features/native/saveFile';
 import { useErrorMessage } from '@/features/system/useErrorMessage';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { cn } from '@/lib/cn';
@@ -19,14 +20,6 @@ import { isSheetComplete, onlyOutOfStock, type SheetLine } from './sheetLines';
 /** A table needs more room than the panel has on a phone or beside the chat on a small laptop. */
 const CARDS_QUERY = '(max-width: 1179px)';
 
-function save(blob: Blob, name: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = name;
-  link.click();
-  URL.revokeObjectURL(url);
-}
 
 interface Props {
   adapter: ProcurementAdapter;
@@ -109,7 +102,7 @@ export function SheetStep({ adapter, documentName, parts, lines, lists, offers, 
 
   const exportFile = useMutation({
     mutationFn: async (format: 'csv' | 'xlsx') => {
-      save(await adapter.exportQuote([...items], format), `${documentName.replace(/\.[^.]+$/, '')}-procurement${adapter.isDemo ? '-DEMO' : ''}.${format}`);
+      await saveFile(await adapter.exportQuote([...items], format), `${documentName.replace(/\.[^.]+$/, '')}-procurement${adapter.isDemo ? '-DEMO' : ''}.${format}`);
     },
   });
 

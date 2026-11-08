@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Route, Routes } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { AppShell } from '@/components/layout/AppShell';
+import { useNativeBackButton } from '@/features/native/useNativeBackButton';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ToastProvider } from '@/components/ui/Toast';
 import { useMotionPreference } from '@/features/settings/preferences';
@@ -55,6 +56,12 @@ function SessionNotice() {
   return null;
 }
 
+/** Only does something inside the Android or iOS app. */
+function NativeBridge() {
+  useNativeBackButton();
+  return null;
+}
+
 function DocumentLanguage() {
   const { i18n, t } = useTranslation();
   useEffect(() => {
@@ -75,6 +82,7 @@ export function App() {
             <SessionScope>
             <UploadProvider>
               <DocumentLanguage />
+              <NativeBridge />
               <Routes>
                 <Route element={<AppShell />}>
                   <Route index element={<HomePage />} />

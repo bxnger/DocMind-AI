@@ -498,3 +498,16 @@ html[data-motion='reduced'] *::after {
   transition-duration: 0.01ms !important;
   scroll-behavior: auto !important;
 }
+
+/*
+ * Inside the Android or iOS app the page runs edge to edge, under the status and navigation bars. Capacitor exposes
+ * their sizes as env() or, on older WebViews, as --safe-area-inset-* variables; the larger one wins. Not on the web.
+ */
+html.native-app #root {
+  box-sizing: border-box;
+  height: 100dvh;
+  padding-top: max(env(safe-area-inset-top), var(--safe-area-inset-top, 0px));
+  padding-right: max(env(safe-area-inset-right), var(--safe-area-inset-right, 0px));
+  padding-left: max(env(safe-area-inset-left), var(--safe-area-inset-left, 0px));
+  --app-height: calc(100dvh - max(env(safe-area-inset-top), var(--safe-area-inset-top, 0px)));
+}
