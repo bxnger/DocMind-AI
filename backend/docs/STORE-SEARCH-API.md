@@ -3,8 +3,8 @@
 Ветка `backend/store-search` (от `backend/procurement-mvp` 1a4ebab). Этап 1 реализован 09.11.2026.
 Всё новое — только добавления: существующие endpoints и поля не менялись.
 
-**Для frontend:** контракт ниже соответствует коду ветки на коммите `a3c572b` (и новее в этой ветке).
-Пока ветка не выложена на сервер, новые endpoints на `api.docmind.kz` отвечают 404 — это ожидаемо.
+**Для frontend:** контракт ниже соответствует коду ветки на коммите `401d450`.
+**Публично доступно с 09.11.2026 на `https://api.docmind.kz`** (версия `401d450`, `STORE_SEARCH=all`).
 Перед показом кнопок проверять `GET /capabilities` → `features.storeSearch` / `features.barcodes`: на сервере без
 ветки этих полей нет (считать `false`).
 
@@ -201,5 +201,6 @@ Excel `eval/results/store_search_tv320.xlsx`. Все 13 шагов OK:
 - Штрихкод → товар только через прайсы пользователя: открытой базы для промышленных деталей нет.
 - Поиск по названию без артикула ищет слова в адресах товаров (транслит) и ничего не подтверждает (`unconfirmed`).
 - Первый поиск — 5–15 с из-за пауз магазинов (bcindustry.kz просит 5 с между запросами).
-- На VPS не выкладывалось. Для выкладки: `pip install -r requirements.txt` (добавлены `zxing-cpp`, `pillow`),
-  `STORE_SEARCH=all` в `/etc/docmind/backend.env`.
+- Выложено на VPS 09.11.2026: релиз `/opt/docmind/releases/401d450`, `STORE_SEARCH=all` в `/etc/docmind/backend.env`
+  (копия прежних настроек: `backend.env.bak-1a4ebab`). Откат: вернуть копию настроек,
+  `ln -sfn /opt/docmind/releases/1a4ebab /opt/docmind/app && systemctl restart docmind-api`.
