@@ -58,7 +58,7 @@ export function StoreSearchPanel({ state, onRetry, showOffers }: Props) {
   if (state.status === 'limit') {
     return (
       <p role="alert" data-testid="store-search" data-status="limit" className={cn(box, 'border-warning/40 bg-warning-tint text-warning')}>
-        {state.retryAfter ? t('partSearch.store.limitWait', { seconds: state.retryAfter }) : t('partSearch.store.limit')}
+        {state.busy ? t('partSearch.store.busy', { seconds: state.retryAfter ?? 10 }) : state.retryAfter ? t('partSearch.store.limitWait', { seconds: state.retryAfter }) : t('partSearch.store.limit')}
       </p>
     );
   }

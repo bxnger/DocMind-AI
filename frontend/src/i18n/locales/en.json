@@ -1377,7 +1377,8 @@
         "BARCODES_UNAVAILABLE": "The server cannot read codes from photos right now. Type the code.",
         "PARTS_NOT_READY": "The document’s parts are still being processed. Try again shortly.",
         "PART_NOT_FOUND": "This part is no longer in the document."
-      }
+      },
+      "busy": "The server is busy with other store searches. Try again in {{seconds}} s."
     }
   }
 }

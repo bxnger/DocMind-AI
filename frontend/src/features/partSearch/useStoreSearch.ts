@@ -18,7 +18,7 @@ export type SearchState =
   /** Still building after the last automatic try: the person decides whether to try again. */
   | { status: 'building'; input: StoreSearchInput; result: StoreSearchResult; attempt: number; retryAt: number | null }
   /** 429: said, never repeated by itself. */
-  | { status: 'limit'; input: StoreSearchInput; retryAfter: number | null }
+  | { status: 'limit'; input: StoreSearchInput; retryAfter: number | null; busy: boolean }
   | { status: 'error'; input: StoreSearchInput; error: unknown };
 
 type Attempt = (input: StoreSearchInput, count: number, call: () => Promise<StoreSearchResult & { codes?: BarcodeLookup['codes'] }>) => Promise<void>;
@@ -57,7 +57,7 @@ export function useStoreSearch() {
       setState({ status: 'done', input, result, ...(result.codes ? { codes: result.codes } : {}) });
     } catch (error) {
       if (mine !== generation.current) return;
-      setState(isLimit(error) ? { status: 'limit', input, retryAfter: error.retryAfter } : { status: 'error', input, error });
+      setState(isLimit(error) ? { status: 'limit', input, retryAfter: error.retryAfter, busy: error.code === 'SEARCH_BUSY' } : { status: 'error', input, error });
     }
     };
   }, [client]);
