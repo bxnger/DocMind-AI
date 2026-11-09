@@ -18,7 +18,9 @@ from app.extraction import ocr_languages
 from app.pipeline import recover_unfinished
 from app.ratelimit import RateLimiter
 from app.store import Store
-from app.routers import claims, comparisons, conversations, documents, procurement, sessions
+from app.catalog import Catalog
+from app.routers import claims, comparisons, conversations, documents, procurement, sessions, store_search
+from app.stores import enabled_stores
 from app.schemas import Capabilities, build_capabilities
 
 logger = logging.getLogger("app")
@@ -135,6 +137,10 @@ def create_app(settings: Settings | None = None, store: Store | None = None) -> 
         active = store or app.dependency_overrides.get(get_store, get_store)()
         app.state.recovery = asyncio.create_task(asyncio.to_thread(recover_unfinished, active))
         await asyncio.to_thread(active.purge_expired_sessions)
+        # The store index is read in the background (sitemaps, with each shop's pause); searches before it is ready
+        # say so (sources: index_building) instead of waiting.
+        if enabled_stores() and app.state.catalog.stale():
+            app.state.catalog.refresh_in_background()
         yield
 
     # Fails closed: the schema and its pages exist only when development is asked for by name.
@@ -144,12 +150,14 @@ def create_app(settings: Settings | None = None, store: Store | None = None) -> 
         docs_url="/docs" if docs else None, redoc_url="/redoc" if docs else None, openapi_url="/openapi.json" if docs else None,
     )
     app.state.settings = settings
+    app.state.catalog = Catalog(settings.data_dir / "catalog")
     app.state.last_purge = time.monotonic()
     app.state.limiters = {
         "session": RateLimiter(settings.session_limit_per_minute),
         "upload": RateLimiter(settings.upload_limit_per_minute),
         "chat": RateLimiter(settings.chat_limit_per_minute),
         "compare": RateLimiter(settings.compare_limit_per_minute),
+        "search": RateLimiter(settings.search_limit_per_minute),
         "facts": RateLimiter(settings.facts_limit_per_minute),
         "text": RateLimiter(settings.text_limit_per_minute),
         "read": RateLimiter(settings.read_limit_per_minute),
@@ -200,6 +208,7 @@ def create_app(settings: Settings | None = None, store: Store | None = None) -> 
     app.include_router(claims.router, prefix="/api/v1")
     app.include_router(comparisons.router, prefix="/api/v1")
     app.include_router(procurement.router, prefix="/api/v1")
+    app.include_router(store_search.router, prefix="/api/v1")
     return app
 
 

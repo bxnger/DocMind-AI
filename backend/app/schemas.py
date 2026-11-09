@@ -5,7 +5,9 @@ from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 from app.config import MAX_DOCUMENTS_PER_CONVERSATION, MAX_FILE_SIZE_BYTES, MAX_PAGES
+from app.barcodes import barcode_reader_installed
 from app.sitecheck import allowed_domains
+from app.stores import enabled_stores
 
 CAMEL = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
@@ -74,6 +76,8 @@ class Features(BaseModel):
     procurement: bool
     hr: bool
     price_check: bool = False  # POST /procurement/offers/check: on when PRICE_CHECK_DOMAINS lists at least one shop
+    store_search: bool = False  # POST /procurement/search reads the shops (STORE_SEARCH); off: only the user's price lists
+    barcodes: bool = False  # POST /procurement/barcodes can read a photo (zxing-cpp installed); text works always
 
 
 class Capabilities(BaseModel):
@@ -101,7 +105,8 @@ def build_capabilities(version: str, ocr: bool, vision: bool = False) -> Capabil
         comparison=True,
         highlights=True,
         features=Features(claim_check=True, parts=True, photo_identify=vision, price_lists=True, procurement=True, hr=False,
-                          price_check=bool(allowed_domains())),
+                          price_check=bool(allowed_domains()), store_search=bool(enabled_stores()),
+                          barcodes=barcode_reader_installed()),
         limits=Limits(
             max_file_size_bytes=MAX_FILE_SIZE_BYTES,
             max_pages=MAX_PAGES,

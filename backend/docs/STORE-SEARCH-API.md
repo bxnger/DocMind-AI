@@ -1,161 +1,196 @@
-# Поиск по магазинам и штрихкоды: аудит, источники, план и API-контракт
+# Поиск по магазинам и штрихкоды: источники, API-контракт, проверка
 
-Ветка `backend/store-search` (от `backend/procurement-mvp`, коммит 1a4ebab). Статус: **план, код не написан**.
-Проверено 09.11.2026.
+Ветка `backend/store-search` (от `backend/procurement-mvp` 1a4ebab). Этап 1 реализован 09.11.2026.
+Всё новое — только добавления: существующие endpoints и поля не менялись.
 
-## 1. Аудит: что уже есть
+## 1. Что было до этапа 1 (аудит 09.11)
 
 | Функция | Статус | Чем подтверждено |
 |---|---|---|
-| Детали из документа по артикулу (кол-во, цитата, страница) | работает | `test_procurement.py`, TV-320 9/9, KN-80 8/8 (`run_demo.py`) |
-| Маркировка по фото (Gemini Vision) → деталь документа | работает | `test_a_photo_is_read_by_the_model_and_matched_by_code`; на VPS `marking_6205.png` → 6205-2RS `matched` |
-| Прайсы CSV/XLSX, поставщик, ссылка, наличие, дата | работает | `test_xlsx_price_list_and_export`, `test_the_sheet_says_where_each_price_and_date_came_from` |
-| Точные и похожие отдельно, похожий сам не выбирается (6205-2RS ≠ 6205, ≠ 6205-2RSH) | работает | `test_offers_are_exact_matches_and_similar_ones_are_apart`; на VPS 09.11 |
-| Проверка цены по ссылке (разрешённые домены, таймауты, без редиректов на чужие хосты) | работает | `test_sitecheck.py` (19 тестов); 6203 → 2 620 ₸ `site_checked` |
-| Ручной выбор, количество, итог, Excel с источником и временем цены, DEMO | работает | `test_the_quote_is_computed_by_code_and_unknown_prices_stay_null`, `test_demo_price_lists_hide_links_and_bad_files_are_refused` |
-| Изоляция, лимиты, CORS, секреты | работает | `test_security.py` (47), `test_an_offer_of_another_part_or_session_is_missing_not_priced` |
-| **Поиск товара в магазинах по артикулу/названию** | **нет** | предложения только из загруженных прайсов |
-| **Штрихкоды EAN-13/EAN-8/UPC-A, QR** | **нет** | ни в backend, ни во frontend |
-
-Прогон 09.11: `pytest tests/test_procurement.py tests/test_sitecheck.py` → 104 passed.
+| Детали из документа по артикулу | работает | TV-320 9/9, KN-80 8/8 (`run_demo.py`) |
+| Маркировка по фото (Gemini Vision) | работает, не менялась | `marking_6205.png` → 6205-2RS `matched` |
+| Прайсы CSV/XLSX, поставщик, ссылка, наличие, дата | работает | `test_procurement.py` |
+| Точные и похожие отдельно; 6205-2RS ≠ 6205 ≠ 6205-2RSH | работает | `test_offers_are_exact_matches_and_similar_ones_are_apart` |
+| Проверка цены по ссылке | работает | `test_sitecheck.py` |
+| Ручной выбор, количество, итог, Excel, DEMO | работает | `test_procurement.py` |
+| Поиск в магазинах | **добавлен** | `test_store_search.py`, живой прогон ниже |
+| EAN-13 / EAN-8 / UPC-A / QR | **добавлены** | `test_store_search.py`, живой прогон ниже |
 
 ## 2. Источники (проверено 09.11.2026)
 
-Метод для всех: **публичная карта сайта (sitemap.xml) + страница товара**. Поиск на сайтах (`/search/`) закрыт в
-robots.txt — им не пользуемся. Страницы товаров не закрыты; цена читается из разметки schema.org (как уже делает
-проверка цены).
+Метод: **публичная карта сайта (sitemap) + страница товара**. Поиск самих сайтов (`/search/`) закрыт в их robots.txt и
+не используется. Цена, наличие и артикул читаются только из разметки schema.org на странице товара.
 
-| Магазин | Карта сайта | Товаров | 6205* в карте | Цена со страницы 6205-2RSH | robots |
-|---|---|---|---|---|---|
-| industrialmotion.kz | `/sitemaps/product-1..N.xml` | ≥ 20 000 | 6205, 6205-2RSH, 6205-2RSHNR, 6205-TN9C3, W 6205-2RS1… | 4 790 ₸, в наличии | без Crawl-delay |
-| bcindustry.kz | `/sitemap-iblock-4.xml` | 18 739 | 31 | 4 805 ₸, в наличии | `/search/` закрыт, Crawl-delay 5 |
-| bearing.kz | `/sitemap-iblock-4.xml` | 19 602 | 31 | 4 805 ₸, в наличии | `/search/` закрыт |
-| kaspi.kz | `/shop/sitemap.xml` → 351 файл по 10 000 товаров (~3,5 млн, ~350 МБ) | не искал | — | цена есть в schema.org на странице товара | `/search/` закрыт, Crawl-delay 10 |
+| Магазин | В индексе | Пауза между запросами | Как используется |
+|---|---|---|---|
+| industrialmotion.kz | 23 243 товара (только `sitemaps/product-*.xml`) | 1 с | основной |
+| bcindustry.kz | 18 733 | 5 с (Crawl-delay в robots.txt) | основной |
+| bearing.kz | 19 596 | 1 с | **тот же продавец, что bcindustry.kz** (одинаковый внутренний код 20285 и цена): читается только если bcindustry.kz не ответил |
+| kaspi.kz | — | — | не подключён: нет API поиска для покупателей; только выгрузка карты сайта (~350 МБ). Этап 2 при необходимости |
 
-Важно:
-- **bcindustry.kz и bearing.kz, судя по всему, один дилер SKF**: одинаковый внутренний код товара (20285) и цена.
-  Показывать их как два независимых предложения нечестно — объединять или помечать.
-- **Точного 6205-2RS у SKF нет**: SKF продаёт 6205-2RSH (и 2RS1). По правилам backend это «похожий», не точный.
-  Для «нескольких точных предложений 6205-2RS» нужен другой бренд (FAG/NSK/китайские) — в этих трёх каталогах не найден.
-- **Kaspi**: публичного API поиска для покупателей нет (Merchant API — только для своих товаров продавца). Законный путь —
-  только карта сайта: разовая выгрузка ~350 МБ с паузой 10 с ≈ 1 час, затем отбор подшипников. Цена на странице —
-  минимальная по Kaspi без учёта города. Предлагаю как этап 2, если останется время.
-- **EAN/GTIN ни на одной странице нет** (ни у трёх магазинов, ни у Kaspi в schema.org). Открытой базы «штрихкод →
-  промышленная деталь» для Казахстана не нашёл. Значит, по EAN честно найти товар можно только в загруженных прайсах
-  (новая необязательная колонка «Штрихкод»). Неизвестный EAN → пустая выдача с причиной.
-- Библиотека декодирования: `zxing-cpp` 3.1.1 (Apache-2.0), колесо abi3 — ставится на Python 3.14, без системных DLL.
+- Индекс собирается в фоне при старте и раз в сутки (~10 с), хранится в `DATA_DIR/catalog/index.json`. Если магазин не
+  ответил при обновлении, остаются его товары из прошлого индекса.
+- **Штрихкодов (EAN/GTIN) ни один магазин не публикует** (и Kaspi тоже). Штрихкод ищется только в загруженных прайсах
+  (колонка «Штрихкод» / EAN / GTIN). Неизвестный штрихкод → честно пусто.
+- Включение: `STORE_SEARCH=all` (или список доменов). Пусто/`off` → поиск только по прайсам пользователя.
 
-## 3. План (этап 1 — один рабочий сценарий)
+## 3. API
 
-1. **Каталог магазинов** (`app/catalog.py`): раз в сутки читает карты сайтов 3 магазинов (только URL, с паузами по
-   robots), извлекает артикул из адреса товара, хранит индекс на диске. Поиск по индексу — без запросов к магазинам.
-2. **Поиск** `POST /procurement/search`: индекс → до 8 кандидатов → страницы товаров читаются существующей проверкой цены
-   (таймаут 8 с, домены из списка, ≤ 1 запрос в 5 с на магазин, кэш 30 мин). Артикул подтверждается по странице
-   (`mpn`/`sku`/название), иначе `unconfirmed`. Магазин не ответил — он в `sources` со статусом, остальное работает.
-3. Результаты поиска сохраняются в сессии как прайс-лист типа «каталоги магазинов» → **существующие** offers, check,
-   quote и export работают с ними без изменений (offerId того же вида).
-4. **Штрихкоды** `POST /procurement/barcodes`: фото или текст → формат, проверка контрольной цифры, тип QR (ссылка /
-   текст / артикул). Дальше — тот же поиск. Gemini здесь не участвует.
-5. Тесты (без сети, на сохранённых страницах) + живой прогон по списку из задания.
+Общее: токен сессии обязателен, ответы `camelCase`, ошибки `{"error": {"code", "message", ...}}`. Лимит на сессию:
+`SEARCH_LIMIT_PER_MINUTE` = 20 в минуту (поиск + штрихкоды вместе), сверх — `429 RATE_LIMITED`. Магазины дополнительно
+защищены паузой, одним запросом за раз и кэшем страниц на 30 минут (общий для всех).
 
-Без новых платных сервисов. VPS не меняется до согласования.
+### Что осталось как было
 
-## 4. API-контракт (новое — только добавление; старое не меняется)
-
-Все ответы — как сейчас: `camelCase`, ошибки `{"error": {"code", "message"}}`, токен сессии обязателен.
-
-### Существующие (используются как есть)
-
-- `POST /procurement/offers` — предложения для деталей документа. **Новое:** в `offers`/`similar` появятся предложения из
-  каталогов (`source: "store_catalog"`) после поиска по этой детали. Поля старых предложений не меняются.
-- `POST /procurement/offers/check` — проверка цены на сайте (и для предложений из каталога).
-- `POST /procurement/quote`, `POST /procurement/quote/export` — ведомость и Excel; выбор — `offerId` в `items`.
-
-### `POST /procurement/search` — новый
-
-Запрос:
-```json
-{"query": "6205-2RS", "kind": "partNumber", "documentId": "doc_…", "partId": "part_…"}
-```
-`kind`: `partNumber` | `name` | `barcode`. `documentId`/`partId` необязательны: с ними результат сразу появится в
-`/procurement/offers` этой детали.
-
-Ответ 200 (есть похожие, точных нет — реальная ситуация 6205-2RS):
-```json
-{
-  "query": "6205-2RS", "normalized": "62052RS", "kind": "partNumber",
-  "offers": [],
-  "similar": [
-    {"id": "pl_store_…:1", "source": "store_catalog", "store": "industrialmotion.kz",
-     "title": "Радиальный шарикоподшипник с уплотнениями 6205-2RSH", "partNumber": "6205-2RSH",
-     "match": "close", "price": "4790.00", "currency": "KZT", "stockStatus": "available",
-     "url": "https://industrialmotion.kz/product/radialnyy-sharikopodshipnik-s-uplotneniyami-6205-2rsh",
-     "checkedAt": "2026-11-09T12:40:00+00:00", "priceOrigin": "site_checked", "demo": false},
-    {"id": "pl_store_…:2", "source": "store_catalog", "store": "bcindustry.kz", "sameSellerAs": ["bearing.kz"],
-     "title": "6205-2RSH подшипник SKF", "partNumber": "6205-2RSH", "match": "close",
-     "price": "4805.00", "currency": "KZT", "stockStatus": "available",
-     "url": "https://bcindustry.kz/catalog/bearings_ball_deep_groove/6205_2rsh_podshipnik_skf/",
-     "checkedAt": "2026-11-09T12:40:03+00:00", "priceOrigin": "site_checked", "demo": false}
-  ],
-  "unconfirmed": [],
-  "sources": [
-    {"store": "industrialmotion.kz", "status": "ok", "candidates": 1},
-    {"store": "bcindustry.kz", "status": "ok", "candidates": 1},
-    {"store": "bearing.kz", "status": "ok", "candidates": 1}
-  ],
-  "searchedAt": "2026-11-09T12:40:05+00:00"
-}
-```
-
-- `match`: `exact` (артикул подтверждён на странице) | `close` (та же основа, другой суффикс — сам не выбирается,
-  в ведомости предупреждение) | `unconfirmed` (страница не прочитана или артикула на ней нет; `price` = `null`).
-- `price`, `stockStatus`, `checkedAt` — только прочитанное; иначе `null` / `"unknown"`. Сортировка — по цене, `null` в конце.
-
-Пустая выдача (200):
-```json
-{"query": "XYZ-999", "normalized": "XYZ999", "kind": "partNumber", "offers": [], "similar": [], "unconfirmed": [],
- "sources": [{"store": "industrialmotion.kz", "status": "ok", "candidates": 0}, …], "searchedAt": "…"}
-```
-
-Магазин недоступен (200, частичный результат):
-```json
-{"sources": [{"store": "bcindustry.kz", "status": "unavailable", "reason": "timeout", "candidates": 1}, …]}
-```
-`status`: `ok` | `unavailable` (`timeout`, `http_error`, `blocked`) | `skipped` (лимит частоты — повторить позже).
-
-Ошибки: `422 VALIDATION_ERROR` (пустой или длинный запрос), `429 RATE_LIMITED`, `404 PART_NOT_FOUND`.
-
-### `POST /procurement/barcodes` — новый
-
-Запрос: `multipart` с `image` (JPEG/PNG/WebP ≤ 8 МБ) **или** JSON `{"text": "4012345678901"}` (с камеры, если frontend
-сам декодирует).
-
-Ответ 200 (EAN-13, найден в загруженном прайсе):
-```json
-{"codes": [{"format": "EAN13", "value": "4012345678901", "valid": true, "kind": "gtin"}],
- "lookup": {"query": "4012345678901", "kind": "barcode", "offers": [ … как в search … ], "similar": [], "unconfirmed": [],
-            "sources": [{"store": "price_lists", "status": "ok", "candidates": 1}]}}
-```
-
-Неизвестный штрихкод (200, честно пусто):
-```json
-{"codes": [{"format": "EAN13", "value": "4600000000017", "valid": true, "kind": "gtin"}],
- "lookup": {"offers": [], "similar": [], "unconfirmed": [], "reason": "gtin_not_in_sources"}}
-```
-
-QR со ссылкой на товар разрешённого магазина → `kind: "url"`, предложение по этой странице; QR с текстом артикула →
-`kind: "partNumber"`, обычный поиск; прочее → `kind: "text"`, без поиска. Ссылки на другие сайты не открываются
-(`reason: "domain_not_allowed"`).
-
-Ошибки: `422 BARCODE_NOT_FOUND` (на фото нет кода), `422 BARCODE_INVALID` (контрольная цифра не сошлась — значение
-возвращается, поиск не выполняется), `415 UNSUPPORTED_IMAGE`, `413`, `429`.
+- `POST /procurement/offers` — предложения для деталей. После поиска в `offers` / `similar` появляются предложения
+  магазинов (`source: "store_catalog"`), сортировка по цене, `null`-цены в конце.
+- `POST /procurement/offers/check` — перепроверить цену (работает и для предложений магазинов).
+- `POST /procurement/quote`, `POST /procurement/quote/export` — ведомость и Excel; выбор — `offerId`.
+- `GET /price-lists` — результаты поиска видны как один список `kind: "store_catalog"` (его можно удалить).
 
 ### `GET /capabilities`
 
-Добавятся `features.storeSearch` и `features.barcodes` (true, когда включено на сервере).
+`features.storeSearch` (магазины включены), `features.barcodes` (сервер читает коды с фото; текст работает всегда).
 
-## 5. Открытые вопросы
+### `POST /procurement/search`
 
-1. Kaspi в этап 1 не входит (нет API поиска; только выгрузка карты сайта ~1 ч). Делать как этап 2?
-2. bcindustry.kz и bearing.kz — показывать одним предложением с пометкой «тот же продавец» (предлагаю) или двумя?
-3. Для демонстрации EAN нужен прайс с колонкой «Штрихкод» (у магазинов EAN нет) — подготовить учебный файл с пометкой?
+```json
+{"query": "6205-2RS", "kind": "partNumber"}
+{"documentId": "…", "partId": "…"}              // query = артикул детали; результат сразу в /procurement/offers
+{"query": "Подшипник 6205-2RS SKF", "kind": "name"}   // артикул в названии → ищется по артикулу
+{"query": "4006381333931", "kind": "barcode"}         // то же, что /procurement/barcodes с text
+```
+
+Ответ 200 — **реальный ответ 09.11 для 6205-2RS** (сокращён): точных нет, похожие из двух магазинов.
+```json
+{
+  "query": "6205-2RS", "searchedAs": "6205-2RS", "normalized": "62052RS", "kind": "partNumber", "reason": null,
+  "offers": [],
+  "similar": [
+    {"id": "pls8c1f…:1", "source": "store_catalog", "store": "industrialmotion.kz", "supplier": "industrialmotion.kz",
+     "title": "Радиальный шарикоподшипник с уплотнениями 6205-2RSH", "partNumber": "6205-2RSH", "match": "close",
+     "price": "4790.00", "currency": "KZT", "stockStatus": "available", "priceOrigin": "site_checked",
+     "checkedAt": "2026-11-09T12:50:46+00:00", "checkedAtOrigin": "site", "demo": false, "sameSellerAs": [],
+     "url": "https://industrialmotion.kz/product/radialnyy-sharikopodshipnik-s-uplotneniyami-6205-2rsh"},
+    {"id": "pls8c1f…:3", "source": "store_catalog", "store": "bcindustry.kz", "partNumber": "6205-2RSH", "match": "close",
+     "price": "4805.00", "currency": "KZT", "stockStatus": "available", "priceOrigin": "site_checked",
+     "checkedAt": "2026-11-09T12:50:46+00:00", "sameSellerAs": ["bearing.kz"],
+     "url": "https://bcindustry.kz/catalog/bearings_ball_deep_groove/6205_2rsh_podshipnik_skf/"}
+  ],
+  "unconfirmed": [],
+  "sources": [
+    {"store": "price_lists", "status": "ok", "candidates": 0},
+    {"store": "industrialmotion.kz", "status": "ok", "candidates": 3, "indexedAt": "…"},
+    {"store": "bcindustry.kz", "status": "ok", "candidates": 3, "indexedAt": "…"},
+    {"store": "bearing.kz", "status": "skipped", "reason": "same_seller", "sameSellerAs": "bcindustry.kz", "candidates": 0}
+  ],
+  "searchedAt": "2026-11-09T12:50:57+00:00"
+}
+```
+
+Поля предложения — как у существующих (`id`, `supplier`, `title`, `partNumber`, `match`, `price`, `currency`,
+`stockStatus`, `url`, `checkedAt`, `priceOrigin`, `demo`…), плюс у магазинных: `source: "store_catalog"`, `store`,
+`sameSellerAs`.
+
+- `match`: `exact` — артикул подтверждён на странице; `close` — та же основа, другой суффикс (сам не выбирается, в
+  ведомости предупреждение «выбран похожий артикул»); `unconfirmed` — страница открыта, но артикул не подтверждён
+  (`id: null`, выбрать нельзя, есть `reason`).
+- `price`, `currency`, `checkedAt` — только прочитанное со страницы, иначе `null`; `stockStatus` — `available` /
+  `unavailable` / `unknown`. Выбор предложения без цены даёт в ведомости `status: "no_price"`.
+- Для 6205-2RS точных предложений нет: SKF продаёт 6205-2RSH / 2RS1. Это не ошибка — так и показывать.
+
+Пустая выдача (200):
+```json
+{"query": "XYZ-99999", "offers": [], "similar": [], "unconfirmed": [],
+ "sources": [{"store": "price_lists", "status": "ok", "candidates": 0},
+             {"store": "industrialmotion.kz", "status": "ok", "candidates": 0}, …], "reason": null}
+```
+
+Неподтверждённая страница (страница названа 6203 в адресе, а в разметке другой артикул):
+```json
+{"unconfirmed": [{"id": null, "store": "bcindustry.kz", "match": "unconfirmed", "price": null,
+                  "reason": "part_number_not_on_page", "url": "https://bcindustry.kz/…"}]}
+```
+
+Магазин недоступен — остальное работает (200):
+```json
+{"sources": [{"store": "bcindustry.kz", "status": "unavailable", "reason": "timeout", "candidates": 3},
+             {"store": "bearing.kz", "status": "ok", "candidates": 1}, …]}
+```
+`status`: `ok` | `unavailable` (`timeout`, `connection_failed`, `http_5xx`, `not_indexed`, `index_building` — индекс ещё
+собирается после старта, повторить через 10–20 с) | `skipped` (`same_seller`, `shop_busy` — не успели за 25 с,
+`no_barcodes_published`). Поиск занимает 5–15 с при первом запросе (паузы магазинов), повторный — из кэша.
+
+Ошибки: `422 VALIDATION_ERROR` (меньше 2 символов, нет `documentId` при `partId`), `404 PART_NOT_FOUND`,
+`404` (чужой или несуществующий документ), `409 PARTS_NOT_READY`, `401`, `429 RATE_LIMITED`.
+
+### `POST /procurement/barcodes` (multipart)
+
+Поля: `image` (JPEG/PNG/WebP ≤ 8 МБ) **или** `text` (≤ 500 символов: значение, которое прочитала камера на телефоне,
+или введённое вручную). Ответ: `{"codes": [...], "lookup": <ответ как у search>}`.
+
+`codes[]`: `{"format": "EAN13|EAN8|UPCA|QR|text", "value", "valid": true|false|null, "kind": "gtin|url|partNumber|text"}`.
+Контрольная цифра EAN/UPC проверяется кодом; Gemini не участвует.
+
+EAN-13 найден в прайсе пользователя:
+```json
+{"codes": [{"format": "EAN13", "value": "4006381333931", "valid": true, "kind": "gtin"}],
+ "lookup": {"kind": "barcode", "offers": [{"partNumber": "6205-2RS", "price": "4850.00", "barcode": "4006381333931", "source": "price_list", …}],
+            "reason": null}}
+```
+
+Неизвестный штрихкод (реальный ответ 09.11):
+```json
+{"codes": [{"format": "text", "value": "4006381333931", "valid": true, "kind": "gtin"}],
+ "lookup": {"offers": [], "similar": [], "unconfirmed": [], "reason": "gtin_not_in_sources",
+            "sources": [{"store": "price_lists", "status": "ok", "candidates": 0},
+                        {"store": "industrialmotion.kz", "status": "skipped", "reason": "no_barcodes_published", "candidates": 0}, …]}}
+```
+
+Неверная контрольная цифра: `valid: false`, `lookup.reason: "checksum_failed"`, поиск не выполняется.
+
+QR:
+- ссылка на товар магазина из списка → `lookup.offers[0]` — этот товар (`match: "exact"`, цена со страницы);
+- ссылка на другой сайт → `reason: "domain_not_allowed"`, сайт **не открывается**;
+- артикул (`6205-2RS`) → обычный поиск; текст с артикулом внутри → поиск по нему; прочий текст → `reason: "not_a_product_code"`.
+
+Ошибки: `422 BARCODE_NOT_FOUND` (на фото нет кода), `415 UNSUPPORTED_IMAGE`, `413 IMAGE_TOO_LARGE`,
+`422 VALIDATION_ERROR` (нет ни фото, ни текста), `429 RATE_LIMITED`, `503 BARCODES_UNAVAILABLE` (на сервере не
+установлен zxing-cpp; см. `features.barcodes`).
+
+### Прайсы: новая необязательная колонка
+
+«Штрихкод» / «EAN» / «GTIN» / «UPC». Значение с неверной контрольной цифрой не сохраняется как штрихкод.
+
+## 4. Проверка (09.11.2026)
+
+Тесты без сети: `tests/test_store_search.py` — 40 тестов (индекс, 6205-2RS / 6205 / 6203, недоступный магазин,
+пустая выдача, неподтверждённая страница, поиск по названию, offers → quote → Excel, изоляция сессий, перепроверка,
+DEMO рядом с магазинами, контрольные цифры, EAN-13/EAN-8/UPC-A/QR с картинки, чужие ссылки, ошибки, лимиты).
+
+Живой прогон на локальном сервере ветки (реальные магазины, Gemini): `eval/results/store_search_live.json`,
+Excel `eval/results/store_search_tv320.xlsx`. Все 13 шагов OK:
+
+| Проверка | Результат |
+|---|---|
+| TV-320: детали | 9/9 |
+| Фото маркировки (Gemini) | 6205-2RS `matched` |
+| 6205-2RS | точных 0; похожие: industrialmotion.kz 6205-2RSH 4 790 ₸, bcindustry.kz 6205-2RSH 4 805 ₸ (+ /C3, 2RSL), 11 с |
+| 6205 | точные: industrialmotion.kz 3 650 ₸, bcindustry.kz 3 675 ₸; 6205-2Z/Z/N — только похожие |
+| 6203 | точные: 2 620 ₸ и 2 630 ₸, перепроверка через `/offers/check` — `checked` |
+| Неизвестный EAN-13 | пусто, `gtin_not_in_sources` |
+| EAN-13 с картинки | прочитан, контрольная цифра верна |
+| QR со ссылкой на industrialmotion.kz | товар 6203, 2 620 ₸ |
+| QR со ссылкой на чужой сайт | не открыт, `domain_not_allowed` |
+| Ведомость: магазин + DEMO | итог 38 740 ₸; предупреждения «похожий артикул» и «DEMO» |
+| Excel | поставщик-магазин, «проверено на сайте», время по Казахстану; DEMO-строка помечена |
+| Регрессия `run_demo.py` | TV-320 9/9, KN-80 8/8, все шаги кроме CORS `https://localhost` (у локального сервера его нет в списке) |
+
+## 5. Что не сделано и ограничения
+
+- Kaspi — не подключён (см. раздел 2).
+- Штрихкод → товар только через прайсы пользователя: открытой базы для промышленных деталей нет.
+- Поиск по названию без артикула ищет слова в адресах товаров (транслит) и ничего не подтверждает (`unconfirmed`).
+- Первый поиск — 5–15 с из-за пауз магазинов (bcindustry.kz просит 5 с между запросами).
+- На VPS не выкладывалось. Для выкладки: `pip install -r requirements.txt` (добавлены `zxing-cpp`, `pillow`),
+  `STORE_SEARCH=all` в `/etc/docmind/backend.env`.

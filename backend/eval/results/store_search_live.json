@@ -1,0 +1,375 @@
+[
+ {
+  "step": "capabilities",
+  "ok": true,
+  "info": {
+   "storeSearch": true,
+   "barcodes": true,
+   "priceCheck": true
+  }
+ },
+ {
+  "step": "TV-320 parts",
+  "ok": true,
+  "info": {
+   "parts": 9,
+   "codes": [
+    "1.2-40x60-1",
+    "3182120",
+    "6203",
+    "6205-2RS",
+    "6210-2RS",
+    "NU 207 ECP",
+    "А-1250",
+    "АИР100L4",
+    "ФМ-12"
+   ]
+  }
+ },
+ {
+  "step": "photo -> 6205-2RS (Gemini, unchanged)",
+  "ok": true,
+  "info": {
+   "read": "6205-2RS",
+   "status": "matched"
+  }
+ },
+ {
+  "step": "6205-2RS: several real shops, no fake exact",
+  "ok": true,
+  "info": {
+   "seconds": 11.2,
+   "similar": [
+    [
+     "industrialmotion.kz",
+     "6205-2RSH",
+     "4790.00",
+     "close",
+     "available",
+     "site_checked",
+     "2026-11-09T12:50:46",
+     "https://industrialmotion.kz/product/radialnyy-sharikopodshipnik-s-uplotneniyami-6205-2rsh"
+    ],
+    [
+     "industrialmotion.kz",
+     "6205-2RSH/C3",
+     "4790.00",
+     "close",
+     "available",
+     "site_checked",
+     "2026-11-09T12:50:47",
+     "https://industrialmotion.kz/product/radialnyy-sharikopodshipnik-s-uplotneniyami-6205-2rshc3"
+    ],
+    [
+     "bcindustry.kz",
+     "6205-2RSH",
+     "4805.00",
+     "close",
+     "available",
+     "site_checked",
+     "2026-11-09T12:50:46",
+     "https://bcindustry.kz/catalog/bearings_ball_deep_groove/6205_2rsh_podshipnik_skf/"
+    ],
+    [
+     "bcindustry.kz",
+     "6205-2RSH/C3",
+     "4805.00",
+     "close",
+     "available",
+     "site_checked",
+     "2026-11-09T12:50:51",
+     "https://bcindustry.kz/catalog/bearings_ball_deep_groove/6205_2rsh_c3_podshipnik_skf/"
+    ],
+    [
+     "industrialmotion.kz",
+     "6205-2RSL",
+     "7350.00",
+     "close",
+     "available",
+     "site_checked",
+     "2026-11-09T12:50:46",
+     "https://industrialmotion.kz/product/radialnyy-sharikopodshipnik-s-uplotneniyami-6205-2rsl"
+    ],
+    [
+     "bcindustry.kz",
+     "6205-2RSL",
+     "7390.00",
+     "close",
+     "available",
+     "site_checked",
+     "2026-11-09T12:50:47",
+     "https://bcindustry.kz/catalog/bearings_ball_deep_groove/6205_2rsl_podshipnik_skf/"
+    ]
+   ],
+   "unconfirmed": [],
+   "sources": [
+    {
+     "store": "price_lists",
+     "status": "ok",
+     "candidates": 0
+    },
+    {
+     "store": "industrialmotion.kz",
+     "status": "ok",
+     "candidates": 3,
+     "indexedAt": "2026-11-09T12:45:54+00:00"
+    },
+    {
+     "store": "bcindustry.kz",
+     "status": "ok",
+     "candidates": 3,
+     "indexedAt": "2026-11-09T12:46:00+00:00"
+    },
+    {
+     "store": "bearing.kz",
+     "status": "skipped",
+     "reason": "same_seller",
+     "sameSellerAs": "bcindustry.kz",
+     "candidates": 0
+    }
+   ]
+  }
+ },
+ {
+  "step": "offers for 6205-2RS: store offers only similar, never a substitute",
+  "ok": true,
+  "info": {
+   "exact": 0,
+   "similar": [
+    [
+     "industrialmotion.kz",
+     "6205-2RSH",
+     "4790.00"
+    ],
+    [
+     "industrialmotion.kz",
+     "6205-2RSH/C3",
+     "4790.00"
+    ],
+    [
+     "bcindustry.kz",
+     "6205-2RSH",
+     "4805.00"
+    ],
+    [
+     "bcindustry.kz",
+     "6205-2RSH/C3",
+     "4805.00"
+    ],
+    [
+     "industrialmotion.kz",
+     "6205-2RSL",
+     "7350.00"
+    ],
+    [
+     "bcindustry.kz",
+     "6205-2RSL",
+     "7390.00"
+    ]
+   ]
+  }
+ },
+ {
+  "step": "6205: exact offers, variants only similar",
+  "ok": true,
+  "info": {
+   "exact": [
+    [
+     "industrialmotion.kz",
+     "6205",
+     "3650.00",
+     "exact",
+     "available",
+     "site_checked",
+     "2026-11-09T12:50:57",
+     "https://industrialmotion.kz/product/radialnyy-sharikopodshipnik-6205"
+    ],
+    [
+     "bcindustry.kz",
+     "6205",
+     "3675.00",
+     "exact",
+     "available",
+     "site_checked",
+     "2026-11-09T12:50:57",
+     "https://bcindustry.kz/catalog/bearings_ball_deep_groove/6205_podshipnik_skf/"
+    ]
+   ],
+   "similar": [
+    "6205-2Z",
+    "6205-Z",
+    "6205-Z",
+    "6205 N"
+   ]
+  }
+ },
+ {
+  "step": "6203: real price checked now",
+  "ok": true,
+  "info": {
+   "offers": [
+    [
+     "industrialmotion.kz",
+     "6203",
+     "2620.00",
+     "exact",
+     "available",
+     "site_checked",
+     "2026-11-09T12:51:12",
+     "https://industrialmotion.kz/product/radialnyy-sharikopodshipnik-6203"
+    ],
+    [
+     "bcindustry.kz",
+     "6203",
+     "2630.00",
+     "exact",
+     "available",
+     "site_checked",
+     "2026-11-09T12:51:12",
+     "https://bcindustry.kz/catalog/bearings_ball_deep_groove/6203_podshipnik_skf/"
+    ]
+   ],
+   "recheck": [
+    [
+     "checked",
+     "2620.00",
+     "2026-11-09T12:51:12+00:00"
+    ],
+    [
+     "checked",
+     "2630.00",
+     "2026-11-09T12:51:12+00:00"
+    ]
+   ]
+  }
+ },
+ {
+  "step": "unknown EAN-13: honest empty",
+  "ok": true,
+  "info": {
+   "codes": [
+    {
+     "format": "text",
+     "value": "4006381333931",
+     "valid": true,
+     "kind": "gtin"
+    }
+   ],
+   "reason": "gtin_not_in_sources"
+  }
+ },
+ {
+  "step": "EAN-13 photo decoded and checked",
+  "ok": true,
+  "info": {
+   "codes": [
+    {
+     "format": "EAN13",
+     "value": "4006381333931",
+     "valid": true,
+     "kind": "gtin"
+    }
+   ]
+  }
+ },
+ {
+  "step": "QR with a shop link -> that product",
+  "ok": true,
+  "info": {
+   "offers": [
+    [
+     "industrialmotion.kz",
+     "6203",
+     "2620.00",
+     "exact",
+     "available",
+     "site_checked",
+     "2026-11-09T12:51:13",
+     "https://industrialmotion.kz/product/radialnyy-sharikopodshipnik-6203"
+    ]
+   ]
+  }
+ },
+ {
+  "step": "QR with a foreign link is not opened",
+  "ok": true,
+  "info": {
+   "reason": "domain_not_allowed"
+  }
+ },
+ {
+  "step": "quote: store + demo lines, totals by code",
+  "ok": true,
+  "info": {
+   "lines": [
+    [
+     "6205-2RS",
+     4,
+     "3650.00",
+     "14600.00",
+     "priced",
+     "store_catalog"
+    ],
+    [
+     "6203",
+     2,
+     "2620.00",
+     "5240.00",
+     "priced",
+     "store_catalog"
+    ],
+    [
+     "6210-2RS",
+     2,
+     "9450.00",
+     "18900.00",
+     "priced",
+     "price_list"
+    ]
+   ],
+   "totals": [
+    {
+     "currency": "KZT",
+     "amount": "38740.00",
+     "items": 3
+    }
+   ],
+   "warnings": [
+    "6205-2RS: выбран похожий артикул 6205, проверьте совместимость",
+    "1 поз. с ценами DEMO: цены придуманы для показа, по ним нельзя закупать"
+   ]
+  }
+ },
+ {
+  "step": "Excel: shop, link, source, time, DEMO",
+  "ok": true,
+  "info": {
+   "rows": [
+    [
+     "6205-2RS",
+     "industrialmotion.kz",
+     3650,
+     "проверено на сайте",
+     "похожий, проверьте совместимость",
+     "09.11.2026 17:50"
+    ],
+    [
+     "6203",
+     "industrialmotion.kz",
+     2620,
+     "проверено на сайте",
+     "точный",
+     "09.11.2026 17:51"
+    ],
+    [
+     "6210-2RS",
+     "demo_prices",
+     9450,
+     "DEMO — придуманная цена, не для закупки",
+     "точный",
+     null
+    ]
+   ]
+  }
+ }
+]

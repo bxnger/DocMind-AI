@@ -10,6 +10,7 @@ import re
 from datetime import date, datetime, timedelta, timezone
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
+from app.barcodes import gtin_valid
 from app.codes import code_match, normalize_code
 from app.errors import AppError
 
@@ -17,6 +18,7 @@ MAX_PRICE_LIST_BYTES = 5 * 1024 * 1024
 MAX_ROWS = 20_000
 MAX_PRICE_LISTS = 20
 MAX_QUANTITY = 100_000
+STORE_CATALOG = "store_catalog"  # the session's price list that holds what the store search found (app.catalog)
 CENT = Decimal("0.01")
 CURRENCIES = {"KZT", "USD", "EUR", "RUB", "CNY"}
 CURRENCY_WORDS = {"₸": "KZT", "тг": "KZT", "тенге": "KZT", "теңге": "KZT", "kzt": "KZT", "$": "USD", "usd": "USD",
@@ -33,6 +35,7 @@ HEADERS = {
     "supplier": ("поставщик", "продавец", "supplier", "vendor", "жеткізуші"),
     "manufacturer": ("производитель", "изготовитель", "бренд", "марка", "manufacturer", "brand", "maker", "өндіруші"),
     "checkedAt": ("дата", "дата цены", "date", "updated", "күні"),
+    "barcode": ("штрихкод", "штрих-код", "штрих код", "ean", "ean-13", "ean13", "gtin", "upc", "barcode", "штрихкоды"),
 }
 YES = {"да", "есть", "в наличии", "yes", "true", "available", "in stock", "бар", "+"}
 NO = {"нет", "нет в наличии", "no", "false", "out of stock", "unavailable", "жоқ", "-", "0"}
@@ -176,12 +179,14 @@ def parse_price_list(name: str, data: bytes, default_currency: str) -> tuple[lis
             continue
         stock, count = parse_stock(cell("stock"))
         url = str(cell("url") or "").strip()
+        barcode = re.sub(r"\D", "", str(cell("barcode") or "").split(".")[0])
         rows.append({
             "row": index, "partNumber": code or None, "title": title or code, "price": str(price.quantize(CENT, ROUND_HALF_UP)),
             "currency": currency, "stockStatus": stock, "stockQuantity": count,
             "url": url if url.startswith(("https://", "http://")) else None,
             "supplier": str(cell("supplier") or "").strip()[:120] or None, "checkedAt": parse_date(cell("checkedAt")),
             "manufacturer": str(cell("manufacturer") or "").strip()[:120] or None,
+            "barcode": barcode if gtin_valid(barcode) else None,  # a wrong check digit is not kept as a barcode
         })
         if len(rows) >= MAX_ROWS:
             break
@@ -238,6 +243,13 @@ def offer_from(price_list: dict, row: dict, match: str) -> dict:
         "manufacturer": row.get("manufacturer"),  # older stored lists have no such column: None
         "priceListFile": price_list.get("fileName"),
     }
+    if row.get("barcode"):
+        offer["barcode"] = row["barcode"]
+    if price_list.get("kind") == STORE_CATALOG:
+        offer.update(source=STORE_CATALOG, store=row["supplier"], sameSellerAs=row.get("sameSellerAs", []), priceListFile=None)
+        # Store offers have no file: the price is only what the page showed at the last check (set just below), else None.
+        offer.update(price=None, currency=None, filePrice=None, priceOrigin=None, checkedAt=None,
+                     checkedAtOrigin=None, stockStatus="unknown", stockQuantity=None)
     check = row.get("siteCheck")
     if check and check["status"] == "checked" and not price_list["demo"]:
         offer.update(price=check["price"], currency=check["currency"], priceOrigin="site_checked",
@@ -273,8 +285,12 @@ def offers_for(part: dict, price_lists: list[dict]) -> tuple[list[dict], list[di
                 exact.append(offer_from(price_list, row, "exact"))
             elif kind == "close":
                 similar.append(offer_from(price_list, row, "close"))
-    key = lambda offer: (offer["currency"] != "KZT", Decimal(offer["price"]))
-    return sorted(exact, key=key), sorted(similar, key=key)[:10]
+    return sorted(exact, key=by_price), sorted(similar, key=by_price)[:10]
+
+
+def by_price(offer: dict) -> tuple:
+    """Tenge first, cheapest first; an offer whose price was not read (None) goes last."""
+    return (offer["price"] is None, offer["currency"] != "KZT", Decimal(offer["price"] or 0))
 
 
 def find_offer(offer_id: str, price_lists: list[dict]) -> tuple[dict, dict] | None:

@@ -544,7 +544,9 @@ def test_capabilities_only_add_fields(client):
     body = client.get("/api/v1/capabilities").json()
     assert {"version", "languages", "ocr", "docxPreview", "comparison", "highlights", "limits"} <= set(body)
     assert body["features"] == {"claimCheck": True, "parts": True, "photoIdentify": True, "priceLists": True, "procurement": True, "hr": False,
-                                "priceCheck": False}  # added 8 Nov: on only when PRICE_CHECK_DOMAINS is set
+                                "priceCheck": False,  # added 8 Nov: on only when PRICE_CHECK_DOMAINS is set
+                                "storeSearch": False,  # added 9 Nov: on only when STORE_SEARCH lists shops
+                                "barcodes": True}  # added 9 Nov: zxing-cpp is installed
     assert body["limits"]["maxImageBytes"] == 8 * 1024 * 1024
     use(client, FakeAnswerer())
     assert client.get("/api/v1/capabilities").json()["features"]["photoIdentify"] is False

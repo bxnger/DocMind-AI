@@ -24,6 +24,7 @@ from urllib.parse import urljoin, urlsplit
 import httpx
 
 from app.codes import code_match
+from app.stores import enabled_stores
 from app.pricing import CURRENCIES, CURRENCY_WORDS, money, parse_price, row_match
 
 MAX_PAGE_BYTES = 2 * 1024 * 1024
@@ -42,7 +43,9 @@ class CheckFailed(Exception):
 
 
 def allowed_domains() -> set[str]:
-    return {item.strip().lower().lstrip(".") for item in os.environ.get("PRICE_CHECK_DOMAINS", "").split(",") if item.strip()}
+    """PRICE_CHECK_DOMAINS plus the shops of the store search that are on (their offers are checked the same way)."""
+    listed = {item.strip().lower().lstrip(".") for item in os.environ.get("PRICE_CHECK_DOMAINS", "").split(",") if item.strip()}
+    return listed | set(enabled_stores())
 
 
 def host_allowed(host: str, domains: set[str]) -> bool:
@@ -89,14 +92,17 @@ def checked_url(url: str, domains: set[str]) -> tuple[str, set[str]]:
     return url, addresses
 
 
-def fetch(url: str, domains: set[str], resolver=None, transport: httpx.BaseTransport | None = None) -> tuple[str, str]:
-    """(final URL, page text). Raises CheckFailed with a short reason. Tests pass a resolver and a transport."""
+def fetch(url: str, domains: set[str], resolver=None, transport: httpx.BaseTransport | None = None, *,
+          accept: str = "text/html", content_types: tuple[str, ...] = ("html",), max_bytes: int = MAX_PAGE_BYTES,
+          deadline: float = DEADLINE_SECONDS, user_agent: str = USER_AGENT) -> tuple[str, str]:
+    """(final URL, page text). Raises CheckFailed with a short reason. Tests pass a resolver and a transport.
+    The store catalog (app.catalog) reads sitemaps through the same checks, with its own type, size and deadline."""
     started = time.monotonic()
     with httpx.Client(timeout=TIMEOUT, follow_redirects=False, trust_env=False, transport=transport,
-                      headers={"User-Agent": USER_AGENT, "Accept": "text/html"}) as client:
+                      headers={"User-Agent": user_agent, "Accept": accept}) as client:
         for _hop in range(MAX_REDIRECTS + 1):
             url, addresses = (resolver or checked_url)(url, domains)
-            if time.monotonic() - started > DEADLINE_SECONDS:
+            if time.monotonic() - started > deadline:
                 raise CheckFailed("timeout")
             try:
                 with client.stream("GET", url) as response:
@@ -113,14 +119,15 @@ def fetch(url: str, domains: set[str], resolver=None, transport: httpx.BaseTrans
                         continue
                     if response.status_code != 200:
                         raise CheckFailed(f"http_{response.status_code}")
-                    if "html" not in response.headers.get("content-type", "").lower():
-                        raise CheckFailed("not_html")
+                    content_type = response.headers.get("content-type", "").lower()
+                    if not any(kind in content_type for kind in content_types):
+                        raise CheckFailed("not_html" if content_types == ("html",) else "wrong_content_type")
                     body = bytearray()
                     for chunk in response.iter_bytes():
                         body.extend(chunk)
-                        if len(body) > MAX_PAGE_BYTES:
+                        if len(body) > max_bytes:
                             raise CheckFailed("page_too_large")
-                        if time.monotonic() - started > DEADLINE_SECONDS:
+                        if time.monotonic() - started > deadline:
                             raise CheckFailed("timeout")
                     return url, body.decode(response.encoding or "utf-8", errors="replace")
             except httpx.TimeoutException as exc:
@@ -272,6 +279,28 @@ def names_part(product: dict, part_number: str) -> bool:
     return row_match(part_number, {"partNumber": None, "title": product["name"]}) == "exact"
 
 
+def price_of(products: list[dict], part_number: str) -> dict:
+    """The price, currency and stock of `part_number` among the products of a page, or CheckFailed with the reason."""
+    if not products:
+        raise CheckFailed("no_product_data")
+    same = [product for product in products if names_part(product, part_number)]
+    if not same:
+        raise CheckFailed("part_number_not_on_page")
+    prices = {(product["price"], product["currency"]) for product in same if product["price"] is not None}
+    if any(product["several"] for product in same) or len(prices) > 1:
+        raise CheckFailed("several_prices")
+    if not prices:
+        raise CheckFailed("no_price")
+    price, currency = prices.pop()
+    if currency is None:
+        raise CheckFailed("no_currency")
+    if price <= 0:
+        raise CheckFailed("no_price")
+    stocks = {product["stock"] for product in same} - {"unknown"}
+    return {"status": "checked", "price": money(price), "currency": currency,
+            "stockStatus": stocks.pop() if len(stocks) == 1 else "unknown"}
+
+
 def check_offer(url: str | None, part_number: str | None, domains: set[str] | None = None, fetcher=None) -> dict:
     """The result stored on the price list row: status "checked" (a real price was read) or "failed" with a reason."""
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -287,25 +316,7 @@ def check_offer(url: str | None, part_number: str | None, domains: set[str] | No
             raise CheckFailed("no_part_number")
         final_url, html = (fetcher or fetch)(url, domains)
         result["url"] = final_url
-        products = read_product(html)
-        if not products:
-            raise CheckFailed("no_product_data")
-        same = [product for product in products if names_part(product, part_number)]
-        if not same:
-            raise CheckFailed("part_number_not_on_page")
-        prices = {(product["price"], product["currency"]) for product in same if product["price"] is not None}
-        if any(product["several"] for product in same) or len(prices) > 1:
-            raise CheckFailed("several_prices")
-        if not prices:
-            raise CheckFailed("no_price")
-        price, currency = prices.pop()
-        if currency is None:
-            raise CheckFailed("no_currency")
-        if price <= 0:
-            raise CheckFailed("no_price")
-        stocks = {product["stock"] for product in same} - {"unknown"}
-        result.update(status="checked", price=money(price), currency=currency,
-                      stockStatus=stocks.pop() if len(stocks) == 1 else "unknown")
+        result.update(price_of(read_product(html), part_number))
     except CheckFailed as failure:
         result["reason"] = failure.reason
     return result

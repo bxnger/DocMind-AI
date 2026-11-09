@@ -318,7 +318,10 @@ def build_quote(body: QuoteRequest, store: Store, owner_id: str) -> dict:
                 kind = row_match(part["partNumber"], found[1]) if part["partNumber"] else None
                 if kind in ("exact", "close"):
                     offer = offer_from(found[0], found[1], kind)
-            if offer is None:
+            if offer is not None and offer["price"] is None:
+                warnings.append(f"{part['partNumber'] or part['name']}: у выбранного предложения {offer['supplier']} нет прочитанной цены")
+                offer, status = None, "no_price"
+            elif offer is None:
                 status = "offer_missing"
                 warnings.append(f"{part['partNumber'] or part['name']}: предложение {request_item.offer_id} недоступно (прайс удалён или не подходит)")
             else:

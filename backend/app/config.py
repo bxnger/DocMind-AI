@@ -49,6 +49,8 @@ class Settings:
     facts_limit_per_minute: int = _int("FACTS_LIMIT_PER_MINUTE", 20)
     text_limit_per_minute: int = _int("TEXT_LIMIT_PER_MINUTE", 30)
     compare_limit_per_minute: int = _int("COMPARE_LIMIT_PER_MINUTE", 6)
+    # Store search and barcodes: the shops are also protected by their own pause, one request at a time and a cache.
+    search_limit_per_minute: int = _int("SEARCH_LIMIT_PER_MINUTE", 20)
     read_limit_per_minute: int = _int("READ_LIMIT_PER_MINUTE", 600)
     session_max_documents: int = _int("SESSION_MAX_DOCUMENTS", 10)
     session_max_bytes: int = _int("SESSION_MAX_MB", 100) * 1024 * 1024

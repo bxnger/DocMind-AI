@@ -47,6 +47,7 @@ def relaxed_settings(store: Store, **changes) -> Settings:
     values = dict(
         data_dir=store.files_dir.parent, cors_origins=("http://localhost:5173",),
         session_limit_per_minute=high, upload_limit_per_minute=high, chat_limit_per_minute=high, compare_limit_per_minute=high,
+        search_limit_per_minute=high,
         facts_limit_per_minute=high, text_limit_per_minute=high, read_limit_per_minute=high,
         session_max_documents=high, session_max_processing=high, session_max_conversations=high, session_max_comparisons=high,
         global_max_processing=high, global_max_comparing=high, ai_session_daily_limit=high, ai_client_daily_limit=high, ai_global_daily_limit=high,
