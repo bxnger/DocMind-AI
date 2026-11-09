@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Download, FileText, FlaskConical } from 'lucide-react';
+import { Download, FileText, FlaskConical, Replace, Trash2 } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
@@ -33,6 +33,8 @@ interface Props {
   withoutQuantity: number;
   onChange: (partId: string, change: Partial<SheetLine>) => void;
   onOpenSource: (source: EvidenceSource) => void;
+  /** Back to the offers for this part, to choose another one. */
+  onReplace: (part: Part) => void;
 }
 
 function useLineStatus() {
@@ -88,7 +90,7 @@ function Totals({ quote, withoutQuantity, excluded, usesDemo, usesSimilar }: { q
   );
 }
 
-export function SheetStep({ adapter, documentName, parts, lines, lists, offers, quote, items, withoutQuantity, onChange, onOpenSource }: Props) {
+export function SheetStep({ adapter, documentName, parts, lines, lists, offers, quote, items, withoutQuantity, onChange, onOpenSource, onReplace }: Props) {
   const { t, i18n } = useTranslation();
   const errorMessage = useErrorMessage();
   const cards = useMediaQuery(CARDS_QUERY);
@@ -119,6 +121,16 @@ export function SheetStep({ adapter, documentName, parts, lines, lists, offers, 
       </div>
     );
   };
+  const actions = (part: Part) => (
+    <div className="mt-1.5 flex flex-wrap gap-1">
+      <Button size="sm" variant="ghost" data-testid="sheet-replace" className="pointer-coarse:h-10" icon={<Replace size={13} aria-hidden />} onClick={() => onReplace(part)}>
+        {t(lines[part.id]?.offerId ? 'partSearch.replace' : 'partSearch.pick')}
+      </Button>
+      <Button size="sm" variant="ghost" data-testid="sheet-remove" className="pointer-coarse:h-10" icon={<Trash2 size={13} aria-hidden />} onClick={() => onChange(part.id, { included: false, offerId: null })} aria-label={t('partSearch.removeLine', { code: part.partNumber })}>
+        {t('partSearch.remove')}
+      </Button>
+    </div>
+  );
   const partCell = (part: Part) => {
     const source = part.sources[0];
     const decision = lines[part.id]?.decision;
@@ -166,6 +178,7 @@ export function SheetStep({ adapter, documentName, parts, lines, lists, offers, 
                 </dl>
                 {lineStatus && <p data-testid="sheet-line-status" className="mt-1 text-xs text-warning">{lineStatus}</p>}
                 <div className="mt-1">{origins(item)}</div>
+                {actions(part)}
               </li>
             );
           })}
@@ -194,7 +207,7 @@ export function SheetStep({ adapter, documentName, parts, lines, lists, offers, 
                     <td className="p-2"><QuantityInput part={part} line={lines[part.id]} showLabel={false} onChange={(change) => onChange(part.id, change)} /></td>
                     <td className="tabular p-2 text-right whitespace-nowrap">{money(item?.unitPrice, item)}</td>
                     <td data-testid="sheet-line-total" className="tabular p-2 text-right font-semibold whitespace-nowrap">{money(item?.lineTotal, item)}</td>
-                    <td className="p-2">{lineStatus ? <p data-testid="sheet-line-status" className="text-xs text-warning">{lineStatus}</p> : origins(item)}</td>
+                    <td className="p-2">{lineStatus ? <p data-testid="sheet-line-status" className="text-xs text-warning">{lineStatus}</p> : origins(item)}{actions(part)}</td>
                   </tr>
                 );
               })}

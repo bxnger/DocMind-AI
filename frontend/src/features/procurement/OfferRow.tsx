@@ -1,10 +1,10 @@
-import { Check, ExternalLink, Globe } from 'lucide-react';
+import { Check, CircleCheck, ExternalLink, Globe, Store, TriangleAlert } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { useErrorMessage } from '@/features/system/useErrorMessage';
 import { cn } from '@/lib/cn';
-import { formatDate } from '@/lib/format';
+import { formatDate, formatDateTime } from '@/lib/format';
 import { formatMoney } from '@/lib/money';
 import type { Offer, PriceList } from '@/types/procurement';
 import { canCheckOnSite, checkReasonKey } from './sheetLines';
@@ -17,8 +17,10 @@ export function useOfferOrigin() {
     const failed = offer.siteCheck?.status === 'failed' ? offer.siteCheck : null;
     return {
       stock: offer.stockStatus === 'available' && offer.stockQuantity !== null ? t('procurement.stock.count', { count: offer.stockQuantity }) : t(`procurement.stock.${offer.stockStatus}`),
-      source: file ? t('procurement.fromFile', { file, row: offer.sourceRow }) : t('procurement.row', { row: offer.sourceRow }),
-      date: !offer.demo && offer.checkedAt ? t(`procurement.checked.${offer.checkedAtOrigin}`, { date: formatDate(offer.checkedAt, i18n.language) }) : null,
+      source: offer.store ? t('partSearch.store.source', { store: offer.store }) : file ? t('procurement.fromFile', { file, row: offer.sourceRow }) : t('procurement.row', { row: offer.sourceRow }),
+      date: offer.store
+        ? (offer.checkedAt ? t('procurement.checked.site', { date: formatDateTime(offer.checkedAt, i18n.language) }) : t('partSearch.store.notRead'))
+        : !offer.demo && offer.checkedAt ? t(`procurement.checked.${offer.checkedAtOrigin}`, { date: formatDate(offer.checkedAt, i18n.language) }) : null,
       priceOrigin: t(`procurement.priceOrigin.${offer.priceOrigin}`),
       filePrice: offer.priceOrigin === 'site_checked' && offer.filePrice && offer.currency && offer.filePrice !== offer.price ? t('procurement.filePrice', { amount: formatMoney(offer.filePrice, offer.currency, i18n.language) }) : null,
       failedCheck: failed ? t('procurement.siteCheck.failed', { reason: t(`procurement.siteCheck.reason.${checkReasonKey(failed.reason)}` as never) }) : null,
@@ -37,7 +39,29 @@ export function ProductLink({ url }: { url: string }) {
   );
 }
 
-export function OfferRow({ offer, chosen, lists, onSelect, checkPrice }: { offer: Offer; chosen: boolean; lists: readonly PriceList[] | undefined; onSelect: (offerId: string | null) => void; checkPrice?: ((offerId: string) => Promise<void>) | undefined }) {
+/** Exact or similar, said in words and in colour: a similar part number never looks like the one asked for. */
+export function MatchBadge({ match }: { match: Offer['match'] }) {
+  const { t } = useTranslation();
+  return match === 'exact'
+    ? <span data-testid="match-badge" className="inline-flex items-center gap-1 rounded bg-success-tint px-1.5 py-0.5 text-[11px] font-semibold text-success"><CircleCheck size={11} aria-hidden />{t('partSearch.match.exact')}</span>
+    : <span data-testid="match-badge" className="inline-flex items-center gap-1 rounded bg-warning-tint px-1.5 py-0.5 text-[11px] font-semibold text-warning"><TriangleAlert size={11} aria-hidden />{t('partSearch.match.close')}</span>;
+}
+
+interface OfferRowProps {
+  offer: Offer;
+  chosen: boolean;
+  lists: readonly PriceList[] | undefined;
+  onSelect: (offerId: string | null) => void;
+  checkPrice?: ((offerId: string) => Promise<void>) | undefined;
+  /** The document's unit for this part, for "per piece". */
+  unit?: string | null | undefined;
+  /** False: shown to compare only, with no button (a search outside the document). */
+  selectable?: boolean;
+  /** Other sites of the same seller that list this part: one seller, one card. */
+  alsoAt?: readonly string[];
+}
+
+export function OfferRow({ offer, chosen, lists, onSelect, checkPrice, unit, selectable = true, alsoAt = [] }: OfferRowProps) {
   const { t, i18n } = useTranslation();
   const origin = useOfferOrigin()(offer, lists);
   const errorMessage = useErrorMessage();
@@ -46,34 +70,45 @@ export function OfferRow({ offer, chosen, lists, onSelect, checkPrice }: { offer
     mutationFn: async () => checkPrice?.(offer.id),
     onSuccess: () => client.invalidateQueries({ queryKey: ['procurement'] }),
   });
+  const similar = offer.match !== 'exact';
   return (
-    <li data-testid="offer" data-match={offer.match} data-chosen={chosen || undefined} className={cn('rounded-control border p-2 text-sm', chosen ? 'border-accent-line bg-accent-tint' : 'border-line')}>
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        {offer.demo && <span data-testid="demo-price" className="rounded bg-warning-tint px-1 text-[11px] font-semibold text-warning">{t('procurement.demoBadge')}</span>}
-        <strong className="tabular font-semibold">{offer.price && offer.currency ? formatMoney(offer.price, offer.currency, i18n.language) : t('procurement.noPrice')}</strong>
-        <span className="min-w-0 break-words [overflow-wrap:anywhere]"><span className="font-medium">{offer.partNumber}</span> · {offer.supplier}{offer.manufacturer && <span data-testid="offer-manufacturer"> · {offer.manufacturer}</span>}</span>
-        <span className="ml-auto">
-          {chosen
-            ? <Button size="sm" variant="ghost" icon={<Check size={13} aria-hidden />} onClick={() => onSelect(null)} aria-label={t('procurement.clearOffer')}>{t('procurement.chosen')}</Button>
-            : <Button size="sm" disabled={!offer.price} onClick={() => onSelect(offer.id)}>{t('procurement.chooseOffer')}</Button>}
-        </span>
+    <li data-testid="offer" data-match={offer.match} data-chosen={chosen || undefined} className={cn('rounded-control border p-2.5 text-sm', chosen ? 'border-accent-line bg-accent-tint' : similar ? 'border-dashed border-warning/50' : 'border-line')}>
+      <div className="flex flex-wrap items-start gap-x-3 gap-y-1.5">
+        <div className="min-w-0 flex-1 basis-44">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <MatchBadge match={offer.match} />
+            {offer.demo && <span data-testid="demo-price" className="rounded bg-warning-tint px-1 text-[11px] font-semibold text-warning">{t('procurement.demoBadge')}</span>}
+          </div>
+          <p className="mt-1 font-semibold break-words [overflow-wrap:anywhere]">{offer.partNumber}{offer.manufacturer && <span data-testid="offer-manufacturer" className="font-normal text-muted"> · {offer.manufacturer}</span>}</p>
+          <p data-testid="offer-supplier" className="break-words [overflow-wrap:anywhere]"><Store size={12} className="mr-1 inline align-[-1px] text-muted" aria-hidden />{offer.supplier}{offer.store && <span data-testid="store-badge" className="ml-1.5 rounded bg-accent-2-tint px-1 text-[11px] font-medium text-accent-2">{t('partSearch.store.badge')}</span>}</p>
+          {(alsoAt.length > 0 || offer.sameSellerAs.length > 0) && <p data-testid="same-seller" className="text-xs text-muted">{alsoAt.length > 0 ? t('partSearch.store.alsoAt', { stores: alsoAt.join(', ') }) : t('partSearch.store.sameSellerNote', { stores: offer.sameSellerAs.join(', ') })}</p>}
+          {offer.title && offer.title !== offer.partNumber && <p className="mt-0.5 text-xs text-muted break-words [overflow-wrap:anywhere]">{offer.title}</p>}
+        </div>
+        <div className="text-right">
+          {offer.price && offer.currency
+            ? <><strong data-testid="offer-price" className="tabular block font-display text-lg leading-6 font-semibold">{formatMoney(offer.price, offer.currency, i18n.language)}</strong><span className="text-xs text-muted">{t('partSearch.perUnit', { unit: unit || t('partSearch.unitFallback') })}</span></>
+            : <strong data-testid="offer-price" data-unknown className="block text-sm font-medium text-muted">{t('procurement.noPrice')}</strong>}
+        </div>
       </div>
-      {offer.title && offer.title !== offer.partNumber && <p className="mt-0.5 text-xs break-words [overflow-wrap:anywhere]">{offer.title}</p>}
-      <p data-testid="offer-origin" className="tabular mt-0.5 text-xs text-muted">
+      {similar && <p data-testid="offer-compat" className="mt-1.5 text-xs font-medium text-warning">{t('partSearch.compat')}</p>}
+      <p data-testid="offer-origin" className="tabular mt-1 text-xs text-muted">
         {[origin.stock, origin.source, origin.date].filter(Boolean).join(' · ')}
       </p>
       <p data-testid="price-origin" data-origin={offer.priceOrigin} className={cn('mt-0.5 text-xs', offer.priceOrigin === 'site_checked' ? 'font-medium text-success' : 'text-muted')}>
         {[origin.priceOrigin, origin.filePrice].filter(Boolean).join(' · ')}
       </p>
       {origin.failedCheck && <p data-testid="check-failed" className="text-xs text-warning">{origin.failedCheck}</p>}
-      {(offer.url || (checkPrice && canCheckOnSite(offer))) && (
-        <div className="flex flex-wrap items-center gap-x-3 text-xs text-muted">
-          {offer.url && <ProductLink url={offer.url} />}
-          {checkPrice && canCheckOnSite(offer) && (
-            <Button size="sm" variant="ghost" data-testid="check-price" icon={<Globe size={13} aria-hidden />} loading={check.isPending} onClick={() => check.mutate()}>{t('procurement.siteCheck.button')}</Button>
-          )}
-        </div>
-      )}
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+        {offer.url && <ProductLink url={offer.url} />}
+        {checkPrice && canCheckOnSite(offer) && (
+          <Button size="sm" variant="ghost" data-testid="check-price" icon={<Globe size={13} aria-hidden />} loading={check.isPending} onClick={() => check.mutate()}>{t('procurement.siteCheck.button')}</Button>
+        )}
+        {selectable && <span className="ml-auto">
+          {chosen
+            ? <Button size="sm" variant="ghost" className="pointer-coarse:h-10" icon={<Check size={13} aria-hidden />} onClick={() => onSelect(null)} aria-label={t('procurement.clearOffer')}>{t('procurement.chosen')}</Button>
+            : <Button size="sm" className="pointer-coarse:h-10" disabled={!offer.price} onClick={() => onSelect(offer.id)}>{t('procurement.chooseOffer')}</Button>}
+        </span>}
+      </div>
       {check.isError && <p role="alert" data-testid="check-error" className="text-xs text-danger">{errorMessage(check.error)}</p>}
     </li>
   );

@@ -839,7 +839,7 @@
     "equipment": "Equipment",
     "byStandard": "by standard",
     "notVerified": "This part number was not found word for word in the document. Check it against the source.",
-    "noPrice": "No price",
+    "noPrice": "Price not confirmed",
     "similar": "Similar part numbers. Check compatibility: these are not confirmed substitutes.",
     "offerMissing": "The chosen offer no longer exists, so this line has no price.",
     "matchWarning": "You chose a similar part number. Check that it fits.",
@@ -852,7 +852,7 @@
     "stock": {
       "available": "available from the supplier, check warehouse and lead time",
       "unavailable": "not in stock",
-      "unknown": "stock unknown",
+      "unknown": "stock not checked",
       "count": "in stock: {{count}}"
     },
     "identification": {
@@ -1016,7 +1016,8 @@
     "outOfStockNote": "An offer exists, but the file says it's out of stock, so it wasn't chosen automatically. You can choose it yourself.",
     "priceOrigin": {
       "file": "Price from the uploaded list",
-      "site_checked": "Price checked on the supplier's site"
+      "site_checked": "Price checked on the supplier's site",
+      "none": "Price not read from the store page"
     },
     "filePrice": "in the list: {{amount}}",
     "siteCheck": {
@@ -1185,11 +1186,12 @@
     },
     "scanner": {
       "title": "Check a part against the documentation",
-      "body": "The marking is compared with the parts of the document you choose. Choose the machine's document and photograph the part.",
+      "body": "Photograph a marking to check the part against the document, or find a part by number or barcode and compare offers from price lists.",
       "choose": "Document to check against",
       "open": "Scan",
       "newDocument": "Upload another document",
-      "privacy": "The photo is sent to the DOCMIND server and to Google Gemini. More under Data and privacy in Profile."
+      "privacy": "The photo is sent to the DOCMIND server and to Google Gemini. More under Data and privacy in Profile.",
+      "search": "Search & barcode"
     },
     "profile": {
       "who": "Who is using it",
@@ -1244,5 +1246,138 @@
     "body": "This guest session's documents, chats and purchase sheets are deleted from the server and this browser. The app opens empty. Theme, language and mode stay.",
     "confirm": "Delete and start over",
     "failed": "Nothing was deleted."
+  },
+  "partSearch": {
+    "title": "Find a part",
+    "scope": "Among this document’s parts and the offers from uploaded price lists. External catalogues are not searched yet.",
+    "placeholder": "Part number or name, e.g. 6205-2RS",
+    "clear": "Clear search",
+    "scan": "Barcode",
+    "photo": "Marking photo",
+    "find": "Find",
+    "recent": "Recent searches",
+    "clearRecent": "Clear",
+    "perUnit": "per {{unit}}",
+    "unitFallback": "unit",
+    "compat": "A different part number. Check compatibility before buying.",
+    "match": {
+      "exact": "Exact part number",
+      "close": "Similar · check compatibility"
+    },
+    "hit": {
+      "exact": "Exact part number match",
+      "name": "Name match",
+      "close": "Not “{{query}}”: this is {{part}}. Check compatibility."
+    },
+    "sort": {
+      "label": "Order",
+      "exactFirst": "Exact first",
+      "priceAsc": "Price, low to high",
+      "priceDesc": "Price, high to low"
+    },
+    "filter": {
+      "exactOnly": "Exact only",
+      "pricedOnly": "With a price",
+      "reset": "Reset filters",
+      "none": "No offers match the filters."
+    },
+    "empty": {
+      "title": "“{{query}}” is not among the document’s parts",
+      "body": "Check the part number or find the part from a photo of its marking. Offers come only from uploaded price lists."
+    },
+    "remove": "Remove",
+    "removeLine": "Remove {{code}} from the sheet",
+    "add": "Add back to the sheet",
+    "notInSheet": "Not in the sheet.",
+    "replace": "Replace offer",
+    "pick": "Choose an offer",
+    "notice": {
+      "barcode": "Barcode",
+      "fromQr": "From the QR code:",
+      "barcodeNotFound": "This barcode is not among the document’s parts. The server cannot look products up by barcode yet: type the part number or photograph the marking.",
+      "codeNotFound": "This part number is not among the document’s parts.",
+      "badChecksum": "Code {{code}} was misread: its check digit is wrong. Scan again.",
+      "url": "The QR code holds a link to {{host}}. It is not a product code, so nothing was searched.",
+      "text": "The QR code holds text, not a product code:",
+      "searchText": "Search for this text"
+    },
+    "scanner": {
+      "title": "Scan a barcode",
+      "intro": "Point the camera at the barcode. Frames are processed on the device and never sent.",
+      "starting": "Starting the camera… Allow access if the browser asks.",
+      "aim": "Keep the code inside the frame",
+      "paused": "The camera is stopped while the app is in the background.",
+      "formats": "EAN-13, EAN-8, UPC-A and QR code.",
+      "photo": "Read from a photo",
+      "photoNone": "No barcode found in the photo. Take it closer and straighter, without glare.",
+      "manual": "Type the code",
+      "manualPlaceholder": "Part number or the digits under the barcode",
+      "close": "Close",
+      "problem": {
+        "unsupported": "The camera is not available in this browser. Read the code from a photo or type it.",
+        "denied": "Camera access is blocked. Allow it in the browser or app settings, or read the code from a photo.",
+        "noCamera": "No camera found.",
+        "busy": "The camera is in use by another app or did not start.",
+        "decoderFailed": "Barcode reading could not be loaded. Check the connection and try again."
+      },
+      "serverPhotoHint": "The phone could not read a code in this photo. You can send it to the DOCMIND server to try; the image is not kept beyond processing.",
+      "serverPhoto": "Send the photo to the server"
+    },
+    "loadingOffers": "Looking for offers in the price lists…",
+    "offersFailed": "Offers did not load. That does not mean there are none.",
+    "store": {
+      "badge": "store",
+      "source": "store {{store}}",
+      "notRead": "store page not read",
+      "priceLists": "Your price lists",
+      "found": "found: {{count}}",
+      "sameSeller": "same seller as {{store}}: not asked",
+      "alsoAt": "Also at {{stores}}: the same seller.",
+      "sameSellerNote": "Same seller as {{stores}}.",
+      "searchPart": "Search stores",
+      "loading": "Searching stores… The first search takes 5–15 seconds.",
+      "retrying": "Searching again ({{attempt}} of {{max}})…",
+      "limit": "Too many searches this minute. Wait, then try again yourself.",
+      "limitWait": "Too many searches this minute. Try again in {{seconds}} s.",
+      "building": "The store catalogue is still being built after the server started.",
+      "buildingNext": "Attempt {{attempt}} of {{max}} in",
+      "seconds": "s.",
+      "codes": "Read:",
+      "invalid": "wrong check digit",
+      "empty": "“{{query}}” was not found in stores or price lists.",
+      "sources": "Where we looked",
+      "notInDocument": "This part is not in the document, so it cannot join the sheet. Offers are shown to compare.",
+      "unconfirmed": "Unconfirmed pages: {{count}}",
+      "unconfirmedHint": "The part number on the page is not confirmed. These offers cannot be chosen.",
+      "unconfirmedReason": {
+        "part_number_not_on_page": "part number not on the page",
+        "no_product_data": "no product data on the page",
+        "name_only": "found by name only"
+      },
+      "reason": {
+        "timeout": "did not answer in time",
+        "connection_failed": "no connection",
+        "http_5xx": "store-side error",
+        "not_indexed": "not in the catalogue yet",
+        "index_building": "catalogue is being built",
+        "shop_busy": "no answer within 25 s",
+        "no_barcodes_published": "publishes no barcodes",
+        "other": "unavailable"
+      },
+      "result": {
+        "gtin_not_in_sources": "This barcode is in neither your price lists nor the stores: stores publish no barcodes. Type the part number or photograph the marking.",
+        "checksum_failed": "The code was misread: wrong check digit. Nothing was searched.",
+        "domain_not_allowed": "The QR code links to a site that is not one of the stores. It was not opened.",
+        "not_a_product_code": "The code holds no part number or product barcode."
+      },
+      "error": {
+        "BARCODE_NOT_FOUND": "The server found no barcode in this photo either. Take it closer and straighter, or type the digits.",
+        "UNSUPPORTED_IMAGE": "This photo format is not supported. Use JPEG, PNG or WebP.",
+        "IMAGE_TOO_LARGE": "The photo is too large: up to 8 MB.",
+        "BARCODES_UNAVAILABLE": "The server cannot read codes from photos right now. Type the code.",
+        "PARTS_NOT_READY": "The document’s parts are still being processed. Try again shortly.",
+        "PART_NOT_FOUND": "This part is no longer in the document."
+      }
+    }
   }
 }

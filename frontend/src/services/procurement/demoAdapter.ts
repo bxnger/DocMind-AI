@@ -160,6 +160,9 @@ export function createDemoAdapter(pages: readonly SourceText[], documentId = 'd'
     manufacturer: null,
     priceListFile: list.fileName || null,
     priceOrigin: 'file',
+    store: null,
+    sameSellerAs: [],
+    barcode: null,
     filePrice: row.price,
     siteCheck: null,
   });

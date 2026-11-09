@@ -132,6 +132,7 @@ export interface Offer {
   stockStatus: 'available' | 'unavailable' | 'unknown';
   stockQuantity: number | null;
   url: string | null;
+  /** `price_list`, or `store_catalog`: found on a store's site by the server's search. */
   source: string;
   priceListId: string;
   sourceRow: number;
@@ -142,9 +143,15 @@ export interface Offer {
   manufacturer: string | null;
   priceListFile: string | null;
   /** `site_checked` only after the supplier's page was really read. A link, or a failed check, leaves it `file`. */
-  priceOrigin: 'file' | 'site_checked';
+  /** `none`: a store's page whose price was not read. Its price is then null. */
+  priceOrigin: 'file' | 'site_checked' | 'none';
   filePrice: string | null;
   siteCheck: SiteCheck | null;
+  /** The store's domain, for store offers only. */
+  store: string | null;
+  /** Other domains of the same seller: one seller, never two independent quotes. */
+  sameSellerAs: string[];
+  barcode: string | null;
 }
 
 export interface PartOffers {
@@ -183,4 +190,51 @@ export interface Quote {
   unpriced: number;
   warnings: string[];
   calculatedAt: string;
+}
+
+/** A store page the server opened but whose part number it could not confirm: shown, never chosen. */
+export interface UnconfirmedPage {
+  store: string;
+  url: string | null;
+  title: string;
+  partNumber: string | null;
+  reason: string | null;
+  sameSellerAs: string[];
+}
+
+export interface SearchSource {
+  /** `price_lists` for the person's own files, otherwise a store's domain. */
+  store: string;
+  status: 'ok' | 'unavailable' | 'skipped';
+  reason: string | null;
+  candidates: number;
+  sameSellerAs: string | null;
+  indexedAt: string | null;
+}
+
+/** POST /procurement/search, backend/docs/STORE-SEARCH-API.md on backend/store-search. */
+export interface StoreSearchResult {
+  query: string;
+  searchedAs: string | null;
+  kind: string | null;
+  reason: string | null;
+  offers: Offer[];
+  similar: Offer[];
+  unconfirmed: UnconfirmedPage[];
+  sources: SearchSource[];
+  searchedAt: string | null;
+}
+
+export type StoreSearchInput = { query: string; kind: 'partNumber' | 'name' | 'barcode' } | { documentId: string; partId: string };
+
+export interface ReadCode {
+  format: string;
+  value: string;
+  valid: boolean | null;
+  kind: 'gtin' | 'url' | 'partNumber' | 'text';
+}
+
+export interface BarcodeLookup {
+  codes: ReadCode[];
+  lookup: StoreSearchResult | null;
 }

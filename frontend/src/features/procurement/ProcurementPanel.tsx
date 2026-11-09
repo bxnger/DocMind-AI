@@ -47,6 +47,17 @@ function useStep(documentId: string, initial: ProcurementStep | undefined) {
   return [step, setStep] as const;
 }
 
+/** The search on the offers step, kept for this tab like the step itself. */
+function useQueryState(documentId: string) {
+  const key = `docmind.chat.procurement.query.${documentId}`;
+  const [query, setQueryState] = useState(() => readStored<string>('session', key, ''));
+  const setQuery = (next: string) => {
+    setQueryState(next);
+    writeStored('session', key, next);
+  };
+  return [typeof query === 'string' ? query : '', setQuery] as const;
+}
+
 export function ProcurementPanel({ doc, pdfText, initialStep, onOpenSource, onOpenDocument }: Props) {
   const { t, i18n } = useTranslation();
   const errorMessage = useErrorMessage();
@@ -55,6 +66,7 @@ export function ProcurementPanel({ doc, pdfText, initialStep, onOpenSource, onOp
   const adapter = useProcurementAdapter(doc, pdfText);
   const { lines, update, updateMany } = useSheetLines(doc.id);
   const [step, setStep] = useStep(doc.id, initialStep);
+  const [query, setQuery] = useQueryState(doc.id);
   const { partList, parts, priceLists, offers, quote, items, withoutQuantity } = useProcurement(doc.id, adapter, lines, doc.status === 'ready');
 
   if (doc.status !== 'ready') {
@@ -152,10 +164,10 @@ export function ProcurementPanel({ doc, pdfText, initialStep, onOpenSource, onOp
           <MarkingCheck adapter={adapter} parts={parts} maxImageBytes={capabilities.data?.limits.maxImageBytes ?? null} showExamples={isDemoDoc} onDecided={(confirmation) => update(confirmation.partId, { confirmationId: confirmation.id, decision: confirmation.decision })} onOpenSource={onOpenSource} />
         </div>
         <div hidden={step !== 'offers'} data-testid="step-panel-offers">
-          <OffersStep adapter={adapter} parts={parts} lines={lines} lists={priceLists.data} offers={offers.data} quoteItems={items.length ? quote.data?.items : undefined} showExamples={isDemoDoc} onChange={update} onChangeMany={updateMany} collapseEmpty={PHONE} />
+          <OffersStep adapter={adapter} parts={parts} lines={lines} lists={priceLists.data} offers={offers.data} quoteItems={items.length ? quote.data?.items : undefined} showExamples={isDemoDoc} onChange={update} onChangeMany={updateMany} collapseEmpty={PHONE} offersLoading={offers.isFetching && !offers.data} offersFailed={offers.isError} documentId={doc.id} storeSearch={capabilities.data?.features.storeSearch === true} serverBarcodes={capabilities.data?.features.barcodes === true} query={query} onQuery={setQuery} onOpenCamera={() => go('camera')} />
         </div>
         <div hidden={step !== 'sheet'} data-testid="step-panel-sheet">
-          <SheetStep adapter={adapter} documentName={doc.name} parts={parts} lines={lines} lists={priceLists.data} offers={offers.data} quote={quote.data} items={items} withoutQuantity={withoutQuantity} onChange={update} onOpenSource={onOpenSource} />
+          <SheetStep adapter={adapter} documentName={doc.name} parts={parts} lines={lines} lists={priceLists.data} offers={offers.data} quote={quote.data} items={items} withoutQuantity={withoutQuantity} onChange={update} onOpenSource={onOpenSource} onReplace={(part) => { setQuery(part.partNumber); go('offers'); }} />
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">

@@ -28,6 +28,14 @@ export function formatDate(iso: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', year: 'numeric' }).format(date);
 }
 
+/** Date and time, for a price read from a page: the hour matters when a cached result is shown. */
+export function formatDateTime(iso: string, locale: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  const time = new Intl.DateTimeFormat(locale === 'kk' ? 'ru' : locale, { hour: '2-digit', minute: '2-digit' }).format(date);
+  return `${formatDate(iso, locale)}, ${time}`;
+}
+
 const RELATIVE_STEPS: Array<[Intl.RelativeTimeFormatUnit, number]> = [
   ['minute', 60],
   ['hour', 3600],

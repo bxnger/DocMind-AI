@@ -1,5 +1,5 @@
 import type { EvidenceSource } from '@/types/chat';
-import type { CheckedAtOrigin, Confirmation, ConfirmationInput, MatchStatus, Offer, Part, PartCategory, PartList, PartOffers, PartType, PhotoCandidate, PhotoIssue, PhotoMatch, PriceList, PriceListInput, Quote, QuoteItem, QuoteRequestItem, SiteCheck } from '@/types/procurement';
+import type { CheckedAtOrigin, Confirmation, ConfirmationInput, MatchStatus, Offer, Part, PartCategory, PartList, PartOffers, PartType, PhotoCandidate, PhotoIssue, PhotoMatch, PriceList, PriceListInput, Quote, QuoteItem, QuoteRequestItem, SearchSource, SiteCheck, StoreSearchInput, StoreSearchResult, BarcodeLookup, UnconfirmedPage } from '@/types/procurement';
 import { AppError, ERROR_BAD_RESPONSE, getJson, isRecord, postJson, send } from './client';
 import { toSource } from './conversations';
 
@@ -132,13 +132,17 @@ export function toOffer(value: unknown): Offer[] {
     priceListId: value.priceListId,
     sourceRow: value.sourceRow,
     checkedAt: text(value.checkedAt),
-    checkedAtOrigin: oneOf(value.checkedAtOrigin, ORIGINS, 'import_date'),
+    // A store's time is always the moment its page was read, also when the answer came from the server's cache.
+    checkedAtOrigin: value.source === 'store_catalog' ? 'site' : oneOf(value.checkedAtOrigin, ORIGINS, 'import_date'),
     demo: value.demo === true,
     manufacturer: text(value.manufacturer),
     priceListFile: text(value.priceListFile),
-    priceOrigin: value.priceOrigin === 'site_checked' ? 'site_checked' : 'file',
+    priceOrigin: value.priceOrigin === 'site_checked' ? 'site_checked' : value.priceOrigin === 'file' ? 'file' : value.source === 'store_catalog' ? 'none' : 'file',
     filePrice: text(value.filePrice),
     siteCheck: toSiteCheck(value.siteCheck),
+    store: text(value.store),
+    sameSellerAs: strings(value.sameSellerAs),
+    barcode: text(value.barcode),
   }];
 }
 
@@ -237,4 +241,55 @@ export async function getQuote(documentId: string, items: QuoteRequestItem[]): P
 export async function exportQuote(documentId: string, items: QuoteRequestItem[], format: 'csv' | 'xlsx'): Promise<Blob> {
   const response = await postJson(`/procurement/quote/export?format=${format}`, { documentId, items });
   return response.blob();
+}
+
+function toUnconfirmed(value: unknown): UnconfirmedPage[] {
+  if (!isRecord(value) || typeof value.store !== 'string') return [];
+  return [{ store: value.store, url: toHttpUrl(value.url), title: text(value.title) ?? '', partNumber: text(value.partNumber), reason: text(value.reason), sameSellerAs: strings(value.sameSellerAs) }];
+}
+
+function toSearchSource(value: unknown): SearchSource[] {
+  if (!isRecord(value) || typeof value.store !== 'string') return [];
+  return [{ store: value.store, status: oneOf(value.status, ['ok', 'unavailable', 'skipped'] as const, 'unavailable'), reason: text(value.reason), candidates: num(value.candidates) ?? 0, sameSellerAs: text(value.sameSellerAs), indexedAt: text(value.indexedAt) }];
+}
+
+/** Offers keep the server's three groups. An item that is not a whole offer (no id) is dropped, never guessed. */
+export function toStoreSearch(value: unknown): StoreSearchResult {
+  if (!isRecord(value)) throw bad();
+  return {
+    query: text(value.query) ?? '',
+    searchedAs: text(value.searchedAs),
+    kind: text(value.kind),
+    reason: text(value.reason),
+    offers: list(value.offers).flatMap(toOffer),
+    similar: list(value.similar).flatMap(toOffer).map((offer) => ({ ...offer, match: 'close' as const })),
+    unconfirmed: list(value.unconfirmed).flatMap(toUnconfirmed),
+    sources: list(value.sources).flatMap(toSearchSource),
+    searchedAt: text(value.searchedAt),
+  };
+}
+
+const CODE_KINDS = ['gtin', 'url', 'partNumber', 'text'] as const;
+
+export function toBarcodeLookup(value: unknown): BarcodeLookup {
+  if (!isRecord(value)) throw bad();
+  return {
+    codes: list(value.codes).flatMap((code) => (isRecord(code) && typeof code.value === 'string' ? [{ format: text(code.format) ?? 'text', value: code.value, valid: typeof code.valid === 'boolean' ? code.valid : null, kind: oneOf(code.kind, CODE_KINDS, 'text') }] : [])),
+    lookup: isRecord(value.lookup) ? toStoreSearch(value.lookup) : null,
+  };
+}
+
+/** Store search. For a document part, the results also join that part's offers on the server. */
+export async function searchStores(input: StoreSearchInput, signal?: AbortSignal): Promise<StoreSearchResult> {
+  const response = await postJson('/procurement/search', input, signal);
+  return toStoreSearch(await response.json());
+}
+
+/** A code the phone already read (`text`), or a photo the phone could not read (`image`). */
+export async function lookupBarcode(input: { text: string } | { image: File }): Promise<BarcodeLookup> {
+  const body = new FormData();
+  if ('text' in input) body.append('text', input.text);
+  else body.append('image', input.image);
+  const response = await send('/procurement/barcodes', { method: 'POST', body });
+  return toBarcodeLookup(await response.json());
 }

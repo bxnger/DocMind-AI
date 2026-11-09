@@ -1,4 +1,4 @@
-import { Camera, Cog, Upload } from 'lucide-react';
+import { Camera, Cog, ScanBarcode, Upload } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { EquipmentList } from '@/features/industry/EquipmentList';
@@ -23,7 +23,10 @@ export function MobileScanner() {
       <h2 className="font-semibold">{t('mobile.scanner.choose')}</h2>
       <EquipmentList
         renderAction={({ doc }) => (
-          <Button size="sm" data-testid="scanner-open" className="min-h-11" disabled={doc.status !== 'ready'} icon={<Camera size={14} aria-hidden />} onClick={() => open(doc.id, 'camera')}>{t('mobile.scanner.open')}</Button>
+          <div className="flex flex-wrap justify-end gap-1.5">
+            <Button size="sm" data-testid="scanner-open" className="min-h-11" disabled={doc.status !== 'ready'} icon={<Camera size={14} aria-hidden />} onClick={() => open(doc.id, 'camera')}>{t('mobile.scanner.open')}</Button>
+            <Button size="sm" data-testid="scanner-search" className="min-h-11" disabled={doc.status !== 'ready'} icon={<ScanBarcode size={14} aria-hidden />} onClick={() => open(doc.id, 'offers')}>{t('mobile.scanner.search')}</Button>
+          </div>
         )}
       />
       <Button variant="ghost" className="w-full" icon={<Upload size={16} aria-hidden />} onClick={analyze}>{t('mobile.scanner.newDocument')}</Button>

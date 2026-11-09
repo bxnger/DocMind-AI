@@ -34,7 +34,7 @@ export interface Capabilities {
   comparison: boolean;
   highlights: boolean;
   /** New functions the server has. Absent on an older server, which then reads as all false. */
-  features: { claimCheck: boolean; parts: boolean; photoIdentify: boolean; priceLists: boolean; procurement: boolean; hr: boolean; priceCheck: boolean };
+  features: { claimCheck: boolean; parts: boolean; photoIdentify: boolean; priceLists: boolean; procurement: boolean; hr: boolean; priceCheck: boolean; storeSearch: boolean; barcodes: boolean };
   limits: {
     maxFileSizeBytes: number;
     maxPages: number;
