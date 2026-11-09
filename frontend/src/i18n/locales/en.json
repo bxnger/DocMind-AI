@@ -212,7 +212,7 @@
     "uploading": "Uploading {{percent}}% · {{size}}",
     "finishing": "Sent. Waiting for the server to respond…",
     "success": "Uploaded",
-    "noLocalCopy": "“{{name}}” was uploaded, but this browser couldn't keep a copy for preview.",
+    "noLocalCopy": "“{{name}}” is uploaded. The preview opens once the server finishes processing it.",
     "tapTitle": "Choose a PDF or DOCX",
     "pagesLimit": "PDF up to {{count}} pages."
   },
@@ -1237,5 +1237,12 @@
     "photos": "Photos of parts are sent to the DOCMIND server and to Google Gemini. The server doesn't keep photos.",
     "provider": "On the free Gemini plan in use, Google may use the data it receives under its own terms.",
     "advice": "Don't upload documents or photos that must not be shared with third parties."
+  },
+  "startOver": {
+    "button": "Start over",
+    "title": "Start over?",
+    "body": "This guest session's documents, chats and purchase sheets are deleted from the server and this browser. The app opens empty. Theme, language and mode stay.",
+    "confirm": "Delete and start over",
+    "failed": "Nothing was deleted."
   }
 }

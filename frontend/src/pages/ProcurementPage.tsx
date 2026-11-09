@@ -28,7 +28,8 @@ export function ProcurementPage() {
           <h1 className="font-display text-2xl font-medium tracking-[-0.015em]">{t('industry.procurementTitle')}</h1>
           <p className="mt-1 max-w-[65ch] text-muted">{t('industry.procurementBody')}</p>
         </div>
-        {!capabilities.isPending && (live ? <PriceListsCard api={LIVE_API} lists={lists.data} /> : (
+        {/* Only a server that answered can be said not to keep price lists; an unreachable one is shown by the offline banner. */}
+        {capabilities.isSuccess && (live ? <PriceListsCard api={LIVE_API} lists={lists.data} /> : (
           <p data-testid="prices-demo" role="note" className="flex gap-2 rounded-control bg-warning-tint p-2.5 text-xs text-warning">
             <FlaskConical size={14} className="mt-px shrink-0" aria-hidden />
             <span>{t('industry.pricesDemo')}</span>

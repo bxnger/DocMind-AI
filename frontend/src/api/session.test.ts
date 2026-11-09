@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getJson, deleteResource, getPublicJson, postJson, send } from './client';
 import { queryRetryDelay, shouldRetryQuery } from './retry';
-import { getSessionToken, invalidateSession, onSessionReplaced, resetSessionState, SESSION_KEY, setSessionCleaner } from './session';
+import { endSession, getSessionToken, invalidateSession, onSessionReplaced, resetSessionState, SESSION_KEY, setSessionCleaner } from './session';
 import { AppError, parseRetryAfter } from './transport';
 import { pdfUrlSource, isUnauthorized } from '@/features/viewer/pdfSource';
 import { uploadDocument } from './documents';
@@ -342,5 +342,29 @@ describe('capabilities', () => {
     const { features } = await getCapabilities();
     expect(features.procurement).toBe(false);
     expect(features.hr).toBe(false);
+  });
+});
+
+describe('endSession', () => {
+  it('asks the server to delete the guest, then forgets the token and the copies', async () => {
+    await getJson('/documents');
+    const cleaned: boolean[] = [];
+    setSessionCleaner((shared) => void cleaned.push(shared));
+    handler = (call) => (call.method === 'DELETE' && call.url.endsWith('/sessions/current') ? new Response(null, { status: 204 }) : server(call));
+    await endSession();
+    const del = calls.find((call) => call.method === 'DELETE');
+    expect(del?.auth).toBe('Bearer token-1');
+    expect(storage.values.has(SESSION_KEY)).toBe(false);
+    expect(cleaned).toEqual([true]);
+    setSessionCleaner(() => undefined);
+    await getJson('/documents');
+    expect(calls.at(-1)?.auth).toBe('Bearer token-2');
+  });
+
+  it('keeps everything when the server cannot confirm', async () => {
+    await getJson('/documents');
+    handler = (call) => (call.method === 'DELETE' ? apiError(503, 'UNAVAILABLE', true) : server(call));
+    await expect(endSession()).rejects.toBeInstanceOf(AppError);
+    expect(storage.values.has(SESSION_KEY)).toBe(true);
   });
 });

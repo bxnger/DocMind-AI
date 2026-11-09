@@ -1,13 +1,13 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { CircleAlert, CircleCheck, X } from 'lucide-react';
+import { CircleAlert, CircleCheck, Info, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { IconButton } from './IconButton';
 
 interface Toast {
   id: number;
   message: string;
-  tone: 'success' | 'error';
+  tone: 'success' | 'info' | 'error';
 }
 
 interface ToastApi {
@@ -32,7 +32,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         const id = nextId.current++;
         setToasts((current) => [...current, { id, message, tone }]);
         // Errors stay until dismissed so they cannot be missed.
-        if (tone === 'success') window.setTimeout(() => dismiss(id), AUTO_DISMISS_MS);
+        if (tone !== 'error') window.setTimeout(() => dismiss(id), AUTO_DISMISS_MS);
       },
     }),
     [dismiss],
@@ -55,10 +55,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             >
               {toast.tone === 'error' ? (
                 <CircleAlert size={16} className="mt-0.5 shrink-0 text-danger" aria-hidden />
+              ) : toast.tone === 'info' ? (
+                <Info size={16} className="mt-0.5 shrink-0 text-muted" aria-hidden />
               ) : (
                 <CircleCheck size={16} className="mt-0.5 shrink-0 text-success" aria-hidden />
               )}
-              <span className="min-w-0 flex-1 py-0.5">{toast.message}</span>
+              <span className="min-w-0 flex-1 py-0.5 break-words">{toast.message}</span>
               <IconButton label={t('common.dismiss')} icon={<X size={14} />} onClick={() => dismiss(toast.id)} className="size-6" />
             </motion.div>
           ))}

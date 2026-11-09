@@ -49,3 +49,15 @@ export function formatRelative(iso: string, locale: string, now = Date.now()): s
   }
   return formatDate(iso, locale);
 }
+
+/** Shortens a long file name in the middle, keeping its start and extension: "Очень длинное…финальная.pdf". */
+export function shortFileName(name: string, max = 40): string {
+  const chars = Array.from(name);
+  if (chars.length <= max) return name;
+  const dot = name.lastIndexOf('.');
+  const ext = dot > 0 && name.length - dot <= 6 ? name.slice(dot) : '';
+  const keep = max - 1 - Array.from(ext).length;
+  const head = Math.ceil(keep * 0.7);
+  const stem = chars.slice(0, chars.length - Array.from(ext).length);
+  return `${stem.slice(0, head).join('').trimEnd()}…${stem.slice(stem.length - (keep - head)).join('').trimStart()}${ext}`;
+}

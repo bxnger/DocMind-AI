@@ -17,7 +17,7 @@ import { useToast } from '@/components/ui/Toast';
 import { DOCUMENTS_KEY } from '@/features/documents/useDocuments';
 import { useCapabilities } from '@/features/system/useSystem';
 import { useErrorMessage } from '@/features/system/useErrorMessage';
-import { formatBytes } from '@/lib/format';
+import { formatBytes, shortFileName } from '@/lib/format';
 import { saveLocalFile } from '@/services/localFiles';
 import { FALLBACK_MAX_BYTES, validateFile } from './validateFile';
 
@@ -102,7 +102,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
         if (doc.kind === 'pdf') {
           await saveLocalFile(doc.id, item.file).catch((error: unknown) => {
             console.warn('Could not keep a browser copy', error);
-            toast.show(t('upload.noLocalCopy', { name: doc.name }), 'error');
+            toast.show(t('upload.noLocalCopy', { name: shortFileName(doc.name) }), 'info');
           });
         }
         setPhase(item.id, { status: 'success', documentId: doc.id });

@@ -3,6 +3,7 @@ import { PageContainer } from '@/components/layout/PageContainer';
 import { isNativeApp } from '@/features/native/platform';
 import { PrivacyFacts } from '@/features/settings/PrivacyFacts';
 import { InterfaceChoice } from '@/mobile/InterfaceChoice';
+import { StartOver } from '@/features/session/StartOver';
 import {
   AboutSection,
   AccountSection,
@@ -23,6 +24,7 @@ export function SettingsPage() {
         <AboutSection />
         <div className="mt-6"><PrivacyFacts /></div>
         {!isNativeApp() && <div className="mt-4"><InterfaceChoice /></div>}
+        <div className="mt-4"><StartOver /></div>
       </div>
     </PageContainer>
   );

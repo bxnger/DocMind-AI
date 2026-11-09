@@ -45,10 +45,12 @@ const ROTATE = 'Rotate';
 const BLEND = 0.9;
 /** Largest tilt toward the pointer, radians. Small on purpose: the model leans, it does not spin. */
 const TILT = 0.14;
+/** A 16-second turn looks the same at 30 frames a second, and the page next to it keeps half the GPU and CPU. */
+const FRAME_MS = 1000 / 30;
 
 export function createBearingScene(canvas: HTMLCanvasElement, { mobile, onReady, onError }: BearingSceneOptions): BearingScene {
   const renderer = new WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: 'low-power' });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, mobile ? 2 : 1.5));
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.toneMapping = ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.82;
@@ -100,8 +102,11 @@ export function createBearingScene(canvas: HTMLCanvasElement, { mobile, onReady,
   };
   if (finePointer) window.addEventListener('pointermove', onPointer, { passive: true });
 
-  const frame = () => {
-    const delta = Math.min(clock.getDelta(), 1 / 20);
+  let lastFrame = 0;
+  const frame = (time: number) => {
+    if (time - lastFrame < FRAME_MS - 2) return;
+    lastFrame = time;
+    const delta = Math.min(clock.getDelta(), 1 / 10);
     mixer?.update(delta);
     tilt.rotation.y = MathUtils.damp(tilt.rotation.y, pointer.x * TILT, 2.5, delta);
     tilt.rotation.x = MathUtils.damp(tilt.rotation.x, pointer.y * TILT * 0.6, 2.5, delta);

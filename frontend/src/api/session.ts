@@ -65,6 +65,23 @@ export function getSessionToken(): Promise<string> {
   return creating;
 }
 
+/**
+ * Ends this guest on purpose: the server deletes the session and everything it owns, then this browser forgets
+ * the token and its copies. Throws when the server cannot confirm, so nothing is left behind on it unnoticed.
+ */
+export async function endSession(): Promise<void> {
+  const token = current ?? storedToken();
+  if (token) {
+    const response = await request('/sessions/current', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    // 401: the server had already forgotten this guest, which is the same outcome.
+    if (!response.ok && response.status !== 401) throw await errorFromResponse(response);
+  }
+  removeStored('local', SESSION_KEY);
+  await cleaner(true);
+  current = null;
+  lastSeen = null;
+}
+
 function announceReplaced(): void {
   epoch += 1;
   replacedListeners.forEach((listener) => listener());
