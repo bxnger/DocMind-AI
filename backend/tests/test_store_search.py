@@ -396,3 +396,22 @@ def test_a_cached_page_keeps_the_time_it_was_really_read(shops, client, monkeypa
     again = search(client, "6203")["offers"][0]
     assert len(shops.opened) == opened  # from the cache
     assert first["checkedAt"] == again["checkedAt"] == "2026-11-09T10:00:00+00:00"
+
+
+def test_too_many_store_searches_at_once_are_told_to_retry(shops, client, monkeypatch):
+    from app import catalog as catalog_module
+
+    monkeypatch.setattr(catalog_module, "BUSY_WAIT", 0.01)
+    held = client.app.state.catalog._searches
+    for _ in range(catalog_module.MAX_CONCURRENT_SEARCHES):
+        held.acquire()
+    try:
+        busy = client.post("/api/v1/procurement/search", json={"query": "6203"})
+        assert busy.status_code == 429 and busy.json()["error"]["code"] == "SEARCH_BUSY"
+        assert busy.headers["Retry-After"] == "10"
+        # price lists and the rest of the API are not held up
+        assert client.post("/api/v1/procurement/barcodes", data={"text": "4006381333931"}).status_code == 200
+    finally:
+        for _ in range(catalog_module.MAX_CONCURRENT_SEARCHES):
+            held.release()
+    assert client.post("/api/v1/procurement/search", json={"query": "6203"}).status_code == 200

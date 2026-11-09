@@ -21,6 +21,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
+from app.errors import AppError
 from app.codes import clean_code, code_base, code_match, normalize_code
 from app.sitecheck import CheckFailed, fetch, names_part, price_of, read_product
 from app.stores import STORES, enabled_stores
@@ -38,6 +39,10 @@ PAGE_TTL = 30 * 60
 FAILED_PAGE_TTL = 2 * 60
 MAX_PER_STORE = 3
 SEARCH_DEADLINE = 25.0
+# A search that reads shops holds a server thread up to SEARCH_DEADLINE: at most this many at once, so many sessions
+# searching together cannot take the threads every other request needs. The rest are told to retry (429 SEARCH_BUSY).
+MAX_CONCURRENT_SEARCHES = 6
+BUSY_WAIT = 3.0
 NETWORK_REASONS = {"timeout", "connection_failed", "dns_failed", "unverified_connection"}
 NOT_A_PREFIX = {"s", "v", "i", "k", "na", "po", "iz", "do", "ot", "so", "dlya", "bez", "pod", "dlja", "and", "for", "the", "with"}
 TRANSLIT = str.maketrans({
@@ -101,6 +106,22 @@ class Catalog:
         self._pages: dict[str, tuple[float, object]] = {}
         self._last_request: dict[str, float] = {}
         self._store_locks = {domain: threading.Lock() for domain in STORES}
+        self._searches = threading.BoundedSemaphore(MAX_CONCURRENT_SEARCHES)
+
+    def slot(self):
+        """One of the MAX_CONCURRENT_SEARCHES places for a search that may read shops, or 429 SEARCH_BUSY."""
+        catalog = self
+
+        class Slot:
+            def __enter__(self):
+                if not catalog._searches.acquire(timeout=BUSY_WAIT):
+                    raise AppError(429, "SEARCH_BUSY", "Too many store searches right now, try again in a few seconds",
+                                   retryable=True, retry_after=10)
+
+            def __exit__(self, *exc):
+                catalog._searches.release()
+
+        return Slot()
 
     # The index ------------------------------------------------------------------------------------------------------
 
@@ -258,6 +279,10 @@ class Catalog:
         if index is None:
             return {"results": [], "sources": [{"store": d, "status": "unavailable", "reason": "index_building",
                                                 "candidates": 0} for d in enabled]}
+        with self.slot():
+            return self._search(query, mode, enabled)
+
+    def _search(self, query: str, mode: str, enabled: list[str]) -> dict:
         deadline_at = self.monotonic() + SEARCH_DEADLINE
         main = [d for d in enabled if STORES[d].get("mirrorOf") not in enabled]
         mirrors = [d for d in enabled if d not in main]
