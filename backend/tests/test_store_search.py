@@ -415,3 +415,15 @@ def test_too_many_store_searches_at_once_are_told_to_retry(shops, client, monkey
         for _ in range(catalog_module.MAX_CONCURRENT_SEARCHES):
             held.release()
     assert client.post("/api/v1/procurement/search", json={"query": "6203"}).status_code == 200
+
+
+def test_a_qr_link_shows_the_part_number_of_the_name_not_the_shop_stock_number(shops, client):
+    # bcindustry.kz publishes sku "20285" (its stock number) and mpn "6205-2RSH"; only the latter is in the name.
+    body = barcode(client, text=f"{BC}/catalog/bearings/6205_2rsh_podshipnik_skf/").json()
+    offer = body["lookup"]["offers"][0]
+    assert (offer["partNumber"], offer["price"], offer["match"]) == ("6205-2RSH", "4805.00", "exact")
+
+
+def test_a_qr_link_to_a_page_whose_name_has_no_part_number_confirms_nothing(shops, client):
+    body = barcode(client, text=f"{BC}/catalog/bearings/6203_podshipnik_skf/").json()
+    assert body["lookup"]["offers"] == [] and body["lookup"]["reason"] == "part_number_not_on_page"

@@ -18,9 +18,9 @@ from app.codes import code_base, normalize_code
 from app.deps import get_store
 from app.errors import AppError
 from app.parts import find_part
-from app.pricing import STORE_CATALOG, by_price, offer_from, offers_for
+from app.pricing import STORE_CATALOG, by_price, offer_from, offers_for, row_match
 from app.routers.procurement import CAMEL, PRICE_LIST, ready_parts
-from app.sitecheck import CheckFailed, names_part
+from app.sitecheck import CheckFailed
 from app.store import Store
 from app.stores import enabled_stores
 from app.vision import MAX_IMAGE_BYTES, image_type
@@ -193,7 +193,7 @@ def product_by_link(url: str, domain: str, store: Store, owner_id: str, catalog)
         body["reason"] = failure.reason
         body["sources"][0].update(status="unavailable", reason=failure.reason)
         return body
-    code = next((c for p in products for c in p["codes"] if code_base(c) and names_part(p, c)), None)
+    code = page_part_number(products)
     if code is None:
         body["reason"] = "part_number_not_on_page"
         return body
@@ -204,6 +204,16 @@ def product_by_link(url: str, domain: str, store: Store, owner_id: str, catalog)
     if not body["offers"]:
         body["unconfirmed"].append(unconfirmed_offer(result))
     return body
+
+
+def page_part_number(products: list[dict]) -> str | None:
+    """The part number a product page shows people: a code written in the product name. A shop's own stock number
+    (bcindustry.kz: sku "20285" for 6205-2RSH) is not in the name, so it is never taken for the part number."""
+    for product in products:
+        for code in product["codes"]:
+            if code_base(code) and row_match(code, {"partNumber": None, "title": product["name"]}) == "exact":
+                return code
+    return None
 
 
 @router.post("/procurement/barcodes")
