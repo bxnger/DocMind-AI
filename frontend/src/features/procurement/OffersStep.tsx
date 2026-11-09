@@ -122,7 +122,7 @@ export function OffersStep({ adapter, parts, lines, lists, offers, quoteItems, s
 
   return (
     <div className="space-y-3">
-      <PartSearch query={query} onQuery={onQuery} resultCount={hits.length} canReadPhotos={adapter.canReadPhotos} onPhoto={onOpenCamera} onSubmit={submit} {...(live ? { onServerCode: serverCode } : {})} {...(live && serverBarcodes ? { onPhotoNotRead: serverPhoto } : {})} />
+      <PartSearch query={query} onQuery={onQuery} resultCount={hits.length} canReadPhotos={adapter.canReadPhotos} onPhoto={onOpenCamera} onSubmit={submit} {...(live && (storeSearch || serverBarcodes) ? { onServerCode: serverCode } : {})} {...(live && serverBarcodes ? { onPhotoNotRead: serverPhoto } : {})} />
       {target === 'free' && <StoreSearchPanel state={store.state} onRetry={store.retry} showOffers />}
       <PriceListsCard api={adapter} lists={lists} showExamples={showExamples} />
       <div className="flex flex-wrap items-center gap-2">
