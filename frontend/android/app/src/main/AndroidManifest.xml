@@ -39,4 +39,8 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- The barcode scanner's live camera in the WebView. Capacitor asks for it when the page calls getUserMedia;
+         a refusal leaves photo and manual entry working. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>
