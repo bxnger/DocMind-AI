@@ -187,7 +187,7 @@ def product_by_link(url: str, domain: str, store: Store, owner_id: str, catalog)
     body = result_body(url, "url")
     body["sources"] = [{"store": domain, "status": "ok", "candidates": 1}]
     try:
-        _final, products = catalog.read_page(url, domain)
+        _final, products, _read_at = catalog.read_page(url, domain)
     except CheckFailed as failure:
         body["reason"] = failure.reason
         body["sources"][0].update(status="unavailable", reason=failure.reason)

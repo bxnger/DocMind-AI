@@ -204,8 +204,9 @@ class Catalog:
             self._last_request[domain] = self.monotonic()
         return True
 
-    def read_page(self, url: str, domain: str, deadline_at: float | None = None) -> tuple[str, list[dict]]:
-        """(final URL, products of the page), from the cache when fresh. Raises CheckFailed."""
+    def read_page(self, url: str, domain: str, deadline_at: float | None = None) -> tuple[str, list[dict], str]:
+        """(final URL, products of the page, when it was really read), from the cache when fresh. Raises CheckFailed.
+        A cached page keeps the time it was read: "checked at" is never the time of the answer."""
         cached = self._pages.get(url)
         if cached and self.monotonic() < cached[0]:
             if isinstance(cached[1], CheckFailed):
@@ -218,7 +219,7 @@ class Catalog:
         except CheckFailed as failure:
             self._pages[url] = (self.monotonic() + FAILED_PAGE_TTL, failure)
             raise
-        result = (final_url, read_product(html))
+        result = (final_url, read_product(html), now_iso())
         self._pages[url] = (self.monotonic() + PAGE_TTL, result)
         if len(self._pages) > 2000:
             self._pages = dict(list(self._pages.items())[-1000:])
@@ -300,8 +301,9 @@ class Catalog:
         result = {"store": domain, "url": url, "title": slug_code or slug, "partNumber": slug_code or None,
                   "match": "unconfirmed", "check": check, "sameSellerAs": list(STORES[domain].get("sameSellerAs", ()))}
         try:
-            final_url, products = self.read_page(url, domain, deadline_at)
-            check["url"] = result["url"] = final_url
+            final_url, products, read_at = self.read_page(url, domain, deadline_at)
+            check.update(url=final_url, checkedAt=read_at)
+            result["url"] = final_url
             if products and products[0]["name"]:
                 result["title"] = products[0]["name"][:200]
             code, match = page_code(products, query, slug_code, mode)

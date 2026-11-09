@@ -384,3 +384,15 @@ def test_search_and_barcodes_have_their_own_rate_limit(store, monkeypatch):
     assert limited_client.post("/api/v1/procurement/barcodes", data={"text": "6205"}).status_code == 200
     third = limited_client.post("/api/v1/procurement/search", json={"query": "6205"})
     assert third.status_code == 429 and third.json()["error"]["code"] == "RATE_LIMITED"
+
+
+def test_a_cached_page_keeps_the_time_it_was_really_read(shops, client, monkeypatch):
+    from app import catalog as catalog_module
+
+    monkeypatch.setattr(catalog_module, "now_iso", lambda: "2026-11-09T10:00:00+00:00")
+    first = search(client, "6203")["offers"][0]
+    monkeypatch.setattr(catalog_module, "now_iso", lambda: "2026-11-09T10:20:00+00:00")
+    opened = len(shops.opened)
+    again = search(client, "6203")["offers"][0]
+    assert len(shops.opened) == opened  # from the cache
+    assert first["checkedAt"] == again["checkedAt"] == "2026-11-09T10:00:00+00:00"
