@@ -16,7 +16,17 @@ DNS: A record `api.docmind.kz` → that IP (Hoster.kz DNS hosting). Checked live
   release. Settings and keys: `/etc/docmind/backend.env` (root:docmind 640). Data: `/var/lib/docmind`.
 - Units: `docmind-api` (uvicorn on 127.0.0.1:8000, one process) and `caddy` (Let's Encrypt certificate, auto renewal).
   Firewall `ufw`: 22, 80, 443 only; `fail2ban` for SSH. Access: SSH key `~/.ssh/docmind_vps` on Erasyl's laptop.
-- The Telegram bot stays on the laptop (one poller per token).
+- Since 10.11.2026 the Telegram bot (@DOCMIND67_bot) runs here too: unit `docmind-bot`, settings `/etc/docmind/bot.env`
+  (token, allowed chats, `BACKEND_URL=http://127.0.0.1:8000`, `BOT_STATE_FILE=/var/lib/docmind/bot_state.json`). Only one
+  poller per token: do not start the laptop bot while this one runs.
+- Since 09.11.2026: release `401d450` (store search and barcodes, `STORE_SEARCH=all`), domain `docmind.kz` / `www.docmind.kz`
+  on Vercel (DNS A 76.76.21.21 at Hoster.kz; the old parking address was 89.35.125.9) and in `CORS_ORIGINS`.
+- Timers (scripts in `backend/deploy/`, installed to `/opt/docmind/bin/`):
+  - `docmind-warm.timer`, every 20 min: `warm_cache.py` searches the demo parts, so the store search answers at once
+    on stage (pages are cached 30 min; the shops' own pauses still apply). `journalctl -u docmind-warm`.
+  - `docmind-monitor.timer`, every minute: `monitor.py` checks the API, the site and the bot and writes to the team's
+    Telegram chats only when one goes down or comes back. `journalctl -u docmind-monitor`.
+  - Stop either: `systemctl disable --now docmind-warm.timer` (or `docmind-monitor.timer`).
 
 Update to a new commit (from the worktree, `C=$(git rev-parse --short HEAD)`):
 
