@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, GitCompareArrows, Network, RotateCcw, Send } from 'lucide-react';
+import { FileText, GitCompareArrows, Network, Play, RotateCcw, Send, Upload } from 'lucide-react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
@@ -10,8 +10,13 @@ import { EvidencePreview } from '@/features/documents/EvidencePreview';
 import { useDocuments } from '@/features/documents/useDocuments';
 import { useErrorMessage } from '@/features/system/useErrorMessage';
 import { useCapabilities } from '@/features/system/useSystem';
-import { SAMPLE_DOCUMENT_ID, SAMPLE_QUESTION_KEYS } from '@/services/sampleDocument';
-import { Dropzone } from '@/features/upload/Dropzone';
+import { SAMPLE_DOCUMENT_ID } from '@/services/sampleDocument';
+import { MODE_SAMPLE_QUESTIONS } from '@/features/userModes/sampleQuestions';
+import { useUserMode } from '@/features/userModes/useUserMode';
+import { BearingDrawing, IndustryPipeline } from '@/features/industry/IndustryPipeline';
+import { useWorkflowStart } from '@/features/industry/useWorkflowStart';
+import { useUpload } from '@/features/upload/UploadProvider';
+import { formatBytes } from '@/lib/format';
 import { HomeModeStrip } from '@/features/userModes/HomeModeStrip';
 import type { DocumentModel } from '@/types/document';
 
@@ -76,21 +81,45 @@ function RecentDocuments() {
 }
 
 export function HomePage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const documents = useDocuments();
   const capabilities = useCapabilities();
+  const userMode = useUserMode();
+  const { maxBytes } = useUpload();
+  const { analyze, demo, demoBusy, demoFailed } = useWorkflowStart();
+  const maxPages = capabilities.data?.limits.maxPages;
   return (
     <div className="h-full overflow-y-auto">
-      <div className="mx-auto w-full max-w-[1040px] px-4 py-6 md:px-8 md:py-10">
-        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start">
+      <div className="mx-auto w-full max-w-[1120px] px-4 py-6 md:px-8 md:py-8">
+        <section data-testid="industry-hero" className="blueprint relative overflow-hidden rounded-panel border border-line bg-card px-5 py-7 md:px-8 md:py-10">
+          <BearingDrawing className="pointer-events-none absolute top-1/2 -right-10 hidden size-[300px] -translate-y-1/2 opacity-70 lg:block xl:right-4" />
+          <div className="relative max-w-[640px]">
+            <p className="micro-label mb-2" translate="no">DOCMIND INDUSTRY</p>
+            <h1 className="font-display text-[28px] leading-[34px] font-medium tracking-[-0.02em] sm:text-[36px] sm:leading-[42px] md:text-[44px] md:leading-[50px]">{t('home.title')}</h1>
+            <p className="mt-3 text-base text-muted sm:text-md">{t('home.subtitle')}</p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Button variant="primary" size="lg" data-testid="home-analyze" className="max-sm:w-full max-sm:whitespace-normal max-sm:h-auto max-sm:min-h-11 max-sm:py-2" icon={<Upload size={16} aria-hidden />} onClick={analyze}>{t('home.analyze')}</Button>
+              <Button size="lg" data-testid="home-demo" className="max-sm:w-full max-sm:min-h-11" icon={<Play size={16} aria-hidden />} loading={demoBusy} onClick={() => void demo()}>{t('home.demo')}</Button>
+            </div>
+            {demoFailed && <p role="alert" data-testid="home-demo-error" className="mt-2 text-sm text-danger">{t('home.demoFailed')}</p>}
+            <p className="tabular mt-3 text-xs text-muted">
+              <span className="pointer-coarse:hidden">{t('home.dropHint')} </span>
+              {t('upload.limits', { size: formatBytes(maxBytes, i18n.language) })}
+              {maxPages ? ` ${t('upload.pagesLimit', { count: maxPages })}` : ''}
+            </p>
+            <p data-testid="home-demo-note" className="mt-1 text-xs text-muted">{t('home.demoNote')}</p>
+          </div>
+        </section>
+        <IndustryPipeline />
+        <RecentDocuments />
+        <section aria-labelledby="home-chat-title" data-testid="home-chat" className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start">
           <div className="min-w-0">
-            <h1 className="font-display text-[26px] leading-[32px] font-medium sm:text-[32px] sm:leading-[38px] tracking-[-0.02em] md:text-[40px] md:leading-[46px]">{t('home.title')}</h1>
-            <p className="mt-3 max-w-[58ch] text-base text-muted sm:text-md">{t('home.subtitle')}</p>
-            <Dropzone className="mt-6" />
+            <h2 id="home-chat-title" className="font-display text-lg font-medium">{t('home.chatTitle')}</h2>
+            <p className="mt-1 text-sm text-muted">{t('home.chatBody')}</p>
             <section aria-label={t('home.tryLabel')} data-testid="home-try" className="mt-4">
-              <h2 className="micro-label mb-1.5">{t('home.tryLabel')}</h2>
+              <h3 className="micro-label mb-1.5">{t('home.tryLabel')}</h3>
               <ul className="flex flex-wrap gap-1.5">
-                {SAMPLE_QUESTION_KEYS.slice(0, 3).map((key) => (
+                {MODE_SAMPLE_QUESTIONS[userMode].slice(0, 3).map(({ key }) => (
                   <li key={key} className="min-w-0">
                     <Link to={`/documents/${SAMPLE_DOCUMENT_ID}`} state={{ prefill: t(`home.sample.${key}`) }} className="pressable inline-flex min-h-8 max-w-full items-center rounded-full border border-line bg-card px-3 py-1 text-sm hover:border-line-strong hover:bg-card-raised pointer-coarse:min-h-10">
                       {t(`home.sample.${key}`)}
@@ -125,8 +154,7 @@ export function HomePage() {
             </nav>
           </div>
           <EvidencePreview />
-        </div>
-        <RecentDocuments />
+        </section>
         <HomeModeStrip hasDocuments={(documents.data?.length ?? 0) > 0} />
       </div>
     </div>

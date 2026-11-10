@@ -10,6 +10,8 @@ export const PDF_OPTIONS = {
   cMapPacked: true,
   standardFontDataUrl: '/pdfjs/standard_fonts/',
   wasmUrl: '/pdfjs/wasm/',
+  // Larger files stayed on "Loading 100%" forever when PDF.js asked for parts of them. Files are limited in size, so read them whole.
+  disableRange: true,
 };
 
 export const MAX_RENDER_DPR = 2;

@@ -15,10 +15,11 @@ export function LogoMark({ size = 24, className }: { size?: number; className?: 
 export function Logo({ compact = false }: { compact?: boolean }) {
   return (
     <span className="inline-flex items-center gap-2" translate="no">
-      <LogoMark />
+      {/* On the narrowest phones the name needs this room, or the buttons beside it leave the screen. */}
+      <LogoMark className={compact ? undefined : 'max-[360px]:hidden'} />
       {!compact && (
-        <span className="text-[15px] font-semibold tracking-[-0.01em] text-fg">
-          DOCMIND <span className="font-normal text-muted">AI</span>
+        <span className="text-[15px] font-semibold tracking-[-0.01em] whitespace-nowrap text-fg max-[360px]:text-[13px]">
+          DOCMIND <span className="font-normal text-muted">INDUSTRY</span>
         </span>
       )}
     </span>

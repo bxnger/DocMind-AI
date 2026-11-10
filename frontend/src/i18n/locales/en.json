@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "DOCMIND AI"
+    "title": "DOCMIND INDUSTRY"
   },
   "common": {
     "cancel": "Cancel",
@@ -23,7 +23,13 @@
     "expand": "Expand sidebar",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
-    "compare": "Compare"
+    "compare": "Compare",
+    "hr": "Resume and vacancy",
+    "equipment": "Equipment",
+    "procurement": "Procurement",
+    "tools": "More tools",
+    "map": "Knowledge map",
+    "recentDocuments": "Latest documents"
   },
   "system": {
     "online": "Server online",
@@ -81,15 +87,21 @@
       "AI_BUDGET_EXCEEDED": "AI answers are unavailable for now. They renew within a day. Reading documents still works.",
       "STORAGE_FULL": "The server has no room for more documents right now. Try again later.",
       "DOCUMENT_TOO_COMPLEX": "This file needs too much time or memory to read.",
-      "DOCX_TOO_LARGE": "This DOCX is too large once unpacked."
+      "DOCX_TOO_LARGE": "This DOCX is too large once unpacked.",
+      "PARTS_NOT_READY": "Parts are still being extracted. Try again in a moment.",
+      "IMAGE_TOO_LARGE": "This image is too large. The limit is 8 MB.",
+      "UNSUPPORTED_IMAGE": "Use a JPEG, PNG or WebP image.",
+      "VISION_UNAVAILABLE": "Reading photos isn't available right now.",
+      "PRICE_LIST_INVALID": "This file couldn't be read. It needs at least a part number or name, and a price.",
+      "PRICE_LIST_TOO_LARGE": "This price list is too large. The limit is 5 MB."
     },
     "noTextWithOcr": "No text could be read from this file, even with text recognition (OCR).",
     "rateLimitedWait": "Too many requests. Try again in {{seconds}} s.",
     "sessionReplaced": "This session has ended, so its documents are no longer available. You can upload them again."
   },
   "home": {
-    "title": "Ask your documents. Check every answer.",
-    "subtitle": "Upload a PDF or DOCX and ask in Russian, Kazakh or English. Each answer shows the exact quote and its place in the document, one click away.",
+    "title": "A smart assistant for industry",
+    "subtitle": "Analyze technical documentation, find parts, check them by photo and prepare purchases with AI.",
     "exampleLabel": "Example from the sample document",
     "openSample": "Open the sample document",
     "latest": "Latest documents",
@@ -103,9 +115,57 @@
       "notice": "What is the notice period for termination?",
       "interest": "How much late payment interest applies?",
       "cap": "Is there a cap on liability?",
-      "leave": "Does the agreement cover parental leave?"
+      "leave": "Does the agreement cover parental leave?",
+      "studentNotice": "Find the termination notice period in the sample agreement.",
+      "studentInterest": "What is the late-payment interest rate in this sample?",
+      "studentCap": "Locate the clause limiting liability in the agreement.",
+      "teacherNotice": "Which clause sets the notice period for termination?",
+      "teacherInterest": "Find the clause about late-payment interest.",
+      "teacherCap": "Which clause would you use to explain liability limits?",
+      "legalCap": "What limit of liability does the sample contract specify?",
+      "legalNotice": "What notice is required to terminate the contract?",
+      "legalInterest": "What late-payment interest does the agreement establish?",
+      "businessInterest": "What is the contractual cost of late payment?",
+      "businessCap": "How does the agreement limit financial liability?",
+      "businessNotice": "What notice period affects termination planning?",
+      "procurementInterest": "What interest applies if a supplier's invoice is paid late?",
+      "procurementNotice": "How much notice is needed to end the supply agreement?",
+      "procurementCap": "Is the supplier's liability capped?",
+      "hrLeave": "Does this agreement cover parental leave?",
+      "hrNotice": "What notice period does the agreement set?",
+      "hrCap": "Is there a limit on liability in this agreement?"
     },
-    "tryLabel": "Try it on the sample"
+    "tryLabel": "Try it on the sample",
+    "analyze": "Analyze a technical document",
+    "demo": "See the demonstration",
+    "demoFailed": "The demonstration file couldn't be loaded. Check the connection and try again.",
+    "dropHint": "Or drop a file anywhere in this window.",
+    "demoNote": "The demonstration opens a made-up machine passport and goes through the same steps as your own file. Prepared data is labelled.",
+    "flowTitle": "From document to purchase sheet",
+    "chatTitle": "Still a full AI chat with your documents",
+    "chatBody": "Ask about any PDF or DOCX in Russian, Kazakh or English. Every answer shows its exact quote and place in the document.",
+    "flow": {
+      "upload": {
+        "title": "Upload documentation",
+        "body": "A machine passport, manual, specification or repair document."
+      },
+      "parts": {
+        "title": "Extract parts",
+        "body": "Part numbers, quantities and characteristics, each with a quote and page."
+      },
+      "photo": {
+        "title": "Check by photo",
+        "body": "AI reads the marking and compares it with the document. You decide."
+      },
+      "offers": {
+        "title": "Match offers",
+        "body": "Exact part numbers from suppliers' price lists, similar ones kept apart."
+      },
+      "budget": {
+        "title": "Calculate the budget",
+        "body": "Quantities times prices, totals by currency and an Excel file."
+      }
+    }
   },
   "documents": {
     "title": "Documents",
@@ -177,7 +237,9 @@
       "document": "Document",
       "map": "Map",
       "assistant": "Assistant",
-      "facts": "Facts"
+      "facts": "Facts",
+      "procurement": "Procurement",
+      "verify": "Verify"
     },
     "ocrNotice": "This document was read with text recognition (OCR). Quotes may contain recognition errors, and passages may not be highlighted exactly: check them against the page."
   },
@@ -468,7 +530,9 @@
     "view": {
       "document": "Document",
       "map": "Map",
-      "facts": "Facts"
+      "facts": "Facts",
+      "procurement": "Procurement",
+      "verify": "Verify"
     },
     "views": "Document or map",
     "canvas": "Map of the document's topics. Arrow keys move the map, plus and minus zoom. On a topic, Enter opens it, arrow keys move it and P pins it.",
@@ -541,6 +605,14 @@
       "business": {
         "name": "Business",
         "description": "Pull out figures, decisions and risks."
+      },
+      "procurement": {
+        "name": "Production and procurement",
+        "description": "Parts, markings, supplier offers and budget."
+      },
+      "hr": {
+        "name": "HR",
+        "description": "Compare a resume with what a vacancy requires."
       }
     },
     "actions": {
@@ -645,8 +717,41 @@
           "label": "Risks and action items",
           "prompt": "List the risks, decisions, action items and responsible parties stated in this document. Cite the supporting passages."
         }
+      },
+      "procurement": {
+        "parts": {
+          "label": "Parts and quantities",
+          "prompt": "List every part, material and full part number this document requires, with quantities. Copy part numbers exactly and cite each one. If a quantity isn't stated, say so."
+        },
+        "specs": {
+          "label": "Technical requirements",
+          "prompt": "List the technical requirements for parts in this document, such as sizes, standards and tolerances. Cite each one. Don't suggest substitutes."
+        },
+        "conditions": {
+          "label": "Delivery and acceptance",
+          "prompt": "What does this document say about delivery, acceptance and warranty? Cite each point."
+        }
+      },
+      "hr": {
+        "requirements": {
+          "label": "Vacancy requirements",
+          "prompt": "List the requirements stated in this document: experience, skills, education and duties. Separate required from desirable, and cite each one."
+        },
+        "experience": {
+          "label": "Experience and skills",
+          "prompt": "List the work experience, skills and qualifications stated in this document, with periods where given. Cite each one and don't infer anything that isn't written."
+        },
+        "gaps": {
+          "label": "What isn't stated",
+          "prompt": "Which common details for assessing professional fit, such as dates, duties or qualifications, are not stated in this document? Say only what is missing, and don't evaluate the person. Cite the document for each point."
+        },
+        "questions": {
+          "label": "Interview questions",
+          "prompt": "Using only the professional experience and duties written here, suggest interview questions that check them. Cite the source of each. Avoid personal topics such as age, family, health or origin."
+        }
       }
-    }
+    },
+    "hrNote": "Helps to read documents. It doesn't rank or judge people: the decision stays with a person, and only professional criteria should count."
   },
   "facts": {
     "title": "Facts",
@@ -676,5 +781,345 @@
     "loading": "Loading the text…",
     "emptyTitle": "This document has no text to show",
     "errorTitle": "The text couldn't be loaded"
+  },
+  "procurement": {
+    "title": "Procurement sheet",
+    "demoTitle": "Demonstration data.",
+    "demoBody": "The server has no procurement yet. Prices marked DEMO are invented and are not real offers. Photos aren't read. Quotes and pages are real where a part was found in this document.",
+    "demoFixtures": "No part numbers were found in this document, so these are example lines with no source.",
+    "demoBadge": "DEMO",
+    "loading": "Looking for parts…",
+    "errorTitle": "Parts couldn't be loaded",
+    "emptyTitle": "No parts found",
+    "emptyBody": "No part numbers were recognized in this document.",
+    "qty": "Quantity",
+    "include": "Include {{code}} in the sheet",
+    "note": "Note",
+    "notePlaceholder": "Note for yourself, not exported",
+    "noQty": "Not stated in the document. Type it to include this line.",
+    "userQty": "Changed by you",
+    "source": "Open the source: {{place}}",
+    "noSource": "No source",
+    "inText": "in text",
+    "offers": "Offers",
+    "noOffers": "No matching offers",
+    "chooseOffer": "Choose",
+    "chosen": "Chosen",
+    "clearOffer": "Clear choice",
+    "row": "row {{row}}",
+    "open": "product page",
+    "line": "Line total",
+    "back": "Back to the sheet",
+    "budget": {
+      "title": "Budget",
+      "none": "Choose offers to see a total.",
+      "limit": "Budget limit",
+      "over": "Over the limit by {{amount}}",
+      "within": "Within the limit, {{amount}} left",
+      "separate": "Amounts in different currencies are not added up or converted.",
+      "noOrder": "Nothing is ordered from here: this sheet is for a person to decide.",
+      "fullTotal": "Total for the chosen offers",
+      "partialTotal": "Subtotal for the offers found",
+      "priced_one": "{{count}} line priced",
+      "priced_other": "{{count}} lines priced",
+      "incomplete_one": "{{count}} line has no price or quantity and is not in the sum.",
+      "incomplete_other": "{{count}} lines have no price or quantity and are not in the sum.",
+      "excluded_one": "{{count}} line left out by you",
+      "excluded_other": "{{count}} lines left out by you",
+      "usesDemo": "The sum includes made-up DEMO prices.",
+      "usesSimilar": "The sum includes a similar part number. Check that it fits.",
+      "excludes": "Delivery, VAT and discounts are not added unless they are in the price itself.",
+      "calculated": "Calculated by the server: {{date}}"
+    },
+    "export": {
+      "csv": "Export CSV",
+      "xlsx": "Export XLSX",
+      "needLines": "The file appears once a line has a quantity."
+    },
+    "equipment": "Equipment",
+    "byStandard": "by standard",
+    "notVerified": "This part number was not found word for word in the document. Check it against the source.",
+    "noPrice": "No price",
+    "similar": "Similar part numbers. Check compatibility: these are not confirmed substitutes.",
+    "offerMissing": "The chosen offer no longer exists, so this line has no price.",
+    "matchWarning": "You chose a similar part number. Check that it fits.",
+    "checked": {
+      "file": "price date in the file: {{date}}",
+      "upload_form": "price date from upload: {{date}}",
+      "import_date": "imported {{date}}, no price date given",
+      "site": "checked on the supplier's page: {{date}}"
+    },
+    "stock": {
+      "available": "available from the supplier, check warehouse and lead time",
+      "unavailable": "not in stock",
+      "unknown": "stock unknown",
+      "count": "in stock: {{count}}"
+    },
+    "identification": {
+      "user_confirmed": "Confirmed by you",
+      "user_rejected": "Rejected by you",
+      "document_only": "From the document"
+    },
+    "marking": {
+      "title": "AI camera: check a part by its marking",
+      "hint": "Photograph the marking or choose a photo. The match is automatic. Only your decision counts as confirmation.",
+      "photo": "Photo of the part or marking",
+      "reading": "AI is reading the marking…",
+      "field": "Part number to record. Correct it if AI misread it.",
+      "compare": "Compare with the document",
+      "which": "Which part of the document is this?",
+      "confirm": "Yes, this is the part",
+      "reject": "No, it isn't",
+      "retake": "Retake",
+      "another": "Check another",
+      "document": "In the document",
+      "found": "On the marking",
+      "unavailable": "Reading photos isn't set up on this server, so this step is hidden.",
+      "status": {
+        "matched": "Same as the document",
+        "needs_confirmation": "Needs your decision",
+        "no_match": "Not in the document",
+        "unreadable": "Couldn't be read",
+        "type_only": "Candidates by kind of part"
+      },
+      "explain": {
+        "matched": "The part number matches one part exactly. Compare with the photo and confirm.",
+        "needs_confirmation": "Not an exact match, or several candidates. A similar designation is not a confirmed substitute.",
+        "no_match": "This designation isn't among the document's parts.",
+        "unreadable": "Take a clearer photo, or type the part number if you can read it.",
+        "type_only": "No part number was read. These are parts of the same kind in the document, not a match of part numbers. Compare them and decide.",
+        "unreliable": "The part number reads the same, but the photo is unreliable: glare can hide its last letter. Compare with the part itself."
+      },
+      "takePhoto": "Take a photo of the part",
+      "uploadPhoto": "Upload a photo",
+      "notStored": "The photo stays on this device and isn't stored on the server.",
+      "manufacturer": "Manufacturer",
+      "markings": "Inscriptions on the photo",
+      "readabilityLabel": "Readability",
+      "candidates": "Possible parts in the document",
+      "examplesTitle": "Prepared pictures with a marking drawn on them",
+      "example": {
+        "exact": "Same as the document",
+        "close": "A similar marking",
+        "blurry": "An unreadable picture",
+        "type": "A part with no marking"
+      },
+      "kind": {
+        "exact": "Exact match",
+        "close": "Similar, not the same",
+        "partial": "Partial match",
+        "type": "Same kind of part only",
+        "readSame": "Reads the same, photo unreliable"
+      },
+      "readability": {
+        "high": "high",
+        "medium": "medium",
+        "low": "low",
+        "unreadable": "unreadable"
+      },
+      "notRead": "not read",
+      "partType": "Kind of part",
+      "estimate": "AI estimate from the shape, not a fact",
+      "confidence": {
+        "high": "high confidence",
+        "medium": "medium confidence",
+        "low": "low confidence"
+      },
+      "issuesLabel": "In the way",
+      "issue": {
+        "glare": "glare",
+        "blur": "blur",
+        "angle": "angle",
+        "partial": "part of the marking is cut off",
+        "dark": "too dark",
+        "far": "too far",
+        "no_marking": "no marking visible",
+        "not_a_part": "this doesn't look like a part"
+      }
+    },
+    "prices": {
+      "title": "Price lists",
+      "fromFile": "Prices, dates and stock are what the file says, not a live check of a website.",
+      "supplier": "Supplier",
+      "supplierPlaceholder": "If the file doesn't say",
+      "date": "Price date",
+      "upload": "Upload a price list",
+      "test": "This is a test file: mark its prices as DEMO",
+      "rows_one": "{{count}} row",
+      "rows_other": "{{count}} rows",
+      "remove": "Remove {{name}}",
+      "file": "CSV or XLSX, up to 5 MB, with a part number and a price.",
+      "demoFile": "In demonstration mode only CSV can be read.",
+      "skipped_one": "{{count}} row skipped.",
+      "skipped_other": "{{count}} rows skipped.",
+      "examplesTitle": "Prepared files for this demonstration",
+      "addVerified": "Real supplier pages",
+      "addDemo": "Made-up DEMO prices",
+      "examplesBody": "Real prices: copied from Kazakhstan suppliers' sites on the date in the file, including an exact match for 6203. Real pages: other designations of the 6205 family, shown as similar. Available from the supplier doesn't mean a local warehouse: it may ship from abroad. DEMO: invented prices and supplier, best not mixed with real ones.",
+      "demoSupplier": "DEMO supplier (made up)",
+      "addReal": "Real prices, including 6203"
+    },
+    "needsCheck": "Needs checking ({{count}})",
+    "needsCheckHint": "These part numbers were not found word for word in the document. Open the source and check them.",
+    "partsIntro": "Open any quote to see the place in the document. Quantities come from the document, and you can change them.",
+    "demoDocument": "Demonstration document: this machine and its parts are made up for the showing. It is processed like any other file.",
+    "docWaitingTitle": "The document is being processed",
+    "docWaitingBody": "Parts can be extracted as soon as it is ready.",
+    "docFailedTitle": "This document couldn't be processed",
+    "docFailedBody": "Upload it again or try another file.",
+    "checkPhoto": "Check by photo",
+    "fromFile": "price list {{file}}, row {{row}}",
+    "offersCoverage": "Offers found for {{found}} of {{total}} parts.",
+    "chooseExact_one": "Choose exact matches ({{count}})",
+    "chooseExact_other": "Choose exact matches ({{count}})",
+    "noListsTitle": "No price lists yet",
+    "noListsBody": "Upload a supplier's price list to see offers. There is no live search of websites.",
+    "category": {
+      "bearing": "Bearing",
+      "seal": "Seal",
+      "belt": "Belt",
+      "filter": "Filter",
+      "fastener": "Fastener",
+      "motor": "Motor",
+      "electrical": "Electrical",
+      "hydraulic": "Hydraulic",
+      "other": "Other"
+    },
+    "steps": {
+      "label": "Purchase preparation steps",
+      "document": "Document",
+      "parts": "Parts",
+      "camera": "Check by photo",
+      "offers": "Offers",
+      "sheet": "Purchase sheet",
+      "of": "Step {{number}} of {{total}}:",
+      "partsNote_one": "{{count}} part",
+      "partsNote_other": "{{count}} parts",
+      "cameraNote": "optional",
+      "cameraDone_one": "{{count}} confirmed",
+      "cameraDone_other": "{{count}} confirmed",
+      "offersNote": "chosen {{chosen}} of {{total}}",
+      "sheetNote": "no total yet"
+    },
+    "lineStatus": {
+      "noQuantity": "No quantity: type it to include this line.",
+      "offerMissing": "The chosen offer no longer exists.",
+      "noOffer": "No offer chosen: not in the total.",
+      "outOfStock": "Out of stock according to the file: not chosen automatically and not in the total."
+    },
+    "sheet": {
+      "part": "Part",
+      "unitPrice": "Unit price",
+      "lineTotal": "Line total",
+      "supplier": "Supplier and source"
+    },
+    "outOfStockNote": "An offer exists, but the file says it's out of stock, so it wasn't chosen automatically. You can choose it yourself.",
+    "priceOrigin": {
+      "file": "Price from the uploaded list",
+      "site_checked": "Price checked on the supplier's site"
+    },
+    "filePrice": "in the list: {{amount}}",
+    "siteCheck": {
+      "button": "Check price on the site",
+      "failed": "Check on the site failed, the price stays from the list: {{reason}}",
+      "reason": {
+        "disabled": "checking isn't set up on the server",
+        "notAllowed": "this site isn't on the allowed list",
+        "network": "the page didn't open",
+        "noData": "the page publishes no product data",
+        "otherPart": "the page is for another part number",
+        "severalPrices": "the page shows several prices",
+        "noPrice": "the page shows no price with a currency",
+        "other": "the address can't be checked"
+      }
+    }
+  },
+  "hr": {
+    "title": "Resume and vacancy",
+    "subtitle": "See which requirements of a vacancy a resume supports, with the quote from each document.",
+    "resume": "Resume",
+    "vacancy": "Vacancy",
+    "start": "Compare",
+    "new": "New comparison",
+    "running": "Comparing the documents…",
+    "failed": "The comparison failed",
+    "gone": "This result is no longer available.",
+    "back": "Back to the comparison",
+    "notice": "This matches skills with requirements. A person makes the hiring decision. There is no score or recommendation, and age, gender, family status, nationality, health and photos are not considered.",
+    "needTwo": "Two ready documents are needed",
+    "needTwoBody": "Upload a resume and a vacancy, and wait until both are ready.",
+    "demoTitle": "Demonstration mode.",
+    "demoBody": "The server has no resume comparison yet. This only compares words in the two documents and understands nothing. Quotes are real, but statuses are rough.",
+    "emptyTitle": "No requirements found",
+    "emptyBody": "No requirements were recognized in the vacancy.",
+    "notFoundHint": "Not found in the resume, which doesn't mean the person lacks it.",
+    "skills": "Skills with evidence",
+    "filter": "Filter by status",
+    "all": "All",
+    "status": {
+      "confirmed": "Confirmed",
+      "partial": "Partly",
+      "not_found": "Not found"
+    },
+    "kind": {
+      "must": "Required",
+      "nice": "Desirable"
+    },
+    "kindPlural": {
+      "must": "Required",
+      "nice": "Desirable"
+    }
+  },
+  "verify": {
+    "title": "Check a claim",
+    "subtitle": "Type a statement, and see whether this document supports it. The answer rests only on this document.",
+    "label": "Claim to check",
+    "placeholder": "For example: the bearing is fitted in a quantity of 4",
+    "submit": "Check",
+    "checking": "Checking against the document…",
+    "sources": "Sources",
+    "back": "Back to the check",
+    "limit": "This compares the claim with the document only. It says nothing about whether the document itself is right.",
+    "tooLong": "A claim can be up to {{max}} characters.",
+    "notFoundBody": "The document has no passage to support or refute this. That doesn't make the claim false.",
+    "unavailableTitle": "Claim checking isn't available",
+    "unavailableBody": "This server doesn't offer it right now, so no result is shown.",
+    "notReadyTitle": "The document isn't ready",
+    "notReadyBody": "A claim can be checked once the document has been processed.",
+    "verdict": {
+      "supported": "Supported by the document",
+      "partly": "Partly supported",
+      "contradicted": "Contradicts the document",
+      "not_found": "No evidence found"
+    },
+    "notFoundReason": {
+      "no_matching_excerpt": "The document has no passage on this, so the claim could be neither confirmed nor refuted.",
+      "model_refused": "AI read the closest passages and found nothing that confirms or refutes the claim.",
+      "no_citation": "The check came back with no quote from the document, so no result is shown.",
+      "citations_failed_verification": "The quotes didn't match the document's text, so no result is shown.",
+      "empty_answer": "The check came back empty. Try again or rephrase the claim."
+    }
+  },
+  "industry": {
+    "equipmentTitle": "Equipment",
+    "equipmentBody": "Each machine's documents and the parts found in them. Upload a passport, manual, specification or repair document.",
+    "procurementTitle": "Procurement",
+    "procurementBody": "Your suppliers' price lists, and the purchase sheet of each document.",
+    "sheetsTitle": "Purchase sheets",
+    "openParts": "Open parts",
+    "findParts": "Find parts",
+    "openSheet": "Open sheet",
+    "emptyTitle": "No documents yet",
+    "emptyBody": "Upload technical documentation, or open the demonstration from the home page.",
+    "statusNotStarted": "parts not extracted yet",
+    "statusFailed": "extraction failed",
+    "statusError": "status unavailable",
+    "statusDemo": "demonstration search",
+    "statusParts_one": "{{count}} part",
+    "statusParts_other": "{{count}} parts",
+    "demoDocumentTag": "demonstration",
+    "chosenOffers_one": "{{count}} offer chosen",
+    "chosenOffers_other": "{{count}} offers chosen",
+    "pricesDemo": "This server doesn't store price lists yet. Inside a document's sheet you can try a CSV in demonstration mode."
   }
 }

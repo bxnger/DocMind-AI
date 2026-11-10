@@ -33,9 +33,12 @@ export interface Capabilities {
   docxPreview: 'pdf' | 'none';
   comparison: boolean;
   highlights: boolean;
+  /** New functions the server has. Absent on an older server, which then reads as all false. */
+  features: { claimCheck: boolean; parts: boolean; photoIdentify: boolean; priceLists: boolean; procurement: boolean; hr: boolean; priceCheck: boolean };
   limits: {
     maxFileSizeBytes: number;
     maxPages: number;
     maxDocumentsPerConversation: number;
+    maxImageBytes: number | null;
   };
 }

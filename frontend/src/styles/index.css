@@ -182,6 +182,26 @@ label[for] {
   font-variant-numeric: tabular-nums;
 }
 
+/* A faint drawing-sheet grid behind the hero. It fades out so text never sits on busy lines. */
+.blueprint {
+  background-image:
+    linear-gradient(to right, var(--color-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-line) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: -1px -1px;
+}
+
+.blueprint > * {
+  z-index: 1;
+}
+
+.blueprint::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, var(--color-card) 45%, color-mix(in srgb, var(--color-card) 62%, transparent));
+}
+
 .micro-label {
   font-size: 11px;
   line-height: 16px;

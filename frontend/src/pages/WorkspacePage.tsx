@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence } from 'motion/react';
 import { AppError, isRecord } from '@/api/client';
+import { toSource } from '@/api/conversations';
 import { Button, buttonClasses } from '@/components/ui/Button';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { IconButton } from '@/components/ui/IconButton';
@@ -16,6 +17,10 @@ import type { TextBlock } from '@/api/documents';
 import { useDocumentBlocks, useDocumentFacts } from '@/features/documents/useDocumentContent';
 import { blocksToMapText } from '@/features/knowledgeMap/docxText';
 import { FactsPanel, factMessage } from '@/features/facts/FactsPanel';
+import { isProcurementStep } from '@/features/procurement/WorkflowStepper';
+import { VerifyPanel } from '@/features/verify/VerifyPanel';
+import { ProcurementPanel } from '@/features/procurement/ProcurementPanel';
+import { useUserMode } from '@/features/userModes/useUserMode';
 import { DeleteDocumentDialog } from '@/features/documents/DeleteDocumentDialog';
 import { StatusBadge } from '@/features/documents/StatusBadge';
 import { isStaleProcessing, useDocument } from '@/features/documents/useDocuments';
@@ -105,6 +110,7 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
     return { page: state.jump.page, quote: typeof state.jump.quote === 'string' ? state.jump.quote : null, nonce: 0 };
   });
   const [deleting, setDeleting] = useState(false);
+  const initialStep = isRecord(startState) && isProcurementStep(startState.step) ? startState.step : undefined;
 
   const source = useDocumentSource(doc);
   const input: PdfInput | null = source.kind === 'pdf' ? source.input : null;
@@ -116,6 +122,8 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
   const docxMapText = useMemo(() => (docxBlocks.data ? blocksToMapText(docxBlocks.data) : undefined), [docxBlocks.data]);
   const placeOfBlock = (fragment: Fragment) => docxBlocks.data?.[fragment.page - 1]?.section ?? t('compare.inText');
   const isSampleDoc = isSampleDocument(doc.id);
+  const userMode = useUserMode();
+  const leftViews = LEFT_VIEWS(isSampleDoc, userMode);
   useEffect(() => {
     if (prefill) composer.current?.insert(prefill);
     // Only once, when the document opens.
@@ -126,8 +134,12 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
   // Fragments from the map go through the same Evidence Jump as answers, as a source list kept outside the chat.
   const [view, setView] = useState<LeftView>(() => {
     const state: unknown = routerLocation.state;
-    return isRecord(state) && state.view === 'map' ? 'map' : 'document';
+    if (!isRecord(state)) return 'document';
+    return state.view === 'map' || state.view === 'procurement' || state.view === 'verify' ? state.view : 'document';
   });
+  // Once opened, the workflow stays mounted, so a source and back keep the photo and the step. Opening it is what starts the extraction.
+  const [procurementOpened, setProcurementOpened] = useState(false);
+  if (view === 'procurement' && !procurementOpened) setProcurementOpened(true);
   const [mapEvidence, setMapEvidence] = useState<AssistantMessage | null>(null);
   const evidenceMessages = useMemo(() => (mapEvidence ? [...chat.messages, mapEvidence] : chat.messages), [chat.messages, mapEvidence]);
   const evidence = useEvidence(evidenceMessages);
@@ -165,17 +177,28 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
     setView('document');
     setPane('document');
   };
-  const fromMap = selection?.messageId === mapEvidence?.id && !mapEvidence?.id.startsWith('facts:');
-  const fromFacts = selection?.messageId === mapEvidence?.id && Boolean(mapEvidence?.id.startsWith('facts:'));
+  const picksExtra = selection?.messageId === mapEvidence?.id;
+  const fromFacts = picksExtra && Boolean(mapEvidence?.id.startsWith('facts:'));
+  const fromProcurement = picksExtra && Boolean(mapEvidence?.id.startsWith('procurement:'));
+  const fromHr = picksExtra && Boolean(mapEvidence?.id.startsWith('hr:'));
+  const fromVerify = picksExtra && Boolean(mapEvidence?.id.startsWith('verify:'));
+  const fromMap = picksExtra && !fromFacts && !fromProcurement && !fromHr && !fromVerify;
 
-  const openFact = (factSource: EvidenceSource) => {
-    const message = factMessage(factSource);
+  const openFact = (factSource: EvidenceSource, prefix = 'facts') => {
+    const message = factMessage(factSource, prefix);
     setMapEvidence(message);
     setRouteJump(null);
     openEvidence(message.id, factSource);
     setView('document');
     setPane('document');
   };
+
+  // A source handed over from the resume and vacancy page opens as usual, and "back" returns there.
+  useEffect(() => {
+    // Only once, when the document opens. It reuses the hook that highlights a source, so it can't be initial state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (isRecord(startState) && isRecord(startState.source)) openFact(toSource(startState.source), 'hr');
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Only fills the composer, for the user to edit and send. Prompts are for the AI, so demo mode gives way to it.
   const askSuggested = (question: string) => {
@@ -199,7 +222,7 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
 
   const viewSwitch = (
     <div role="group" aria-label={t('map.views')} className="inline-flex shrink-0 rounded-[10px] border border-line bg-card p-0.5">
-      {LEFT_VIEWS(isSampleDoc).map((value) => (
+      {leftViews.map((value) => (
         <button
           key={value}
           type="button"
@@ -243,8 +266,8 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
           <IconButton label={t('common.delete')} icon={<Trash2 size={16} aria-hidden />} onClick={() => setDeleting(true)} />
         )}
         {!split && (
-          <div role="tablist" aria-label={t('workspace.panes')} className="order-last flex w-full rounded-[10px] border border-line bg-card p-0.5 [@media(max-height:500px)]:order-none [@media(max-height:500px)]:w-64">
-            {SEGMENTS.filter((value) => value === 'assistant' || LEFT_VIEWS(isSampleDoc).includes(value)).map((value) => (
+          <div role="tablist" aria-label={t('workspace.panes')} className="order-last flex w-full overflow-x-auto [scrollbar-width:none] rounded-[10px] border border-line bg-card p-0.5 [@media(max-height:500px)]:order-none [@media(max-height:500px)]:w-64">
+            {SEGMENTS.filter((value) => value === 'assistant' || (leftViews.includes(value) && !(value === 'facts' && userMode === 'procurement'))).map((value) => (
               <button
                 key={value}
                 role="tab"
@@ -255,7 +278,7 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
                   setPane(next.pane);
                   setView(next.view);
                 }}
-                className={cn('pressable h-9 min-w-0 flex-1 truncate rounded-lg px-0.5 text-sm font-medium max-[400px]:text-xs', segmentOf(pane, view) === value ? 'bg-accent text-on-accent' : 'text-muted')}
+                className={cn('pressable h-9 shrink-0 grow whitespace-nowrap rounded-lg px-2 text-sm font-medium max-[400px]:text-xs', segmentOf(pane, view) === value ? 'bg-accent text-on-accent' : 'text-muted')}
               >
                 {t(`workspace.segments.${value}`)}
               </button>
@@ -315,6 +338,20 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
               </ErrorBoundary>
             </div>
           )}
+          {procurementOpened && leftViews.includes('procurement') && (
+            <div className={cn('absolute inset-0 bg-bg', view !== 'procurement' && HIDDEN_PANE)}>
+              <ErrorBoundary fallback={(reset) => <RegionCrash reset={reset} />}>
+                <ProcurementPanel doc={doc} pdfText={text} initialStep={initialStep} onOpenSource={(partSource) => openFact(partSource, 'procurement')} onOpenDocument={() => setView('document')} />
+              </ErrorBoundary>
+            </div>
+          )}
+          {leftViews.includes('verify') && (
+            <div className={cn('absolute inset-0 bg-bg', view !== 'verify' && HIDDEN_PANE)}>
+              <ErrorBoundary fallback={(reset) => <RegionCrash reset={reset} />}>
+                <VerifyPanel doc={doc} onOpenSource={(claimSource) => openFact(claimSource, 'verify')} />
+              </ErrorBoundary>
+            </div>
+          )}
           <AnimatePresence>
             {view === 'document' && selection && status && (
               <EvidenceInspector
@@ -325,8 +362,8 @@ function WorkspaceView({ doc }: { doc: DocumentModel }) {
                 onStep={evidence.step}
                 onRefocus={evidence.refocus}
                 onClose={evidence.close}
-                onBack={fromMap ? () => setView('map') : fromFacts ? () => setView('facts') : split ? null : () => setPane('assistant')}
-                backLabel={fromMap ? t('map.back') : fromFacts ? t('facts.back') : undefined}
+                onBack={fromMap ? () => setView('map') : fromFacts ? () => setView('facts') : fromProcurement ? () => setView('procurement') : fromVerify ? () => setView('verify') : fromHr ? () => void navigate(-1) : split ? null : () => setPane('assistant')}
+                backLabel={fromMap ? t('map.back') : fromFacts ? t('facts.back') : fromProcurement ? t('procurement.back') : fromVerify ? t('verify.back') : fromHr ? t('hr.back') : undefined}
                 ocrUsed={doc.ocrUsed === true}
               />
             )}

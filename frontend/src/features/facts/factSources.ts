@@ -25,9 +25,9 @@ export function factSource(fact: DocumentFact, documentId: string, documentName:
 export const canOpenFact = (source: EvidenceSource): boolean => source.page !== null || source.paragraph !== undefined;
 
 /** Never enters the chat: it only gives the inspector something to read. */
-export function factMessage(source: EvidenceSource): AssistantMessage {
+export function factMessage(source: EvidenceSource, prefix = 'facts'): AssistantMessage {
   return {
-    id: `facts:${source.page ?? source.paragraph ?? ''}:${source.quote}`,
+    id: `${prefix}:${source.page ?? source.paragraph ?? ''}:${source.quote}`,
     role: 'assistant',
     question: '',
     mode: 'demo',

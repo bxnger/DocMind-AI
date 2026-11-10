@@ -1,0 +1,274 @@
+import { describe, expect, it } from 'vitest';
+import { fromMinor, toMinor } from '@/lib/money';
+import { toHttpUrl, toOffer, toPart, toPartList, toPhotoMatch, toPriceList, toQuote } from '@/api/procurement';
+import { canCheckOnSite, checkReasonKey, chooseExactOffers, isSheetComplete, onlyOutOfStock, quoteItems, readableQuote } from '@/features/procurement/sheetLines';
+import { DEMO_SUPPLIER, createDemoAdapter, csvCell, findParts, fixtureParts, parsePriceCsv } from './demoAdapter';
+import { compareCode, demoIdentify, normalizeCode } from './matching';
+
+const part = { partNumber: 'SKF 6205-2RS1', manufacturer: 'SKF' };
+const page = (text: string, n = 1) => ({ page: n, paragraph: null, location: null, text });
+
+describe('demonstration matching', () => {
+  it.each([
+    ['SKF 6205-2RS1', 'exact'], ['6205 2RS1', 'exact'], ['6205-2РС1', 'exact'],
+    ['6205', 'partial'], ['6205-2RS1/C3', 'partial'],
+    ['62O5-2RS1', 'close'], ['6205-ZZ', 'close'], ['6206-2RS1', 'close'], ['FAG 6205-2RS1', 'close'],
+    ['62', null], ['', null], ['XYZ-999', null],
+  ])('%s is %s', (marking, expected) => {
+    expect(compareCode(marking, part)).toBe(expected);
+  });
+  it('never calls a different seal type exact, and says what differs', () => {
+    const result = demoIdentify('6205-ZZ', [{ ...fixtureParts()[0]!, partNumber: 'SKF 6205-2RS1' }]);
+    expect(result.matchStatus).toBe('needs_confirmation');
+    expect(result.matches[0]).toMatchObject({ match: 'close', difference: '6205-ZZ ≠ 6205-2RS1' });
+  });
+  it('uses the contract statuses', () => {
+    const parts = [{ ...fixtureParts()[0]!, partNumber: 'SKF 6205-2RS1' }];
+    expect(demoIdentify('SKF 6205-2RS1', parts).matchStatus).toBe('matched');
+    expect(demoIdentify('QWERTY-999', parts).matchStatus).toBe('no_match');
+    expect(demoIdentify('62', parts).matchStatus).toBe('unreadable');
+  });
+  it('normalizes look-alikes and separators', () => {
+    expect(normalizeCode('6205-2рс1')).toBe('62052RS1');
+  });
+});
+
+describe('demonstration parts', () => {
+  it('come with a real quote and place, and no guessed quantity', () => {
+    const [first, second] = findParts([page('Заменить подшипник SKF 6205-2RS1 — 2 шт. Также уплотнение TC-35-52.', 14)]);
+    expect(first).toMatchObject({ partNumber: 'SKF 6205-2RS1', quantity: 2, verified: true });
+    expect(first?.sources[0]).toMatchObject({ page: 14 });
+    expect(first?.sources[0]?.quote).toContain('6205-2RS1');
+    expect(second).toMatchObject({ quantity: null });
+  });
+  it('do not take dates or clause numbers for part numbers', () => {
+    expect(findParts([page('Договор от 12.03.2026, пункт 10.4 и 2026-11-05.')])).toEqual([]);
+  });
+  it('fixtures have no source, so nothing links to an invented place', () => {
+    expect(fixtureParts().every((item) => item.sources.length === 0)).toBe(true);
+  });
+});
+
+describe('demonstration quote', () => {
+  const adapter = () => createDemoAdapter([page('Подшипник SKF 6205-2RS1 — 2 шт.')], 'd', 'n');
+  it('marks built-in offers, keeps similar ones apart and chooses nothing', async () => {
+    const a = adapter();
+    const { parts } = await a.parts();
+    const [item] = await a.offers(parts.map((p) => p.id));
+    expect(a.isDemo).toBe(true);
+    expect(item?.offers.every((offer) => offer.demo && offer.supplier === DEMO_SUPPLIER)).toBe(true);
+    expect(item?.offers.map((offer) => offer.match)).toEqual(['exact']);
+    expect(item?.similar.map((offer) => offer.match)).toEqual(['close']);
+    const quote = await a.quote([{ partId: parts[0]!.id, quantity: 2, offerId: null }]);
+    expect(quote.totals).toEqual([]);
+    expect(quote.unpriced).toBe(1);
+    expect(quote.items[0]?.status).toBe('no_price');
+  });
+  it('quantity times price is exact, and a similar choice warns', async () => {
+    const a = adapter();
+    const { parts } = await a.parts();
+    const id = parts[0]!.id;
+    const [item] = await a.offers([id]);
+    const exact = await a.quote([{ partId: id, quantity: 3, offerId: item!.offers[0]!.id }]);
+    expect(exact.totals).toEqual([{ currency: 'KZT', amount: '13500.00', items: 1 }]);
+    expect(exact.items[0]).toMatchObject({ status: 'priced', lineTotal: '13500.00', matchWarning: false });
+    expect((await a.quote([{ partId: id, quantity: 1, offerId: item!.similar[0]!.id }])).items[0]?.matchWarning).toBe(true);
+  });
+  it('a vanished offer is a line status, not an error', async () => {
+    const a = adapter();
+    const { parts } = await a.parts();
+    expect((await a.quote([{ partId: parts[0]!.id, quantity: 1, offerId: 'gone' }])).items[0]?.status).toBe('offer_missing');
+  });
+  it('reads no photo, and a person decides', async () => {
+    const a = adapter();
+    expect((await a.identify(new File(['x'], 'a.jpg'))).matchStatus).toBe('unreadable');
+    const { parts } = await a.parts();
+    const confirmation = await a.confirm(parts[0]!.id, { recognizedText: 'x', recognizedPartNumber: 'x', decision: 'confirmed' });
+    const quote = await a.quote([{ partId: parts[0]!.id, quantity: 1, offerId: null, confirmationId: confirmation.id }]);
+    expect(quote.items[0]?.identification).toEqual({ status: 'user_confirmed', confirmationId: confirmation.id });
+    expect((await a.quote([{ partId: parts[0]!.id, quantity: 1, offerId: null }])).items[0]?.identification.status).toBe('document_only');
+  });
+  it('labels its export', async () => {
+    const a = adapter();
+    const { parts } = await a.parts();
+    const text = await (await a.exportQuote([{ partId: parts[0]!.id, quantity: 2, offerId: null }], 'csv')).text();
+    expect(text).toContain('DEMO');
+    expect(text.split('\r\n')[1]).toContain('SKF 6205-2RS1');
+  });
+});
+
+describe('the sheet sent for calculation', () => {
+  const parts = [{ ...fixtureParts()[0]!, id: 'a', quantity: 2 }, { ...fixtureParts()[1]!, id: 'b', quantity: null }, { ...fixtureParts()[2]!, id: 'c', quantity: 1 }];
+  it('takes the document quantity, and never guesses a missing one', () => {
+    const { items, withoutQuantity } = quoteItems(parts, {});
+    expect(items.map((item) => [item.partId, item.quantity])).toEqual([['a', 2], ['c', 1]]);
+    expect(withoutQuantity).toBe(1);
+  });
+  it('applies what the person changed', () => {
+    const { items, withoutQuantity } = quoteItems(parts, {
+      a: { included: true, quantity: 5, offerId: 'o', note: '', confirmationId: 'c1', decision: 'confirmed' },
+      b: { included: true, quantity: 3, offerId: null, note: '', confirmationId: null, decision: null },
+      c: { included: false, quantity: null, offerId: null, note: '', confirmationId: null, decision: null },
+    });
+    expect(items).toEqual([{ partId: 'a', quantity: 5, offerId: 'o', confirmationId: 'c1' }, { partId: 'b', quantity: 3, offerId: null }]);
+    expect(withoutQuantity).toBe(0);
+  });
+});
+
+describe('choosing exact offers for the person', () => {
+  const offer = (id: string, price: string | null, extra = {}) => ({ id, price, match: 'exact', stockStatus: 'unknown', ...extra }) as never;
+  const line = { included: true, quantity: null, offerId: null, note: '', confirmationId: null, decision: null };
+  it('takes the cheapest exact offer with a price, by exact money', () => {
+    expect(chooseExactOffers([{ partId: 'a', partNumber: 'x', offers: [offer('o1', '10000.00'), offer('o2', '9999.99'), offer('o3', null)], similar: [] }], {})).toEqual({ a: 'o2' });
+  });
+  it('never takes a similar offer, or what the file says is out of stock', () => {
+    expect(chooseExactOffers([{ partId: 'a', partNumber: 'x', offers: [offer('o1', '1.00', { stockStatus: 'unavailable' })], similar: [offer('o2', '1.00', { match: 'close' })] }], {})).toEqual({});
+  });
+  it('leaves alone a line already decided, or left out', () => {
+    const offers = [{ partId: 'a', partNumber: 'x', offers: [offer('o1', '1.00')], similar: [] }];
+    expect(chooseExactOffers(offers, { a: { ...line, offerId: 'mine' } })).toEqual({});
+    expect(chooseExactOffers(offers, { a: { ...line, included: false } })).toEqual({});
+  });
+});
+
+describe('checking a price on the supplier site', () => {
+  it('is offered only for what the server could check', () => {
+    const offer = { url: 'https://bcindustry.kz/x', demo: false, partNumber: '6205-2RSH' };
+    expect(canCheckOnSite(offer)).toBe(true);
+    expect(canCheckOnSite({ ...offer, url: null })).toBe(false);
+    expect(canCheckOnSite({ ...offer, url: 'http://bcindustry.kz/x' })).toBe(false);
+    expect(canCheckOnSite({ ...offer, demo: true })).toBe(false);
+    expect(canCheckOnSite({ ...offer, partNumber: '' })).toBe(false);
+  });
+  it('turns the reasons into a few a person can act on', () => {
+    expect(checkReasonKey('domain_not_allowed')).toBe('notAllowed');
+    expect(checkReasonKey('http_503')).toBe('network');
+    expect(checkReasonKey('part_number_not_on_page')).toBe('otherPart');
+    expect(checkReasonKey('something_new')).toBe('other');
+    expect(checkReasonKey(null)).toBe('other');
+  });
+  it('a failed check leaves the price from the file, and only a real one changes the origin', () => {
+    const base = { id: 'pl1:1', priceListId: 'pl1', sourceRow: 1, price: '4850.00', filePrice: '4850.00', manufacturer: 'SKF', priceListFile: 'f.csv' };
+    expect(toOffer({ ...base, priceOrigin: 'file', siteCheck: { status: 'failed', reason: 'timeout' } })[0]).toMatchObject({ priceOrigin: 'file', siteCheck: { status: 'failed', reason: 'timeout' }, manufacturer: 'SKF', priceListFile: 'f.csv' });
+    expect(toOffer({ ...base, priceOrigin: 'made_up' })[0]?.priceOrigin).toBe('file');
+    expect(toOffer(base)[0]).toMatchObject({ priceOrigin: 'file', siteCheck: null });
+    expect(toOffer({ ...base, manufacturer: null })[0]?.manufacturer).toBeNull();
+  });
+});
+
+describe('saying why a line stayed open', () => {
+  const offer = (stockStatus: string, price: string | null = '1.00') => ({ id: 'o', price, match: 'exact', stockStatus }) as never;
+  const of = (offers: never[]) => ({ partId: 'a', partNumber: 'x', offers, similar: [] });
+  it('names out of stock only when that is the reason', () => {
+    expect(onlyOutOfStock(of([offer('unavailable')]))).toBe(true);
+    expect(onlyOutOfStock(of([offer('unavailable'), offer('available')]))).toBe(false);
+    expect(onlyOutOfStock(of([offer('unknown')]))).toBe(false);
+    expect(onlyOutOfStock(of([]))).toBe(false);
+    expect(onlyOutOfStock(undefined)).toBe(false);
+  });
+});
+
+describe('calling a sum complete', () => {
+  it('needs every line priced', () => {
+    expect(isSheetComplete({ unpriced: 0, totals: [{}] }, 0)).toBe(true);
+    expect(isSheetComplete({ unpriced: 1, totals: [{}] }, 0)).toBe(false);
+    expect(isSheetComplete({ unpriced: 0, totals: [{}] }, 1)).toBe(false);
+    expect(isSheetComplete({ unpriced: 0, totals: [] }, 0)).toBe(false);
+    expect(isSheetComplete(undefined, 0)).toBe(false);
+  });
+});
+
+describe('price files', () => {
+  it('keeps the supplier, title and date of each row, as in the verified supplier list', () => {
+    const parsed = parsePriceCsv('Артикул;Наименование;Цена;Валюта;Наличие;Ссылка;Поставщик;Дата\n6205-2RSH;Подшипник SKF;4805;KZT;1343;https://bcindustry.kz/x;BC Industry;2026-11-07');
+    expect(parsed?.rows[0]).toMatchObject({ sku: '6205-2RSH', title: 'Подшипник SKF', supplier: 'BC Industry', price: '4805.00', stockQuantity: 1343, url: 'https://bcindustry.kz/x', checkedAt: '2026-11-07' });
+  });
+  it('reads Russian and English headers, and reports bad rows', () => {
+    const parsed = parsePriceCsv('Артикул;Цена;Валюта;Дата\n6205-2RS1;4500,50;kzt;2026-11-01\n6205;abc;KZT;2026-11-01\n;1;KZT;');
+    expect(parsed?.rows).toMatchObject([{ sku: '6205-2RS1', price: '4500.50', currency: 'KZT', row: 2, checkedAt: '2026-11-01' }]);
+    expect(parsed?.skipped.map((row) => row.reason)).toEqual(['PRICE_INVALID', 'SKU_MISSING']);
+    expect(parsePriceCsv('sku,price\na,1')?.rows[0]).toMatchObject({ currency: 'KZT', checkedAt: null, stockQuantity: null });
+  });
+  it('refuses a file without a part number and a price', () => {
+    expect(parsePriceCsv('name,color\na,red')).toBeNull();
+  });
+  it('keeps a formula from running in a spreadsheet', () => {
+    expect(csvCell('=HYPERLINK("x")')).toBe(`"'=HYPERLINK(""x"")"`);
+    expect(csvCell('-1')).toBe("'-1");
+  });
+});
+
+describe('quotes of parts', () => {
+  it('show the dash of a part number stored as a soft hyphen, and change nothing else', () => {
+    expect(readableQuote('подшипник 6205\u00AD2RS — 4 шт.', '6205-2RS')).toBe('подшипник 6205-2RS — 4 шт.');
+    expect(readableQuote('пере\u00ADнос 6205-2RS', 'XYZ')).toBe('пере\u00ADнос 6205-2RS');
+  });
+});
+
+describe('money', () => {
+  it('stays exact', () => {
+    expect(fromMinor(toMinor('0.10')! + toMinor('0.20')!)).toBe('0.30');
+    expect(toMinor('12 500,5')).toBe(1250050n);
+    expect(toMinor('abc')).toBeNull();
+    expect(toMinor('-1')).toBeNull();
+  });
+});
+
+describe('answers of the real API, revision 2', () => {
+  const source = { index: 1, documentId: 'd', documentName: 'n', page: 12, location: null, quote: 'Подшипник 6205-2RS — 2 шт.' };
+  it('reads a part list', () => {
+    const list = toPartList({ documentId: 'd', status: 'ready', progress: 1, error: null, equipment: { name: 'Станок', model: 'ТС-16', manufacturer: null, sources: [source] }, parts: [{ id: 'p1', category: 'bearing', name: 'Подшипник', partNumber: '6205-2RS', manufacturer: 'SKF', quantity: null, unit: 'шт', specs: [{ name: 'd', value: '25', unit: 'мм', origin: 'standard' }], location: 'Шпиндель', verified: true, sources: [source] }], summary: { total: 1 } });
+    expect(list.parts[0]).toMatchObject({ partNumber: '6205-2RS', quantity: null, verified: true, specs: [{ origin: 'standard' }] });
+    expect(list.parts[0]?.sources[0]?.page).toBe(12);
+    expect(list.equipment?.model).toBe('ТС-16');
+  });
+  it('treats anything but verified: true as unverified', () => {
+    expect(toPart({ id: 'p', partNumber: 'x' }).verified).toBe(false);
+  });
+  it('reads a failed extraction', () => {
+    expect(toPartList({ documentId: 'd', status: 'failed', error: { code: 'X', message: 'm' } })).toMatchObject({ status: 'failed', errorCode: 'X', parts: [] });
+  });
+  it('reads a photo match, and an unknown status can never look like a match', () => {
+    const match = toPhotoMatch({ matchStatus: 'needs_confirmation', recognized: { text: 'SKF', partNumber: '6205-2RSH', manufacturer: 'SKF', markings: ['C3'], readability: 'medium' }, matches: [{ partId: 'p1', partNumber: '6205-2RS', name: 'n', match: 'close', difference: 'd', sources: [source] }], message: 'm' });
+    expect(match.matches[0]).toMatchObject({ partId: 'p1', match: 'close' });
+    expect(match.recognized.markings).toEqual(['C3']);
+    expect(toPhotoMatch({ matchStatus: 'confirmed' }).matchStatus).toBe('unreadable');
+  });
+  it('reads the look of the part as a candidate, never as a part number', () => {
+    const match = toPhotoMatch({ matchStatus: 'type_only', recognized: { text: '', partNumber: null, manufacturer: null, markings: [], readability: 'unreadable', visibleMarkings: [], partType: 'bearing', confidence: 'medium', issues: ['no_marking', 'made_up'] }, matches: [{ partId: 'p1', partNumber: '6205-2RS', name: 'n', match: 'type', difference: 'd', sources: [source] }], message: 'm', tips: ['Снимите ближе'] });
+    expect(match).toMatchObject({ matchStatus: 'type_only', tips: ['Снимите ближе'], matches: [{ match: 'type', difference: 'd' }] });
+    expect(match.recognized).toMatchObject({ partNumber: null, partType: 'bearing', confidence: 'medium', issues: ['no_marking'] });
+  });
+  it('still reads an answer from before these fields existed', () => {
+    const match = toPhotoMatch({ matchStatus: 'matched', recognized: { text: 't', partNumber: 'x', markings: ['C3'] }, matches: [] });
+    expect(match.recognized).toMatchObject({ visibleMarkings: [], partType: null, confidence: null, issues: [], markings: ['C3'] });
+    expect(match.tips).toEqual([]);
+  });
+  it('reads an offer with its origin and drops one without a source row', () => {
+    const offer = { id: 'pl1:17', supplier: 'S', partNumber: '6205-2RS', match: 'exact', price: '4850.00', currency: 'KZT', stockStatus: 'available', stockQuantity: 40, url: null, source: 'price_list', priceListId: 'pl1', sourceRow: 17, checkedAt: '2026-11-08', checkedAtOrigin: 'file', demo: false };
+    expect(toOffer(offer)[0]).toMatchObject({ price: '4850.00', stockQuantity: 40, checkedAtOrigin: 'file', demo: false });
+    expect(toOffer({ ...offer, sourceRow: undefined })).toEqual([]);
+    expect(toOffer({ ...offer, stockStatus: undefined })[0]?.stockStatus).toBe('unknown');
+    expect(toOffer({ ...offer, price: null })[0]?.price).toBeNull();
+    expect(toOffer({ ...offer, match: 'whatever' })[0]?.match).toBe('close');
+  });
+  it('turns only a web address into a link', () => {
+    expect(toHttpUrl('https://bcindustry.kz/x')).toBe('https://bcindustry.kz/x');
+    expect(toHttpUrl('javascript:alert(1)')).toBeNull();
+    expect(toHttpUrl('data:text/html,x')).toBeNull();
+    expect(toHttpUrl(null)).toBeNull();
+  });
+  it('keeps the date of a check on the supplier site apart from an import date', () => {
+    const offer = { id: 'pl1:1', priceListId: 'pl1', sourceRow: 1, checkedAt: '2026-11-08T10:30:00+00:00', checkedAtOrigin: 'site', priceOrigin: 'site_checked' };
+    expect(toOffer(offer)[0]?.checkedAtOrigin).toBe('site');
+    expect(toOffer({ ...offer, checkedAtOrigin: undefined })[0]?.checkedAtOrigin).toBe('import_date');
+  });
+  it('reads a price list', () => {
+    expect(toPriceList({ id: 'pl1', supplier: 'S', fileName: 'f', rows: 3, skipped: [{ row: 17, reason: 'Нет цены' }], checkedAt: '2026-11-08', checkedAtOrigin: 'upload_form', demo: true, importedAt: 't' })).toMatchObject({ rows: 3, demo: true, checkedAtOrigin: 'upload_form' });
+  });
+  it('reads a quote', () => {
+    const quote = toQuote({ items: [{ partId: 'p', quantity: 2, offer: null, unitPrice: null, currency: null, lineTotal: null, status: 'offer_missing', identification: { status: 'user_confirmed', confirmationId: 'c1' } }], totals: [{ currency: 'KZT', amount: '1.00', items: 1 }], unpriced: 1, warnings: ['w'], calculatedAt: 't' });
+    expect(quote.items[0]).toMatchObject({ status: 'offer_missing', identification: { status: 'user_confirmed' } });
+    expect(quote).toMatchObject({ unpriced: 1, warnings: ['w'] });
+  });
+});
