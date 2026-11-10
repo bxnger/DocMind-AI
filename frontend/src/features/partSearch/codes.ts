@@ -84,3 +84,19 @@ export function classifyScan(format: ScanFormat, raw: string): ScanReading {
   if (/^\d{8}$|^\d{12,13}$/.test(text) && validGtin(text)) return { kind: 'product', format: text.length === 8 ? 'ean_8' : text.length === 12 ? 'upc_a' : 'ean_13', code: text };
   return { kind: 'text', text, codeLike: looksLikeCode(text) && !/\s{2,}|\n/.test(text) };
 }
+
+/**
+ * The stores the server reads (backend/docs/STORE-SEARCH-API.md, section 2). Only a link to one of them is sent to the
+ * server; any other link stays on the phone and is never opened.
+ */
+export const STORE_DOMAINS = ['industrialmotion.kz', 'bcindustry.kz', 'bearing.kz'] as const;
+
+export function isStoreUrl(url: string): boolean {
+  try {
+    const { protocol, hostname } = new URL(url);
+    const host = hostname.toLowerCase();
+    return (protocol === 'https:' || protocol === 'http:') && STORE_DOMAINS.some((domain) => host === domain || host.endsWith(`.${domain}`));
+  } catch {
+    return false;
+  }
+}

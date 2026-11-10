@@ -1252,7 +1252,7 @@
     "scope": "Among this document’s parts and the offers from uploaded price lists. External catalogues are not searched yet.",
     "placeholder": "Part number or name, e.g. 6205-2RS",
     "clear": "Clear search",
-    "scan": "Barcode",
+    "scan": "Barcode / QR",
     "photo": "Marking photo",
     "find": "Find",
     "recent": "Recent searches",
@@ -1294,16 +1294,16 @@
     "notice": {
       "barcode": "Barcode",
       "fromQr": "From the QR code:",
-      "barcodeNotFound": "This barcode is not among the document’s parts. The server cannot look products up by barcode yet: type the part number or photograph the marking.",
+      "barcodeNotFound": "Product not found: this barcode is not among the document’s parts.",
       "codeNotFound": "This part number is not among the document’s parts.",
-      "badChecksum": "Code {{code}} was misread: its check digit is wrong. Scan again.",
-      "url": "The QR code holds a link to {{host}}. It is not a product code, so nothing was searched.",
+      "badChecksum": "Invalid code {{code}}: the check digit is wrong, no such barcode exists. Scan again or type the digits.",
+      "url": "The QR code links to {{host}}. It is not one of DOCMIND’s stores, so the site was not opened and the link was not sent anywhere.",
       "text": "The QR code holds text, not a product code:",
       "searchText": "Search for this text"
     },
     "scanner": {
-      "title": "Scan a barcode",
-      "intro": "Point the camera at the barcode. Frames are processed on the device and never sent.",
+      "title": "Barcode / QR",
+      "intro": "Point the camera at the code. Frames are processed on the device and never sent.",
       "starting": "Starting the camera… Allow access if the browser asks.",
       "aim": "Keep the code inside the frame",
       "paused": "The camera is stopped while the app is in the background.",
@@ -1321,7 +1321,19 @@
         "decoderFailed": "Barcode reading could not be loaded. Check the connection and try again."
       },
       "serverPhotoHint": "The phone could not read a code in this photo. You can send it to the DOCMIND server to try; the image is not kept beyond processing.",
-      "serverPhoto": "Send the photo to the server"
+      "serverPhoto": "Send the photo to the server",
+      "mode": {
+        "camera": "Scan with camera",
+        "photo": "Upload photo",
+        "manual": "Type it"
+      },
+      "formatsLabel": "Supported codes",
+      "photoHint": "A shot or a file with a barcode or QR code. It is read on the device.",
+      "tab": {
+        "camera": "Camera",
+        "photo": "Photo",
+        "manual": "Type"
+      }
     },
     "loadingOffers": "Looking for offers in the price lists…",
     "offersFailed": "Offers did not load. That does not mean there are none.",
@@ -1365,7 +1377,7 @@
         "other": "unavailable"
       },
       "result": {
-        "gtin_not_in_sources": "This barcode is in neither your price lists nor the stores: stores publish no barcodes. Type the part number or photograph the marking.",
+        "gtin_not_in_sources": "Product not found. This barcode is in neither your price lists nor the stores: stores publish no barcodes. Type the part number or photograph the marking.",
         "checksum_failed": "The code was misread: wrong check digit. Nothing was searched.",
         "domain_not_allowed": "The QR code links to a site that is not one of the stores. It was not opened.",
         "not_a_product_code": "The code holds no part number or product barcode."

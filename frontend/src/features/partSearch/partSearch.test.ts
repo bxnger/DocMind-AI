@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Offer, Part } from '@/types/procurement';
-import { classifyScan, codeKey, compareCodes, normalizeCode, validGtin } from './codes';
+import { classifyScan, codeKey, compareCodes, isStoreUrl, normalizeCode, validGtin } from './codes';
 import { findParts, NO_FILTER, orderOffers } from './offerOrder';
 
 const part = (id: string, partNumber: string, name = 'подшипник'): Part => ({ id, partNumber, name, category: 'bearing', manufacturer: null, quantity: 1, unit: 'шт', specs: [], location: null, verified: true, sources: [] });
@@ -65,5 +65,17 @@ describe('scanned codes', () => {
     expect(classifyScan('qr_code', '6205-2RS')).toEqual({ kind: 'text', text: '6205-2RS', codeLike: true });
     expect(classifyScan('qr_code', 'Привет, это просто текст')).toMatchObject({ kind: 'text', codeLike: false });
     expect(classifyScan('qr_code', '4006381333931').kind).toBe('product');
+  });
+});
+
+describe('store links', () => {
+  it('sends only links to the supported stores', () => {
+    expect(isStoreUrl('https://industrialmotion.kz/product/6203')).toBe(true);
+    expect(isStoreUrl('https://www.bcindustry.kz/catalog/x')).toBe(true);
+    expect(isStoreUrl('https://bearing.kz/p')).toBe(true);
+    expect(isStoreUrl('https://example.kz/catalog?item=42')).toBe(false);
+    expect(isStoreUrl('https://industrialmotion.kz.evil.com/p')).toBe(false);
+    expect(isStoreUrl('https://evilbearing.kz/p')).toBe(false);
+    expect(isStoreUrl('javascript:alert(1)')).toBe(false);
   });
 });

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { CameraOff, ImageUp, Keyboard, Loader2, RotateCcw, ScanLine } from 'lucide-react';
+import { Camera, CameraOff, ImageUp, Keyboard, Loader2, RotateCcw, ScanLine } from 'lucide-react';
+import { cn } from '@/lib/cn';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -8,6 +9,10 @@ import { getDecoder } from './decoder';
 
 /** About four frames a second: enough to catch a code held still, little enough for an old phone. */
 const FRAME_MS = 250;
+
+type Mode = 'camera' | 'photo' | 'manual';
+const MODES: ReadonlyArray<{ mode: Mode; Icon: typeof Camera }> = [{ mode: 'camera', Icon: Camera }, { mode: 'photo', Icon: ImageUp }, { mode: 'manual', Icon: Keyboard }];
+const FORMATS = ['EAN-13', 'EAN-8', 'UPC-A', 'QR'] as const;
 
 type CameraState = 'starting' | 'live' | 'paused' | 'unsupported' | 'denied' | 'noCamera' | 'busy' | 'decoderFailed';
 
@@ -55,6 +60,8 @@ function ScannerBody({ onClose, onReading, onManual, onPhotoNotRead }: Omit<Prop
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoFailed, setPhotoFailed] = useState<'none' | 'decoder' | null>(null);
   const [unread, setUnread] = useState<File | null>(null);
+  // The camera runs only on its own tab: choosing a photo or typing stops it.
+  const [mode, setMode] = useState<Mode>('camera');
   // The camera must not restart because the parent rendered again with a new callback.
   const report = useRef(onReading);
   useEffect(() => {
@@ -69,7 +76,7 @@ function ScannerBody({ onClose, onReading, onManual, onPhotoNotRead }: Omit<Prop
 
   useEffect(() => {
     if (!canUseCamera()) return;
-    if (hidden) return;
+    if (hidden || mode !== 'camera') return;
     let stopped = false;
     let stream: MediaStream | null = null;
     let timer: number | undefined;
@@ -122,10 +129,11 @@ function ScannerBody({ onClose, onReading, onManual, onPhotoNotRead }: Omit<Prop
       void tick();
     })();
     return stop;
-  }, [attempt, hidden]);
+  }, [attempt, hidden, mode]);
 
   const readPhoto = async (file: File | undefined) => {
     if (!file) return;
+    setMode('photo');
     setPhotoBusy(true);
     setPhotoFailed(null);
     setUnread(null);
@@ -157,54 +165,85 @@ function ScannerBody({ onClose, onReading, onManual, onPhotoNotRead }: Omit<Prop
   const state: CameraState = hidden && camera !== 'unsupported' ? 'paused' : camera;
   const problem = state !== 'starting' && state !== 'live' && state !== 'paused';
 
+  const tab = (next: Mode) => {
+    setMode(next);
+    if (next === 'camera') setAttempt((value) => value + 1);
+  };
+
   return (
-    <div className="space-y-3 px-5 pt-1 pb-5" data-testid="barcode-scanner" data-state={state}>
-      <p className="text-sm text-muted">{t('partSearch.scanner.intro')}</p>
-      <div className="relative aspect-[4/3] overflow-hidden rounded-panel border border-line bg-[#0d1412]">
-        <video ref={video} muted playsInline aria-hidden className={problem ? 'hidden' : 'size-full object-cover'} data-testid="scanner-video" />
-        {!problem && (
-          <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <div className="relative h-[46%] w-[78%] rounded-control border-2 border-white/85 shadow-[0_0_0_999px_rgba(0,0,0,0.38)]">
-              {state === 'live' && <span className="absolute inset-x-3 top-1/2 h-px bg-accent motion-safe:animate-pulse" />}
+    <div className="space-y-3 px-5 pt-1 pb-5" data-testid="barcode-scanner" data-state={mode === 'camera' ? state : 'off'} data-mode={mode}>
+      <ul aria-label={t('partSearch.scanner.formatsLabel')} data-testid="scanner-formats" className="flex flex-wrap gap-1.5">
+        {FORMATS.map((format) => <li key={format} className="rounded-full border border-line bg-sidebar px-2.5 py-0.5 font-mono text-[11px] font-medium">{format}</li>)}
+      </ul>
+      <div role="tablist" aria-label={t('partSearch.scanner.title')} className="grid grid-cols-3 gap-1 rounded-control border border-line bg-sidebar p-1">
+        {MODES.map(({ mode: value, Icon }) => (
+          <button key={value} type="button" role="tab" aria-selected={mode === value} data-testid={`scanner-tab-${value}`} onClick={() => tab(value)}
+            className={cn('pressable inline-flex min-h-10 items-center justify-center gap-1.5 rounded-[8px] px-1 text-xs font-medium sm:text-sm', mode === value ? 'bg-card text-fg shadow-sm' : 'text-muted hover:text-fg')}>
+            <Icon size={15} className="shrink-0" aria-hidden /><span className="truncate">{t(`partSearch.scanner.tab.${value}`)}</span>
+          </button>
+        ))}
+      </div>
+      <input ref={photo} type="file" accept="image/*" hidden data-testid="scanner-photo-input" onChange={(event) => void readPhoto(event.target.files?.[0])} />
+
+      {mode === 'camera' && (
+        <div role="tabpanel" className="space-y-2">
+          <div className="relative aspect-[4/3] overflow-hidden rounded-panel border border-line bg-[#0d1412]">
+            <video ref={video} muted playsInline aria-hidden className={problem ? 'hidden' : 'size-full object-cover'} data-testid="scanner-video" />
+            {!problem && (
+              <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <div className="relative h-[46%] w-[78%] rounded-control border-2 border-white/85 shadow-[0_0_0_999px_rgba(0,0,0,0.38)]">
+                  {state === 'live' && <span className="absolute inset-x-3 top-1/2 h-px bg-accent motion-safe:animate-pulse" />}
+                </div>
+              </div>
+            )}
+            <div role="status" aria-live="polite" className={problem ? 'flex size-full flex-col items-center justify-center gap-2 p-4 text-center text-sm text-white' : 'absolute inset-x-0 bottom-0 p-2 text-center text-xs text-white/90'}>
+              {state === 'starting' && <span className="inline-flex items-center gap-1.5"><Loader2 size={14} className="animate-spin" aria-hidden />{t('partSearch.scanner.starting')}</span>}
+              {state === 'live' && <span className="inline-flex items-center gap-1.5"><ScanLine size={14} aria-hidden />{t('partSearch.scanner.aim')}</span>}
+              {state === 'paused' && <span>{t('partSearch.scanner.paused')}</span>}
+              {problem && (
+                <>
+                  <CameraOff size={22} aria-hidden />
+                  <span data-testid="scanner-problem">{t(`partSearch.scanner.problem.${state}`)}</span>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {(state === 'busy' || state === 'decoderFailed' || state === 'noCamera') && <Button size="sm" icon={<RotateCcw size={13} aria-hidden />} onClick={() => setAttempt((value) => value + 1)}>{t('common.retry')}</Button>}
+                    <Button size="sm" data-testid="scanner-to-photo" icon={<ImageUp size={13} aria-hidden />} onClick={() => setMode('photo')}>{t('partSearch.scanner.mode.photo')}</Button>
+                    <Button size="sm" data-testid="scanner-to-manual" icon={<Keyboard size={13} aria-hidden />} onClick={() => setMode('manual')}>{t('partSearch.scanner.mode.manual')}</Button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
-        )}
-        <div role="status" aria-live="polite" className={problem ? 'flex size-full flex-col items-center justify-center gap-2 p-4 text-center text-sm text-white' : 'absolute inset-x-0 bottom-0 p-2 text-center text-xs text-white/90'}>
-          {state === 'starting' && <span className="inline-flex items-center gap-1.5"><Loader2 size={14} className="animate-spin" aria-hidden />{t('partSearch.scanner.starting')}</span>}
-          {state === 'live' && <span className="inline-flex items-center gap-1.5"><ScanLine size={14} aria-hidden />{t('partSearch.scanner.aim')}</span>}
-          {state === 'paused' && <span>{t('partSearch.scanner.paused')}</span>}
-          {problem && (
-            <>
-              <CameraOff size={22} aria-hidden />
-              <span data-testid="scanner-problem">{t(`partSearch.scanner.problem.${state}`)}</span>
-              {(state === 'busy' || state === 'decoderFailed' || state === 'noCamera') && (
-                <Button size="sm" icon={<RotateCcw size={13} aria-hidden />} onClick={() => setAttempt((value) => value + 1)}>{t('common.retry')}</Button>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-      <p className="text-xs text-muted">{t('partSearch.scanner.formats')}</p>
-
-      <div className="flex flex-wrap gap-2">
-        <input ref={photo} type="file" accept="image/*" hidden data-testid="scanner-photo-input" onChange={(event) => void readPhoto(event.target.files?.[0])} />
-        <Button data-testid="scanner-photo" className="min-h-11 flex-1" icon={<ImageUp size={15} aria-hidden />} loading={photoBusy} onClick={() => photo.current?.click()}>{t('partSearch.scanner.photo')}</Button>
-      </div>
-      {photoFailed && <p role="alert" data-testid="scanner-photo-failed" className="text-sm text-warning">{t(photoFailed === 'decoder' ? 'partSearch.scanner.problem.decoderFailed' : 'partSearch.scanner.photoNone')}</p>}
-      {unread && onPhotoNotRead && (
-        <div data-testid="scanner-server-photo" className="rounded-control border border-line bg-sidebar p-2.5 text-sm">
-          <p className="text-muted">{t('partSearch.scanner.serverPhotoHint')}</p>
-          <Button size="sm" className="mt-2" onClick={() => onPhotoNotRead(unread)}>{t('partSearch.scanner.serverPhoto')}</Button>
+          <p className="text-xs text-muted"><span className="font-medium text-fg">{t('partSearch.scanner.mode.camera')}.</span> {t('partSearch.scanner.intro')}</p>
         </div>
       )}
 
-      <form onSubmit={submit} className="space-y-1">
-        <label htmlFor="scanner-manual" className="flex items-center gap-1.5 text-sm font-medium"><Keyboard size={14} aria-hidden />{t('partSearch.scanner.manual')}</label>
-        <div className="flex gap-2">
-          <input id="scanner-manual" data-testid="scanner-manual" value={manual} onChange={(event) => setManual(event.target.value)} inputMode="text" autoComplete="off" autoCapitalize="characters" spellCheck={false} placeholder={t('partSearch.scanner.manualPlaceholder')} className="h-11 min-w-0 flex-1 rounded-control border border-line bg-bg px-3 text-base outline-none placeholder:text-muted focus:border-accent" />
-          <Button type="submit" variant="primary" className="h-11" disabled={!manual.trim()} data-testid="scanner-manual-submit">{t('partSearch.find')}</Button>
+      {mode === 'photo' && (
+        <div role="tabpanel" className="space-y-2">
+          <button type="button" data-testid="scanner-photo" disabled={photoBusy} onClick={() => photo.current?.click()} className="pressable flex min-h-32 w-full flex-col items-center justify-center gap-2 rounded-panel border border-dashed border-line-strong bg-sidebar p-4 text-center text-sm hover:border-accent disabled:opacity-60">
+            {photoBusy ? <Loader2 size={22} className="animate-spin text-muted" aria-hidden /> : <ImageUp size={22} className="text-accent" aria-hidden />}
+            <span className="font-medium">{t('partSearch.scanner.mode.photo')}</span>
+            <span className="text-xs text-muted">{t('partSearch.scanner.photoHint')}</span>
+          </button>
+          {photoFailed && <p role="alert" data-testid="scanner-photo-failed" className="text-sm text-warning">{t(photoFailed === 'decoder' ? 'partSearch.scanner.problem.decoderFailed' : 'partSearch.scanner.photoNone')}</p>}
+          {unread && onPhotoNotRead && (
+            <div data-testid="scanner-server-photo" className="rounded-control border border-line bg-sidebar p-2.5 text-sm">
+              <p className="text-muted">{t('partSearch.scanner.serverPhotoHint')}</p>
+              <Button size="sm" className="mt-2" onClick={() => onPhotoNotRead(unread)}>{t('partSearch.scanner.serverPhoto')}</Button>
+            </div>
+          )}
         </div>
-      </form>
+      )}
+
+      {mode === 'manual' && (
+        <form role="tabpanel" onSubmit={submit} className="space-y-1">
+          <label htmlFor="scanner-manual" className="text-sm font-medium">{t('partSearch.scanner.manual')}</label>
+          <div className="flex gap-2">
+            <input id="scanner-manual" data-testid="scanner-manual" autoFocus value={manual} onChange={(event) => setManual(event.target.value)} inputMode="text" autoComplete="off" autoCapitalize="characters" spellCheck={false} placeholder={t('partSearch.scanner.manualPlaceholder')} className="h-11 min-w-0 flex-1 rounded-control border border-line bg-bg px-3 text-base outline-none placeholder:text-muted focus:border-accent" />
+            <Button type="submit" variant="primary" className="h-11" disabled={!manual.trim()} data-testid="scanner-manual-submit">{t('partSearch.find')}</Button>
+          </div>
+        </form>
+      )}
+
       <div className="flex justify-end">
         <Button variant="ghost" onClick={onClose} data-testid="scanner-close">{t('partSearch.scanner.close')}</Button>
       </div>

@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>NSCameraUsageDescription</key>
-	<string>DOCMIND INDUSTRY uses the camera to photograph a part's marking and check it against your technical documents.</string>
+	<string>DOCMIND INDUSTRY uses the camera to photograph a part's marking, scan barcodes and QR codes, and check them against your technical documents.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>DOCMIND INDUSTRY opens photos you choose to read a part's marking.</string>
   <key>CAPACITOR_DEBUG</key>

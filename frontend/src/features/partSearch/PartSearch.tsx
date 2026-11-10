@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { readStored, writeStored } from '@/lib/storage';
 import { BarcodeScanner } from './BarcodeScanner';
-import { codeKey, type ScanReading } from './codes';
+import { codeKey, isStoreUrl, type ScanReading } from './codes';
 
 /** Under the "docmind.chat." prefix, so starting over and a new guest session clear it with the rest. */
 const RECENT_KEY = 'docmind.chat.partSearch.recent';
@@ -71,15 +71,19 @@ export function PartSearch({ query, onQuery, resultCount, canReadPhotos, onPhoto
 
   const onReading = useCallback((next: ScanReading) => {
     setScanning(false);
-    // A misread code goes nowhere: the check digit is checked here.
-    if (next.kind === 'badChecksum' || !onServerCode) {
+    // What goes to the server: a valid product code, a part number, or a link to a supported store. A misread code,
+    // free text and links to other sites stay here, shown as they are, and nothing is opened.
+    const send = onServerCode && (
+      next.kind === 'product' || (next.kind === 'text' && next.codeLike) || (next.kind === 'url' && isStoreUrl(next.url))
+    );
+    if (!send) {
       if (next.kind === 'product') run(next.code, next);
       else if (next.kind === 'text' && next.codeLike) run(next.text, next);
       else setReading(next);
       return;
     }
     const text = next.kind === 'product' ? next.code : next.kind === 'url' ? next.url : next.text;
-    if (next.kind === 'product' || (next.kind === 'text' && next.codeLike)) {
+    if (next.kind !== 'url') {
       setDraft(text);
       onQuery(text);
       remember(text);
