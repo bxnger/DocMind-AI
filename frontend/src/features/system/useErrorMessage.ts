@@ -6,10 +6,12 @@ import { useCapabilities } from './useSystem';
 
 /** Every code in docs/api-contract.md that has its own explanation. */
 const KNOWN_CODES = [
-  'RATE_LIMITED', 'LLM_UNAVAILABLE', 'LLM_TIMEOUT', 'EMPTY_MESSAGE', 'MESSAGE_TOO_LONG', 'CONVERSATION_NOT_FOUND',
+  'RATE_LIMITED', 'LLM_UNAVAILABLE', 'LLM_TIMEOUT', 'EMPTY_MESSAGE', 'MESSAGE_TOO_LONG',
   'DOCUMENT_NOT_READY', 'SAME_DOCUMENT', 'DOCUMENT_TOO_LARGE_FOR_COMPARISON', 'COMPARISON_NOT_FOUND', 'PREVIEW_UNAVAILABLE',
   'PAGE_NOT_FOUND', 'PARSE_FAILED', 'PASSWORD_PROTECTED', 'NO_TEXT_FOUND', 'OCR_FAILED', 'INDEXING_FAILED',
-  'INTERNAL_ERROR', 'STREAM_INTERRUPTED',
+  'INTERNAL_ERROR', 'STREAM_INTERRUPTED', 'REQUEST_TIMEOUT',
+  'UNAUTHORIZED', 'SESSION_EXPIRED', 'DEMO_READ_ONLY', 'QUOTA_EXCEEDED', 'AI_SESSION_BUDGET_EXCEEDED', 'AI_BUDGET_EXCEEDED',
+  'STORAGE_FULL', 'DOCUMENT_TOO_COMPLEX', 'DOCX_TOO_LARGE', 'CONVERSATION_NOT_FOUND',
 ] as const;
 
 type KnownCode = (typeof KNOWN_CODES)[number];
@@ -58,6 +60,7 @@ export function useErrorMessage(): (error: unknown) => string {
   return useCallback(
     (error: unknown) => {
       if (!(error instanceof AppError)) return t('errors.unexpected');
+      if (error.code === 'RATE_LIMITED' && error.retryAfter !== null) return t('errors.rateLimitedWait', { seconds: Math.max(1, Math.ceil(error.retryAfter)) });
       const text = forCode(error.code);
       return text === t('errors.unexpected') && error.status !== null && error.status >= 500 ? t('errors.server') : text;
     },

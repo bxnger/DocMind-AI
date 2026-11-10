@@ -284,6 +284,49 @@ label[for] {
   -webkit-box-decoration-break: clone;
 }
 
+.docx-added {
+  background: var(--color-success-tint);
+  border-radius: 2px;
+  box-shadow: inset 0 -2px 0 var(--color-success);
+}
+.docx-removed {
+  background: var(--color-danger-tint);
+  border-radius: 2px;
+  box-shadow: inset 0 -2px 0 var(--color-danger);
+}
+.docx-changed {
+  background: var(--color-accent-tint);
+  border-radius: 2px;
+  box-shadow: inset 0 -2px 0 var(--color-accent);
+}
+.docx-added, .docx-removed, .docx-changed {
+  color: var(--color-fg);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* Compare: two sheets on a desk. Depth and a short arrival, nothing that moves while reading. */
+.sheet-in {
+  animation: sheet-in var(--dur-slow) var(--ease-out) both;
+}
+.sheet-in + .sheet-in {
+  animation-delay: 60ms;
+}
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.document-sheet > div {
+  transition: transform var(--dur-base) var(--ease-out);
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  html:not([data-motion='reduced']) .document-sheet:hover > div {
+    transform: perspective(1100px) rotateX(1.2deg) rotateY(-2deg) translateY(-2px);
+  }
+}
+
 .textLayer mark {
   color: transparent;
   border-radius: 2px;
@@ -348,9 +391,48 @@ label[for] {
 /* Answer prose */
 .prose-answer {
   overflow-wrap: anywhere;
+  line-height: 23px;
 }
 .prose-answer > * + * {
-  margin-top: 12px;
+  margin-top: 10px;
+}
+.prose-answer li + li {
+  margin-top: 4px;
+}
+.prose-answer li::marker {
+  color: var(--color-muted);
+}
+.prose-answer h1,
+.prose-answer h2,
+.prose-answer h3,
+.prose-answer h4 {
+  font-weight: 600;
+  line-height: 22px;
+}
+.prose-answer h1,
+.prose-answer h2 {
+  font-size: 15px;
+}
+.prose-answer > :is(h1, h2, h3, h4):not(:first-child) {
+  margin-top: 16px;
+}
+.prose-answer strong {
+  font-weight: 600;
+}
+.prose-answer blockquote {
+  border-left: 2px solid var(--color-line-strong);
+  padding-left: 10px;
+  color: var(--color-muted);
+}
+.prose-answer th,
+.prose-answer td {
+  border: 1px solid var(--color-line);
+  padding: 3px 8px;
+  text-align: left;
+  font-size: 13px;
+}
+.prose-answer table {
+  border-collapse: collapse;
 }
 .prose-answer ul,
 .prose-answer ol {

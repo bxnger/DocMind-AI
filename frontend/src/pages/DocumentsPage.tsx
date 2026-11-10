@@ -97,7 +97,7 @@ export function DocumentsPage() {
               </h2>
               <ul>
                 {group.map((doc) => (
-                  <DocumentRow key={doc.id} doc={doc} onDelete={setDeleting} />
+                  <DocumentRow key={doc.id} doc={doc} tag={doc.isDemo ? t('documents.demoTag') : undefined} onDelete={doc.isDemo ? undefined : setDeleting} />
                 ))}
               </ul>
             </section>

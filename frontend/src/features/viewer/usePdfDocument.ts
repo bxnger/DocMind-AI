@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { getSessionToken, invalidateSession } from '@/api/session';
 import { PDF_OPTIONS, pdfjs } from './pdfjs';
+import { isUnauthorized, pdfUrlSource, type PdfInput } from './pdfSource';
 
-export type PdfInput = { type: 'url'; url: string } | { type: 'blob'; blob: Blob };
+export type { PdfInput } from './pdfSource';
 export type PdfErrorKind = 'password' | 'invalid' | 'load';
 
 export type PdfState =
@@ -28,10 +30,13 @@ export function usePdfDocument(input: PdfInput | null, attempt: number): PdfStat
     let task: ReturnType<typeof pdfjs.getDocument> | null = null;
     const setState = (state: PdfState) => setResult({ input, attempt, state });
 
+    let token: string | null = null;
+
     const load = async () => {
+      if (input.type === 'url' && input.authenticated) token = await getSessionToken();
       const source =
         input.type === 'url'
-          ? { url: input.url }
+          ? pdfUrlSource(input.url, token)
           : { data: new Uint8Array(await input.blob.arrayBuffer()) };
       if (cancelled) return;
       // Damaged files are reported through the UI, so PDF.js only needs to log real errors.
@@ -44,6 +49,7 @@ export function usePdfDocument(input: PdfInput | null, attempt: number): PdfStat
     };
 
     load().catch((error: unknown) => {
+      if (token && isUnauthorized(error)) invalidateSession(token);
       if (!cancelled) setState({ status: 'error', kind: classify(error) });
     });
 

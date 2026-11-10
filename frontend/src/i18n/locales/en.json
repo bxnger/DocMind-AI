@@ -71,13 +71,25 @@
       "OCR_FAILED": "Text recognition (OCR) failed for this file.",
       "INDEXING_FAILED": "The document couldn't be indexed.",
       "INTERNAL_ERROR": "The server had an internal problem. Start again.",
-      "STREAM_INTERRUPTED": "The connection dropped before the answer finished. Try again."
+      "STREAM_INTERRUPTED": "The connection dropped before the answer finished. Try again.",
+      "REQUEST_TIMEOUT": "The server took too long to respond. Try again in a moment.",
+      "UNAUTHORIZED": "The session is no longer valid. Try again.",
+      "SESSION_EXPIRED": "This session has ended, so its documents are no longer available.",
+      "DEMO_READ_ONLY": "Demo documents can't be changed or deleted.",
+      "QUOTA_EXCEEDED": "Your limit for this session is reached. Delete something and try again.",
+      "AI_SESSION_BUDGET_EXCEEDED": "Your AI questions for today are used up. They renew within a day. Reading documents still works.",
+      "AI_BUDGET_EXCEEDED": "AI answers are unavailable for now. They renew within a day. Reading documents still works.",
+      "STORAGE_FULL": "The server has no room for more documents right now. Try again later.",
+      "DOCUMENT_TOO_COMPLEX": "This file needs too much time or memory to read.",
+      "DOCX_TOO_LARGE": "This DOCX is too large once unpacked."
     },
-    "noTextWithOcr": "No text could be read from this file, even with text recognition (OCR)."
+    "noTextWithOcr": "No text could be read from this file, even with text recognition (OCR).",
+    "rateLimitedWait": "Too many requests. Try again in {{seconds}} s.",
+    "sessionReplaced": "This session has ended, so its documents are no longer available. You can upload them again."
   },
   "home": {
-    "title": "Documents you can question",
-    "subtitle": "Upload a PDF or DOCX and ask about it. Every answer shows where it came from: the document, the page and the original quote.",
+    "title": "Ask your documents. Check every answer.",
+    "subtitle": "Upload a PDF or DOCX and ask in Russian, Kazakh or English. Each answer shows the exact quote and its place in the document, one click away.",
     "exampleLabel": "Example from the sample document",
     "openSample": "Open the sample document",
     "latest": "Latest documents",
@@ -92,7 +104,8 @@
       "interest": "How much late payment interest applies?",
       "cap": "Is there a cap on liability?",
       "leave": "Does the agreement cover parental leave?"
-    }
+    },
+    "tryLabel": "Try it on the sample"
   },
   "documents": {
     "title": "Documents",
@@ -114,7 +127,8 @@
     "deleted": "Document deleted",
     "sampleHeading": "Sample",
     "sampleTag": "Sample",
-    "sampleMeta": "Fictional contract"
+    "sampleMeta": "Fictional contract",
+    "demoTag": "Demo"
   },
   "recent": {
     "title": "Recent",
@@ -139,7 +153,8 @@
     "finishing": "Sent. Waiting for the server to respond…",
     "success": "Uploaded",
     "noLocalCopy": "“{{name}}” was uploaded, but this browser couldn't keep a copy for preview.",
-    "tapTitle": "Choose a PDF or DOCX"
+    "tapTitle": "Choose a PDF or DOCX",
+    "pagesLimit": "PDF up to {{count}} pages."
   },
   "workspace": {
     "back": "Back to documents",
@@ -215,7 +230,6 @@
     "demoAnswer_one": "Found {{count}} passage that matches your question {{markers}}. This is a keyword match, so read the quote to judge whether it answers you.",
     "demoAnswer_other": "Found {{count}} passages that match your question {{markers}}. These are keyword matches, so read the quotes to judge whether they answer you.",
     "emptyTitle": "Ask this document",
-    "emptyBody": "Results show the exact quote and page, and you can open each one to check it.",
     "suggestWhere": "Where does the document mention “{{term}}”?",
     "placeholder": "Ask about this document",
     "inputLabel": "Your question",
@@ -273,6 +287,12 @@
       "no_citation": "The AI's reply cited no passage of the document, so it was removed. Try asking more specifically.",
       "citations_failed_verification": "The AI's citations didn't match the document's text, so the reply was removed. Try asking more specifically.",
       "empty_answer": "The AI returned an empty reply. Try again or rephrase the question."
+    },
+    "evidenceHint": "To check an answer, press a number or a card: the passage opens in the document.",
+    "steps": {
+      "ask": "Ask in your own words, in any of the three languages.",
+      "click": "Press a number like [1] in the answer.",
+      "see": "See that exact passage highlighted in the document."
     }
   },
   "sources": {
@@ -347,8 +367,8 @@
     "subtitle": "Choose two versions of a document. See what was added, removed or modified, side by side, with the original text.",
     "noticeTitle": "Text comparison, no AI.",
     "noticeBody": "Sentences are matched by similarity. It doesn't understand meaning, detect contradictions, or score anything. A moved sentence shows as removed and added.",
-    "documentA": "Document A",
-    "documentB": "Document B",
+    "documentA": "Original (A)",
+    "documentB": "Revised (B)",
     "start": "Compare",
     "running": "Comparing…",
     "runningPercent": "Comparing… {{percent}}%",
@@ -372,8 +392,6 @@
     "deletedBody": "It was deleted after this comparison ran, so it can't be shown.",
     "unverified": "This quote couldn't be verified in the document, so it isn't shown.",
     "noLocation": "No page (DOCX)",
-    "openInDocument": "Open p. {{page}} in the document",
-    "showInDocuments": "Show in documents",
     "words": "words removed and added",
     "prev": "Previous change",
     "next": "Next change",
@@ -383,15 +401,35 @@
     "lockHint": "Scrolls both documents by the same share of their length. Pages may not line up exactly.",
     "viewLabel": "Comparison view",
     "viewChanges": "Changes",
-    "viewDocuments": "Documents",
     "noteUnrelated": "No sentence here has a similar counterpart, so these may be unrelated documents. This list is unlikely to be useful as a comparison.",
-    "noteDocx": "DOCX has no page preview and the comparison gives no section for it, so its changes appear only as text here.",
     "noteOcr": "A scanned document was read with OCR, so some differences may be recognition errors.",
     "filterEmpty": "No changes of this type",
     "newComparison": "New comparison",
     "versus": "compared with",
     "needTwoWaiting": "Wait until your documents finish processing. Only ready documents can be compared.",
-    "noticeMore": "How it works"
+    "noticeMore": "How it works",
+    "original": "Original",
+    "revised": "Revised",
+    "swap": "Swap documents",
+    "moved": "Moved",
+    "lineRemoved": "In the original:",
+    "lineAdded": "In the revised version:",
+    "inText": "in text",
+    "absentShort": "Not in this document",
+    "textView": "Extracted text",
+    "modeSide": "Side by side",
+    "modeUnified": "Unified diff",
+    "modeUnifiedShort": "Diff",
+    "hideUnchanged": "Hide unchanged",
+    "unplaced": "Position not found",
+    "noTextForUnified": "The documents' text isn't available, so only the changes are listed.",
+    "openSide": "Open {{letter}}, p. {{page}}",
+    "noteNoAlignment": "A DOCX has no pages, so pages can't be aligned here. Each document scrolls on its own, and choosing a change moves each one to it.",
+    "noteProportional": "The documents have {{a}} and {{b}} pages, so pages can't be matched exactly. Scroll lock only keeps the same share of each document.",
+    "unchangedWords_one": "{{count}} unchanged word, show",
+    "unchangedWords_other": "{{count}} unchanged words, show",
+    "current": "Current change",
+    "showIn": "Show in {{letter}}"
   },
   "evidence": {
     "title": "Evidence",
@@ -433,30 +471,41 @@
       "facts": "Facts"
     },
     "views": "Document or map",
-    "canvas": "Map of the document's topics. Use the arrow keys to move, plus and minus to zoom.",
+    "canvas": "Map of the document's topics. Arrow keys move the map, plus and minus zoom. On a topic, Enter opens it, arrow keys move it and P pins it.",
     "search": "Find a topic",
     "counts": "{{nodes}} topics · {{links}} links",
     "matches": "Matches: {{count}}",
     "controls": "Map controls",
     "fit": "Fit to screen",
     "noticeTitle": "Word statistics, not AI.",
-    "noticeBody": "Topics are repeated terms from this PDF. A link means they share sentences, not that they are related in meaning.",
+    "noticeBody": "Topics are repeated terms from this document. A link means they share passages, not that they are related in meaning. Colors group terms that appear together.",
     "panel": "Selected topic",
     "closePanel": "Close topic",
     "stats": "Mentions: {{count}} · Pages: {{pages}}",
     "fragments": "Where it appears",
     "related": "Often appears with",
     "together": "{{count}}×",
-    "openFragment": "Open this fragment on page {{page}}",
     "nodeLabel": "{{label}}, mentions: {{count}}",
     "back": "Back to the map",
     "reading": "Reading the document's text",
     "emptyTitle": "Too little text for a map",
     "emptyBody": "No term repeats in this document, or its pages have no text layer, such as a scan.",
     "unavailableTitle": "No map for this document",
-    "unavailableDocx": "The map reads text in the browser, which works only for PDF for now.",
     "unavailableOther": "The document's text isn't available on this device.",
-    "noticeShort": "Word statistics, not AI"
+    "noticeShort": "Word statistics, not AI",
+    "minimap": "Overview of the whole map",
+    "mainTopics": "Main topics",
+    "statsText": "Mentions: {{count}}",
+    "pin": "Pin in place",
+    "unpin": "Unpin",
+    "openFragmentAt": "Open this fragment: {{place}}",
+    "nodeLabelPinned": "{{label}}, mentions: {{count}}, pinned",
+    "documentNode": "The document: {{name}}",
+    "countsShown": "{{shown}} of {{nodes}} topics · {{links}} links",
+    "density": "How many topics to show",
+    "densityAll": "All",
+    "resetLayout": "Reset positions",
+    "pinnedCount": "Pinned: {{count}}"
   },
   "userModes": {
     "title": "Mode",

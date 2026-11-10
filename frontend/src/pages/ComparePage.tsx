@@ -1,14 +1,17 @@
 import { useMemo, useState } from 'react';
-import { ArrowLeftRight, CircleAlert, GitCompareArrows, Plus, RotateCcw } from 'lucide-react';
+import { ArrowLeftRight, CircleAlert, GitCompareArrows, Plus, RotateCcw, Upload } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateBlock } from '@/components/ui/StateBlock';
+import { swapComparison } from '@/features/comparison/compareModel';
 import { CompareResults } from '@/features/comparison/CompareResults';
+import { DocumentSheet } from '@/features/comparison/DocumentSheet';
 import { useComparison, useStartComparison } from '@/features/comparison/useComparison';
 import { useDocuments } from '@/features/documents/useDocuments';
 import { useCodeMessage, useErrorMessage } from '@/features/system/useErrorMessage';
+import { useUpload } from '@/features/upload/UploadProvider';
 import { formatDate } from '@/lib/format';
 import type { DocumentModel } from '@/types/document';
 
@@ -16,7 +19,7 @@ function Picker({ label, value, docs, onChange }: { label: string; value: string
   const { i18n } = useTranslation();
   const isDuplicate = (doc: DocumentModel) => docs.filter((other) => other.name === doc.name).length > 1;
   return (
-    <label className="min-w-0 flex-1 basis-56 text-sm text-muted">
+    <label className="block min-w-0 text-sm text-muted">
       {label}
       <select value={value} onChange={(event) => onChange(event.target.value)} className="mt-1 h-10 w-full rounded-control border border-line bg-card px-3 text-fg outline-none focus:border-accent">
         {docs.map((doc) => (
@@ -43,7 +46,8 @@ function Results({ id, documents, onNew }: { id: string; documents: DocumentMode
   const errorMessage = useErrorMessage();
   const codeMessage = useCodeMessage();
   const comparison = useComparison(id);
-  const data = comparison.data;
+  const [swapped, setSwapped] = useState(false);
+  const data = useMemo(() => (swapped && comparison.data ? swapComparison(comparison.data) : comparison.data), [comparison.data, swapped]);
   const docA = documents.find((doc) => doc.id === data?.documentAId);
   const docB = documents.find((doc) => doc.id === data?.documentBId);
   const failure = (title: string, description: string) => (
@@ -59,8 +63,8 @@ function Results({ id, documents, onNew }: { id: string; documents: DocumentMode
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-line px-3 py-2 md:px-4">
-        <h1 className="flex min-w-0 flex-1 basis-64 items-center gap-2 text-sm font-medium">
+      <header className="flex items-center gap-x-2 border-b border-line px-3 py-1.5 md:px-4">
+        <h1 className="flex min-w-0 flex-1 items-center gap-2 text-sm font-medium">
           <span className="min-w-0 truncate" title={docA?.name}>{docA?.name ?? t('compare.title')}</span>
           {data && (
             <>
@@ -69,12 +73,18 @@ function Results({ id, documents, onNew }: { id: string; documents: DocumentMode
             </>
           )}
         </h1>
-        <div className="max-w-xl max-lg:hidden"><Notice /></div>
-        <Button size="sm" icon={<Plus size={14} aria-hidden />} onClick={onNew}>{t('compare.newComparison')}</Button>
+        {data?.status === 'ready' && (
+          <Button size="sm" variant="ghost" data-testid="swap-documents" aria-label={t('compare.swap')} title={t('compare.swap')} icon={<ArrowLeftRight size={14} aria-hidden />} onClick={() => setSwapped(!swapped)}>
+            <span className="max-sm:hidden">{t('compare.swap')}</span>
+          </Button>
+        )}
+        <Button size="sm" aria-label={t('compare.newComparison')} title={t('compare.newComparison')} icon={<Plus size={14} aria-hidden />} onClick={onNew}>
+          <span className="max-sm:hidden">{t('compare.newComparison')}</span>
+        </Button>
       </header>
-      <details className="border-b border-line px-3 py-1.5 text-xs lg:hidden">
-        <summary className="flex min-h-6 cursor-pointer items-center gap-1 text-muted pointer-coarse:min-h-9"><strong className="font-medium text-fg">{t('compare.noticeTitle')}</strong> {t('compare.noticeMore')}</summary>
-        <Notice />
+      <details data-testid="compare-how" className="border-b border-line px-3 py-1 text-xs md:px-4">
+        <summary className="flex min-h-6 cursor-pointer items-center gap-1 text-muted pointer-coarse:min-h-8"><strong className="font-medium text-fg">{t('compare.noticeTitle')}</strong> {t('compare.noticeMore')}</summary>
+        <div className="pb-1"><Notice /></div>
       </details>
       {comparison.isPending ? (
         <div role="status" aria-label={t('compare.running')} className="space-y-2 p-4">
@@ -107,6 +117,7 @@ export function ComparePage() {
   const errorMessage = useErrorMessage();
   const documents = useDocuments();
   const start = useStartComparison();
+  const { openPicker } = useUpload();
   const [params, setParams] = useSearchParams();
   const [pickA, setPickA] = useState('');
   const [pickB, setPickB] = useState('');
@@ -116,6 +127,8 @@ export function ComparePage() {
   const a = ready.some((doc) => doc.id === pickA) ? pickA : (ready[0]?.id ?? '');
   const b = ready.some((doc) => doc.id === pickB) ? pickB : (ready.find((doc) => doc.id !== a)?.id ?? '');
   const waiting = (documents.data ?? []).length - ready.length;
+  const docA = ready.find((doc) => doc.id === a);
+  const docB = ready.find((doc) => doc.id === b);
 
   if (id) return <Results key={id} id={id} documents={documents.data ?? []} onNew={() => setParams({})} />;
 
@@ -125,26 +138,53 @@ export function ComparePage() {
         <h1 className="font-display text-2xl font-medium tracking-[-0.015em]">{t('compare.title')}</h1>
         <p className="mt-1 max-w-[65ch] text-muted">{t('compare.subtitle')}</p>
         <div className="mt-3"><Notice /></div>
-        <div className="mt-6 rounded-panel border border-line bg-card p-4">
+        <div className="mt-6">
           {documents.isPending ? (
-            <Skeleton className="h-24" />
+            <Skeleton className="h-64" />
           ) : documents.isError ? (
-            <StateBlock tone="danger" icon={<CircleAlert size={18} aria-hidden />} title={t('documents.loadError')} description={errorMessage(documents.error)} actions={<Button icon={<RotateCcw size={14} aria-hidden />} onClick={() => void documents.refetch()}>{t('common.retry')}</Button>} />
+            <StateBlock tone="danger" icon={<CircleAlert size={18} aria-hidden />} title={t('documents.loadError')} description={errorMessage(documents.error)} actions={<Button icon={<RotateCcw size={14} aria-hidden />} loading={documents.isFetching} onClick={() => void documents.refetch()}>{t('common.retry')}</Button>} />
           ) : ready.length < 2 ? (
-            <StateBlock icon={<GitCompareArrows size={18} aria-hidden />} title={t('compare.needTwo')} description={waiting > 0 ? t('compare.needTwoWaiting') : t('compare.needTwoBody')} />
+            <StateBlock
+              icon={<GitCompareArrows size={18} aria-hidden />}
+              title={t('compare.needTwo')}
+              description={waiting > 0 ? t('compare.needTwoWaiting') : t('compare.needTwoBody')}
+              actions={<Button variant="primary" icon={<Upload size={14} aria-hidden />} onClick={openPicker}>{t('upload.choose')}</Button>}
+            />
           ) : (
             <form
-              className="flex flex-wrap items-end gap-3"
               onSubmit={(event) => {
                 event.preventDefault();
                 start.mutate({ a, b }, { onSuccess: (created) => setParams({ id: created.id }) });
               }}
             >
-              <Picker label={t('compare.documentA')} value={a} docs={ready} onChange={setPickA} />
-              <Picker label={t('compare.documentB')} value={b} docs={ready} onChange={setPickB} />
-              <Button type="submit" variant="primary" size="lg" loading={start.isPending} disabled={a === b}>{t('compare.start')}</Button>
-              {a === b && <p className="w-full text-sm text-warning">{t('errors.codes.SAME_DOCUMENT')}</p>}
-              {start.isError && <p role="alert" className="w-full text-sm text-danger">{errorMessage(start.error)}</p>}
+              <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+                <div className="min-w-0 space-y-3">
+                  <Picker label={t('compare.documentA')} value={a} docs={ready} onChange={setPickA} />
+                  <DocumentSheet doc={docA} side="a" />
+                </div>
+                <button
+                  type="button"
+                  data-testid="swap-picks"
+                  aria-label={t('compare.swap')}
+                  title={t('compare.swap')}
+                  onClick={() => {
+                    setPickA(b);
+                    setPickB(a);
+                  }}
+                  className="pressable mx-auto inline-flex size-10 items-center justify-center rounded-full border border-line bg-card text-muted hover:border-line-strong hover:text-fg sm:mt-[22px]"
+                >
+                  <ArrowLeftRight size={16} aria-hidden />
+                </button>
+                <div className="min-w-0 space-y-3">
+                  <Picker label={t('compare.documentB')} value={b} docs={ready} onChange={setPickB} />
+                  <DocumentSheet doc={docB} side="b" />
+                </div>
+              </div>
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+                <Button type="submit" variant="primary" size="lg" loading={start.isPending} disabled={a === b}>{t('compare.start')}</Button>
+                {a === b && <p className="w-full text-center text-sm text-warning">{t('errors.codes.SAME_DOCUMENT')}</p>}
+                {start.isError && <p role="alert" className="w-full text-center text-sm text-danger">{errorMessage(start.error)}</p>}
+              </div>
             </form>
           )}
         </div>
