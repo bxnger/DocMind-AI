@@ -122,7 +122,7 @@ interface StoredList {
   rows: PriceRow[];
 }
 
-const BUILT_IN: PriceList = { id: 'demo-list', supplier: DEMO_SUPPLIER, fileName: '', rows: 0, skipped: [], checkedAt: DEMO_DATE, checkedAtOrigin: 'import_date', demo: true, importedAt: '' };
+const BUILT_IN: PriceList = { id: 'demo-list', kind: 'file', supplier: DEMO_SUPPLIER, fileName: '', rows: 0, skipped: [], checkedAt: DEMO_DATE, checkedAtOrigin: 'import_date', demo: true, importedAt: '' };
 
 const builtInRows = (part: Part): PriceRow[] => {
   const code = splitBrand(part.partNumber).code;
@@ -231,7 +231,7 @@ export function createDemoAdapter(pages: readonly SourceText[], documentId = 'd'
       const parsed = /\.csv$/i.test(file.name) ? parsePriceCsv(await file.text()) : null;
       if (!parsed) throw Object.assign(new Error('Unreadable price list'), { demoPriceListError: true });
       const hasDates = parsed.rows.some((row) => row.checkedAt);
-      const list: PriceList = { id: nextId('list'), supplier: input.supplier, fileName: file.name, rows: parsed.rows.length, skipped: parsed.skipped, checkedAt: input.checkedAt || new Date().toISOString().slice(0, 10), checkedAtOrigin: hasDates ? 'file' : input.checkedAt ? 'upload_form' : 'import_date', demo: input.demo, importedAt: new Date().toISOString() };
+      const list: PriceList = { id: nextId('list'), kind: 'file', supplier: input.supplier, fileName: file.name, rows: parsed.rows.length, skipped: parsed.skipped, checkedAt: input.checkedAt || new Date().toISOString().slice(0, 10), checkedAtOrigin: hasDates ? 'file' : input.checkedAt ? 'upload_form' : 'import_date', demo: input.demo, importedAt: new Date().toISOString() };
       lists.set(list.id, { list, rows: parsed.rows });
       return list;
     },

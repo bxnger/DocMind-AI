@@ -50,7 +50,7 @@ const VIEW_KEY = 'docmind.chat.procurement.offerView';
 function useOfferView() {
   const [view, setView] = useState<{ sort: OfferSort; filter: OfferFilter }>(() => {
     const stored = readStored<{ sort?: unknown; filter?: Partial<OfferFilter> }>('session', VIEW_KEY, {});
-    return { sort: OFFER_SORTS.find((sort) => sort === stored.sort) ?? 'exactFirst', filter: { exactOnly: stored.filter?.exactOnly === true, pricedOnly: stored.filter?.pricedOnly === true } };
+    return { sort: OFFER_SORTS.find((sort) => sort === stored.sort) ?? 'exactFirst', filter: { exactOnly: stored.filter?.exactOnly === true, pricedOnly: stored.filter?.pricedOnly === true, hideTest: stored.filter?.hideTest === true } };
   });
   const change = (next: Partial<{ sort: OfferSort; filter: OfferFilter }>) => {
     setView((current) => {
@@ -108,7 +108,9 @@ export function OffersStep({ adapter, parts, lines, lists, offers, quoteItems, s
   const empty = included.filter((part) => hasNoOffers(part.id));
   const withOffers = offers?.filter((item) => item.offers.length > 0 || item.similar.length > 0).length ?? 0;
   const anyOffers = withOffers > 0;
-  const filtered = filter.exactOnly || filter.pricedOnly;
+  const filtered = filter.exactOnly || filter.pricedOnly || filter.hideTest;
+  // The filter is offered only when there is test data to hide.
+  const hasTest = Boolean(offers?.some((item) => [...item.offers, ...item.similar].some((offer) => offer.demo)));
 
   // With store search, a part without offers is exactly the one to search for: it is not folded away.
   const fold = collapseEmpty && !(storeSearch && live);
@@ -122,7 +124,7 @@ export function OffersStep({ adapter, parts, lines, lists, offers, quoteItems, s
 
   return (
     <div className="space-y-3">
-      <PartSearch query={query} onQuery={onQuery} resultCount={hits.length} canReadPhotos={adapter.canReadPhotos} onPhoto={onOpenCamera} onSubmit={submit} {...(live && (storeSearch || serverBarcodes) ? { onServerCode: serverCode } : {})} {...(live && serverBarcodes ? { onPhotoNotRead: serverPhoto } : {})} />
+      <PartSearch storeSearch={storeSearch && live} query={query} onQuery={onQuery} resultCount={hits.length} canReadPhotos={adapter.canReadPhotos} onPhoto={onOpenCamera} onSubmit={submit} {...(live && (storeSearch || serverBarcodes) ? { onServerCode: serverCode } : {})} {...(live && serverBarcodes ? { onPhotoNotRead: serverPhoto } : {})} />
       {target === 'free' && <StoreSearchPanel state={store.state} onRetry={store.retry} showOffers />}
       <PriceListsCard api={adapter} lists={lists} showExamples={showExamples} />
       <div className="flex flex-wrap items-center gap-2">
@@ -140,6 +142,7 @@ export function OffersStep({ adapter, parts, lines, lists, offers, quoteItems, s
             </select>
           </label>
           <Toggle testId="filter-exact" pressed={filter.exactOnly} onClick={() => setView({ filter: { ...filter, exactOnly: !filter.exactOnly } })}>{t('partSearch.filter.exactOnly')}</Toggle>
+          {(hasTest || filter.hideTest) && <Toggle testId="filter-no-test" pressed={filter.hideTest} onClick={() => setView({ filter: { ...filter, hideTest: !filter.hideTest } })}>{t('partSearch.filter.noTest')}</Toggle>}
           <Toggle testId="filter-priced" pressed={filter.pricedOnly} onClick={() => setView({ filter: { ...filter, pricedOnly: !filter.pricedOnly } })}>{t('partSearch.filter.pricedOnly')}</Toggle>
           {filtered && <Button size="sm" variant="ghost" icon={<FilterX size={13} aria-hidden />} onClick={() => setView({ filter: NO_FILTER })}>{t('partSearch.filter.reset')}</Button>}
         </div>
@@ -161,7 +164,7 @@ export function OffersStep({ adapter, parts, lines, lists, offers, quoteItems, s
           const line = lines[part.id];
           const isIncluded = line?.included ?? true;
           const quote = quoteItems?.find((candidate) => candidate.partId === part.id);
-          const ordered = orderOffers(item, sort, filter);
+          const ordered = orderOffers(item, sort, filter, line?.offerId ?? null);
           const total = (item?.offers.length ?? 0) + (item?.similar.length ?? 0);
           const visible = ordered.exact.length + ordered.similar.length + ordered.merged.length;
           return (

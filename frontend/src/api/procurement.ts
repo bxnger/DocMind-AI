@@ -95,6 +95,7 @@ export function toPriceList(value: unknown): PriceList {
   if (!isRecord(value) || typeof value.id !== 'string') throw bad();
   return {
     id: value.id,
+    kind: value.kind === 'store_catalog' ? 'store_catalog' : 'file',
     supplier: text(value.supplier) ?? '',
     fileName: text(value.fileName) ?? '',
     rows: num(value.rows) ?? 0,

@@ -102,7 +102,7 @@
   "home": {
     "title": "A smart assistant for industry",
     "subtitle": "Analyze technical documentation, find parts, check them by photo and prepare purchases with AI.",
-    "exampleLabel": "Example from the sample document",
+    "exampleLabel": "Example on the training document",
     "openSample": "Open the sample document",
     "latest": "Latest documents",
     "viewAll": "View all",
@@ -140,7 +140,7 @@
     "demo": "See the demonstration",
     "demoFailed": "The demonstration file couldn't be loaded. Check the connection and try again.",
     "dropHint": "Or drop a file anywhere in this window.",
-    "demoNote": "The demonstration opens a made-up machine passport and goes through the same steps as your own file. Prepared data is labelled.",
+    "demoNote": "This opens a training document, the TV-320 machine. It goes through the same steps as your own file, and prepared data is labelled.",
     "flowTitle": "From document to purchase sheet",
     "chatTitle": "Still a full AI chat with your documents",
     "chatBody": "Ask about any PDF or DOCX in Russian, Kazakh or English. Every answer shows its exact quote and place in the document.",
@@ -784,10 +784,10 @@
   },
   "procurement": {
     "title": "Procurement sheet",
-    "demoTitle": "Demonstration data.",
-    "demoBody": "The server has no procurement yet. Prices marked DEMO are invented and are not real offers. Photos aren't read. Quotes and pages are real where a part was found in this document.",
+    "demoTitle": "Test mode.",
+    "demoBody": "The procurement server is unavailable: below is test data, not real offers. Photos are not read. Quotes and pages are real where a part was found in this document.",
     "demoFixtures": "No part numbers were found in this document, so these are example lines with no source.",
-    "demoBadge": "DEMO",
+    "demoBadge": "Test data",
     "loading": "Looking for parts…",
     "errorTitle": "Parts couldn't be loaded",
     "emptyTitle": "No parts found",
@@ -826,7 +826,7 @@
       "incomplete_other": "{{count}} lines have no price or quantity and are not in the sum.",
       "excluded_one": "{{count}} line left out by you",
       "excluded_other": "{{count}} lines left out by you",
-      "usesDemo": "The sum includes made-up DEMO prices.",
+      "usesDemo": "The sum includes test data.",
       "usesSimilar": "The sum includes a similar part number. Check that it fits.",
       "excludes": "Delivery, VAT and discounts are not added unless they are in the price itself.",
       "calculated": "Calculated by the server: {{date}}"
@@ -938,13 +938,13 @@
       }
     },
     "prices": {
-      "title": "Price lists",
-      "fromFile": "Prices, dates and stock are what the file says, not a live check of a website.",
+      "title": "Price sources",
+      "fromFile": "The supplier catalogue, your price lists and test data are shown apart. Each card names its source.",
       "supplier": "Supplier",
       "supplierPlaceholder": "If the file doesn't say",
       "date": "Price date",
       "upload": "Upload a price list",
-      "test": "This is a test file: mark its prices as DEMO",
+      "test": "This is a test file: mark its prices as test data",
       "rows_one": "{{count}} row",
       "rows_other": "{{count}} rows",
       "remove": "Remove {{name}}",
@@ -952,12 +952,20 @@
       "demoFile": "In demonstration mode only CSV can be read.",
       "skipped_one": "{{count}} row skipped.",
       "skipped_other": "{{count}} rows skipped.",
-      "examplesTitle": "Prepared files for this demonstration",
+      "examplesTitle": "Sample data",
       "addVerified": "Supplier product pages (similar to 6205)",
-      "addDemo": "Made-up DEMO prices",
+      "addDemo": "Test data",
       "examplesBody": "Supplier price lists: prices copied by hand from the sites on the date in the file, not yet a check. \"Price checked on the supplier's site\" appears only after \"Check price on the site\". The product pages are other designations of the 6205 family, so they show as similar. Available from the supplier doesn't mean a local warehouse. DEMO: invented prices and supplier, best not mixed with real ones.",
-      "demoSupplier": "DEMO supplier (made up)",
-      "addReal": "Kazakhstan suppliers' price list (6203)"
+      "demoSupplier": "Test supplier (made up)",
+      "addReal": "Kazakhstan suppliers' price list (6203)",
+      "aboutTitle": "About sources and prices",
+      "about": {
+        "store": "Supplier catalogue: the price and check time were read from the store’s page. The time is when the page was read, not when you asked.",
+        "file": "Your price list: prices, dates and stock are what the file says, not a live check of a website. “Check price on the site” reads the supplier’s page.",
+        "test": "Test data: made-up prices and a supplier for demonstration. They are not real offers and are labelled on every card, in the sheet and in Excel.",
+        "similar": "Similar part numbers are other designations of the same family (such as 6205 and 6205-2RS): a person checks compatibility. “Available at the supplier” does not mean a local warehouse."
+      },
+      "storeCatalog": "Supplier catalogue"
     },
     "needsCheck": "Needs checking ({{count}})",
     "needsCheckHint": "These part numbers were not found word for word in the document. Open the source and check them.",
@@ -1033,7 +1041,14 @@
         "noPrice": "the page shows no price with a currency",
         "other": "the address can't be checked"
       }
-    }
+    },
+    "sourceKind": {
+      "store": "Supplier catalogue",
+      "file": "Your price list",
+      "test": "Test data"
+    },
+    "trainingTag": "Training document",
+    "trainingHint": "The TV-320 machine and its parts are made up for training; the file is processed like any other."
   },
   "hr": {
     "title": "Resume and vacancy",
@@ -1249,7 +1264,7 @@
   },
   "partSearch": {
     "title": "Find a part",
-    "scope": "Among this document’s parts and the offers from uploaded price lists. External catalogues are not searched yet.",
+    "scope": "Part number or name: among the document’s parts and your price lists.",
     "placeholder": "Part number or name, e.g. 6205-2RS",
     "clear": "Clear search",
     "scan": "Barcode / QR",
@@ -1279,11 +1294,12 @@
       "exactOnly": "Exact only",
       "pricedOnly": "With a price",
       "reset": "Reset filters",
-      "none": "No offers match the filters."
+      "none": "No offers match the filters.",
+      "noTest": "Without test data"
     },
     "empty": {
       "title": "“{{query}}” is not among the document’s parts",
-      "body": "Check the part number or find the part from a photo of its marking. Offers come only from uploaded price lists."
+      "body": "Check the part number or find the part from a photo of its marking. Offers come from your price lists and the supplier catalogue."
     },
     "remove": "Remove",
     "removeLine": "Remove {{code}} from the sheet",
@@ -1339,24 +1355,24 @@
     "offersFailed": "Offers did not load. That does not mean there are none.",
     "store": {
       "badge": "store",
-      "source": "store {{store}}",
+      "source": "catalogue: {{store}}",
       "notRead": "store page not read",
       "priceLists": "Your price lists",
       "found": "found: {{count}}",
       "sameSeller": "same seller as {{store}}: not asked",
       "alsoAt": "Also at {{stores}}: the same seller.",
       "sameSellerNote": "Same seller as {{stores}}.",
-      "searchPart": "Search stores",
-      "loading": "Searching stores… The first search takes 5–15 seconds.",
+      "searchPart": "Find at suppliers",
+      "loading": "Searching suppliers… The first search takes 5–15 seconds.",
       "retrying": "Searching again ({{attempt}} of {{max}})…",
       "limit": "Too many searches this minute. Wait, then try again yourself.",
       "limitWait": "Too many searches this minute. Try again in {{seconds}} s.",
-      "building": "The store catalogue is still being built after the server started.",
+      "building": "The supplier catalogue is still being built after the server started.",
       "buildingNext": "Attempt {{attempt}} of {{max}} in",
       "seconds": "s.",
       "codes": "Read:",
       "invalid": "wrong check digit",
-      "empty": "“{{query}}” was not found in stores or price lists.",
+      "empty": "“{{query}}” was not found in the supplier catalogue or your price lists.",
       "sources": "Where we looked",
       "notInDocument": "This part is not in the document, so it cannot join the sheet. Offers are shown to compare.",
       "unconfirmed": "Unconfirmed pages: {{count}}",
@@ -1390,7 +1406,8 @@
         "PARTS_NOT_READY": "The document’s parts are still being processed. Try again shortly.",
         "PART_NOT_FOUND": "This part is no longer in the document."
       },
-      "busy": "The server is busy with other store searches. Try again in {{seconds}} s."
-    }
+      "busy": "The supplier search is busy right now. Try again in {{seconds}} s."
+    },
+    "scopeStores": "Part number or name: among the document’s parts, your price lists and the supplier catalogue."
   }
 }

@@ -8,9 +8,11 @@ export const OFFER_SORTS: readonly OfferSort[] = ['exactFirst', 'priceAsc', 'pri
 export interface OfferFilter {
   exactOnly: boolean;
   pricedOnly: boolean;
+  /** Hides test data from the list. It only hides: the sheet and the totals are not touched. */
+  hideTest: boolean;
 }
 
-export const NO_FILTER: OfferFilter = { exactOnly: false, pricedOnly: false };
+export const NO_FILTER: OfferFilter = { exactOnly: false, pricedOnly: false, hideTest: false };
 
 const minor = (offer: Offer): bigint | null => (offer.price === null ? null : toMinor(offer.price));
 
@@ -33,8 +35,9 @@ function byPrice(direction: 1 | -1) {
  * One list, in the chosen order. The server's own match decides exact or similar. In "exact first" similar offers
  * stay in their own group after the exact ones, each group in the server's order: cheapest first, tenge first.
  */
-export function orderOffers(item: Pick<PartOffers, 'offers' | 'similar'> | undefined, sort: OfferSort, filter: OfferFilter): { exact: Offer[]; similar: Offer[]; merged: Offer[] } {
-  const keep = (offer: Offer) => !filter.pricedOnly || offer.price !== null;
+export function orderOffers(item: Pick<PartOffers, 'offers' | 'similar'> | undefined, sort: OfferSort, filter: OfferFilter, keepId: string | null = null): { exact: Offer[]; similar: Offer[]; merged: Offer[] } {
+  // The offer a person already chose stays in view, so a filter never hides what the sheet is built on.
+  const keep = (offer: Offer) => offer.id === keepId || ((!filter.pricedOnly || offer.price !== null) && !(filter.hideTest && offer.demo));
   const exact = (item?.offers ?? []).filter(keep);
   const similar = filter.exactOnly ? [] : (item?.similar ?? []).filter(keep);
   if (sort === 'exactFirst') return { exact, similar, merged: [] };

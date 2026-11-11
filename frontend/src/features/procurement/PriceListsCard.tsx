@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { FlaskConical, ShieldCheck, Trash2, Upload } from 'lucide-react';
+import { ChevronDown, FileSpreadsheet, FlaskConical, Info, ShieldCheck, Trash2, Upload } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
@@ -65,11 +65,26 @@ export function PriceListsCard({ api, lists, showExamples = false }: Props) {
     <section data-testid="price-lists" aria-labelledby="prices-title" className="rounded-panel border border-line bg-card p-3">
       <h3 id="prices-title" className="font-semibold">{t('procurement.prices.title')}</h3>
       <p className="text-xs text-muted">{t('procurement.prices.fromFile')}</p>
+      <details data-testid="prices-about" className="group mt-1 text-xs text-muted">
+        <summary className="inline-flex min-h-8 cursor-pointer list-none items-center gap-1 font-medium text-fg underline-offset-2 hover:underline pointer-coarse:min-h-10 [&::-webkit-details-marker]:hidden"><Info size={13} className="text-muted" aria-hidden />{t('procurement.prices.aboutTitle')}<ChevronDown size={13} className="text-muted transition-transform group-open:rotate-180" aria-hidden /></summary>
+        <ul className="mt-1 space-y-1.5 border-l-2 border-line pl-2.5">
+          <li>{t('procurement.prices.about.store')}</li>
+          <li>{t('procurement.prices.about.file')}</li>
+          <li>{t('procurement.prices.about.test')}</li>
+          <li>{t('procurement.prices.about.similar')}</li>
+          {showExamples && <li>{t('procurement.prices.examplesBody')}</li>}
+        </ul>
+      </details>
       {Boolean(lists?.length) && (
         <ul className="mt-1 space-y-1">
           {lists?.map((item) => (
             <li key={item.id} data-testid="price-list" className="flex items-center gap-2 rounded-lg bg-sidebar px-2 py-1 text-sm">
-              <span className="min-w-0 flex-1 truncate" title={item.fileName}>{item.supplier || item.fileName}{item.demo ? ` · ${t('procurement.demoBadge')}` : ''}</span>
+              <span className="min-w-0 flex-1 truncate" title={item.kind === 'store_catalog' ? t('procurement.prices.storeCatalog') : item.fileName}>{item.kind === 'store_catalog' ? t('procurement.prices.storeCatalog') : item.supplier || item.fileName}</span>
+              {item.kind === 'store_catalog'
+                ? <span data-testid="list-kind" data-source="store" className="inline-flex shrink-0 items-center gap-1 rounded bg-success-tint px-1.5 py-0.5 text-[11px] font-semibold text-success"><ShieldCheck size={11} aria-hidden />{t('procurement.sourceKind.store')}</span>
+                : item.demo
+                  ? <span data-testid="list-kind" data-source="test" className="inline-flex shrink-0 items-center gap-1 rounded bg-warning-tint px-1.5 py-0.5 text-[11px] font-semibold text-warning"><FlaskConical size={11} aria-hidden />{t('procurement.sourceKind.test')}</span>
+                  : <span data-testid="list-kind" data-source="file" className="inline-flex shrink-0 items-center gap-1 rounded border border-line bg-bg px-1.5 py-0.5 text-[11px] font-medium text-muted"><FileSpreadsheet size={11} aria-hidden />{t('procurement.sourceKind.file')}</span>}
               <span className="tabular shrink-0 text-xs text-muted">{t('procurement.prices.rows', { count: item.rows })}</span>
               <IconButton dense label={t('procurement.prices.remove', { name: item.supplier || item.fileName })} icon={<Trash2 size={14} aria-hidden />} onClick={() => remove.mutate(item.id)} />
             </li>
@@ -84,7 +99,6 @@ export function PriceListsCard({ api, lists, showExamples = false }: Props) {
             <Button size="sm" data-testid="add-verified-prices" icon={<ShieldCheck size={14} aria-hidden />} disabled={upload.isPending || has(VERIFIED_PRICE_LIST.name)} onClick={() => void addExample(VERIFIED_PRICE_LIST, false)}>{t('procurement.prices.addVerified')}</Button>
             <Button size="sm" data-testid="add-demo-prices" icon={<FlaskConical size={14} aria-hidden />} disabled={upload.isPending || has(DEMO_PRICE_LIST.name)} onClick={() => void addExample(DEMO_PRICE_LIST, true)}>{t('procurement.prices.addDemo')}</Button>
           </div>
-          <p className="mt-1 text-xs text-muted">{t('procurement.prices.examplesBody')}</p>
         </div>
       )}
       <div className="mt-2 flex flex-wrap items-end gap-2">

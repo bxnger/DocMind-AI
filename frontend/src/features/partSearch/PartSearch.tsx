@@ -36,6 +36,8 @@ interface Props {
   resultCount: number;
   canReadPhotos: boolean;
   onPhoto: () => void;
+  /** The server searches the supplier catalogue too (`features.storeSearch`). */
+  storeSearch?: boolean;
   /** Enter, a recent search or a scanned part number: the parent may also search the stores. */
   onSubmit?: (query: string) => void;
   /** When the server can look codes up, every code the phone read goes there as text, and only as text. */
@@ -48,7 +50,7 @@ interface Props {
  * Search inside this document's parts and the offers from the uploaded price lists. The server has no catalogue search
  * or barcode lookup yet, so a code that is not here is reported as not found here, never as not existing.
  */
-export function PartSearch({ query, onQuery, resultCount, canReadPhotos, onPhoto, onSubmit, onServerCode, onPhotoNotRead }: Props) {
+export function PartSearch({ query, onQuery, resultCount, canReadPhotos, onPhoto, storeSearch = false, onSubmit, onServerCode, onPhotoNotRead }: Props) {
   const { t } = useTranslation();
   const [draft, setDraft] = useState(query);
   // The sheet can ask for a part ("replace the offer"): the field follows a query set from outside.
@@ -105,7 +107,7 @@ export function PartSearch({ query, onQuery, resultCount, canReadPhotos, onPhoto
   return (
     <section data-testid="part-search" aria-labelledby="part-search-title" className="rounded-panel border border-line bg-card p-3">
       <h3 id="part-search-title" className="font-semibold">{t('partSearch.title')}</h3>
-      <p className="text-xs text-muted">{t('partSearch.scope')}</p>
+      <p className="text-xs text-muted">{t(storeSearch ? 'partSearch.scopeStores' : 'partSearch.scope')}</p>
       <form role="search" onSubmit={submit} className="mt-2 flex gap-2">
         <label className="relative min-w-0 flex-1">
           <span className="sr-only">{t('partSearch.placeholder')}</span>

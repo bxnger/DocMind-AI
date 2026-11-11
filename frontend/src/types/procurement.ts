@@ -95,6 +95,8 @@ export type CheckedAtOrigin = 'file' | 'upload_form' | 'import_date' | 'site';
 
 export interface PriceList {
   id: string;
+  /** `store_catalog`: what the server's store search found, kept as one list. Otherwise a file a person uploaded. */
+  kind: 'file' | 'store_catalog';
   supplier: string;
   fileName: string;
   rows: number;

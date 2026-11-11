@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, ArrowRight, CircleAlert, FlaskConical, Hourglass, PackageSearch, RotateCcw } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CircleAlert, FlaskConical, GraduationCap, Hourglass, PackageSearch, RotateCcw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -138,7 +138,12 @@ export function ProcurementPanel({ doc, pdfText, initialStep, onOpenSource, onOp
             <span><strong className="font-semibold">{t('procurement.demoTitle')}</strong> {t('procurement.demoBody')}{fixtures ? ` ${t('procurement.demoFixtures')}` : ''}</span>
           </p>
         )}
-        {isDemoDoc && <p data-testid="demo-document-note" role="note" className="rounded-control border border-line bg-sidebar p-2.5 text-xs text-muted">{t('procurement.demoDocument')}</p>}
+        {isDemoDoc && (
+          <p data-testid="demo-document-note" className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+            <span data-testid="training-tag" className="inline-flex items-center gap-1 rounded-full border border-line bg-sidebar px-2 py-0.5 font-medium text-fg"><GraduationCap size={12} aria-hidden />{t('procurement.trainingTag')}</span>
+            <span className="min-w-0 basis-64 flex-1">{t('procurement.trainingHint')}</span>
+          </p>
+        )}
         <WorkflowStepper current={step} done={done} notes={notes} onSelect={go} onOpenDocument={onOpenDocument} />
         {PHONE && <ProcurementSummary parts={parts} lines={lines} offers={offers.data} quote={items.length ? quote.data : undefined} next={next} onNext={() => next && go(next)} />}
         {failure && <p role="alert" data-testid="procurement-error" className="text-sm text-danger">{errorMessage(failure)}</p>}

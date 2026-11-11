@@ -1,4 +1,4 @@
-import { Check, CircleCheck, ExternalLink, Globe, Store, TriangleAlert } from 'lucide-react';
+import { Check, CircleCheck, ExternalLink, FileSpreadsheet, FlaskConical, Globe, ShieldCheck, Store, TriangleAlert } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
@@ -7,6 +7,7 @@ import { cn } from '@/lib/cn';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { formatMoney } from '@/lib/money';
 import type { Offer, PriceList } from '@/types/procurement';
+import { offerSource, type OfferSourceKind } from './offerSource';
 import { canCheckOnSite, checkReasonKey } from './sheetLines';
 
 /** Where the price came from, in words a person can check against the file. */
@@ -36,6 +37,23 @@ export function ProductLink({ url }: { url: string }) {
       <ExternalLink size={11} aria-hidden />
       <span className="sr-only"> ({t('home.opensInNewTab')})</span>
     </a>
+  );
+}
+
+const SOURCE_LOOK: Record<OfferSourceKind, { Icon: typeof Store; badge: string; edge: string; card: string }> = {
+  store: { Icon: ShieldCheck, badge: 'bg-success-tint text-success', edge: 'border-l-success', card: '' },
+  file: { Icon: FileSpreadsheet, badge: 'bg-sidebar text-muted border border-line', edge: 'border-l-line-strong', card: '' },
+  test: { Icon: FlaskConical, badge: 'bg-warning-tint text-warning', edge: 'border-l-warning', card: 'bg-warning-tint/30' },
+};
+
+/** The source of a price in one chip: the supplier catalogue, a price list of the person's own, or test data. */
+export function SourceBadge({ kind }: { kind: OfferSourceKind }) {
+  const { t } = useTranslation();
+  const { Icon, badge } = SOURCE_LOOK[kind];
+  return (
+    <span data-testid={kind === 'store' ? 'store-badge' : kind === 'test' ? 'demo-price' : 'file-badge'} data-source={kind} className={cn('inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold', badge)}>
+      <Icon size={11} aria-hidden />{t(`procurement.sourceKind.${kind}`)}
+    </span>
   );
 }
 
@@ -71,16 +89,17 @@ export function OfferRow({ offer, chosen, lists, onSelect, checkPrice, unit, sel
     onSuccess: () => client.invalidateQueries({ queryKey: ['procurement'] }),
   });
   const similar = offer.match !== 'exact';
+  const kind = offerSource(offer);
   return (
-    <li data-testid="offer" data-match={offer.match} data-chosen={chosen || undefined} className={cn('rounded-control border p-2.5 text-sm', chosen ? 'border-accent-line bg-accent-tint' : similar ? 'border-dashed border-warning/50' : 'border-line')}>
+    <li data-testid="offer" data-match={offer.match} data-source={kind} data-chosen={chosen || undefined} className={cn('rounded-control border border-l-[3px] p-2.5 text-sm', SOURCE_LOOK[kind].edge, chosen ? 'border-accent-line bg-accent-tint' : similar ? 'border-dashed border-warning/50' : 'border-line', !chosen && SOURCE_LOOK[kind].card)}>
       <div className="flex flex-wrap items-start gap-x-3 gap-y-1.5">
         <div className="min-w-0 flex-1 basis-44">
           <div className="flex flex-wrap items-center gap-1.5">
+            <SourceBadge kind={kind} />
             <MatchBadge match={offer.match} />
-            {offer.demo && <span data-testid="demo-price" className="rounded bg-warning-tint px-1 text-[11px] font-semibold text-warning">{t('procurement.demoBadge')}</span>}
           </div>
           <p className="mt-1 font-semibold break-words [overflow-wrap:anywhere]">{offer.partNumber}{offer.manufacturer && <span data-testid="offer-manufacturer" className="font-normal text-muted"> · {offer.manufacturer}</span>}</p>
-          <p data-testid="offer-supplier" className="break-words [overflow-wrap:anywhere]"><Store size={12} className="mr-1 inline align-[-1px] text-muted" aria-hidden />{offer.supplier}{offer.store && <span data-testid="store-badge" className="ml-1.5 rounded bg-accent-2-tint px-1 text-[11px] font-medium text-accent-2">{t('partSearch.store.badge')}</span>}</p>
+          <p data-testid="offer-supplier" className="break-words [overflow-wrap:anywhere]"><Store size={12} className="mr-1 inline align-[-1px] text-muted" aria-hidden />{offer.supplier}</p>
           {(alsoAt.length > 0 || offer.sameSellerAs.length > 0) && <p data-testid="same-seller" className="text-xs text-muted">{alsoAt.length > 0 ? t('partSearch.store.alsoAt', { stores: alsoAt.join(', ') }) : t('partSearch.store.sameSellerNote', { stores: offer.sameSellerAs.join(', ') })}</p>}
           {offer.title && offer.title !== offer.partNumber && <p className="mt-0.5 text-xs text-muted break-words [overflow-wrap:anywhere]">{offer.title}</p>}
         </div>

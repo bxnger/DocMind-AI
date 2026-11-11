@@ -47,7 +47,17 @@ describe('offers order', () => {
     expect(orderOffers(item, 'priceDesc', NO_FILTER).merged.map((x) => x.id)).toEqual(['e1', 'e3', 's1', 'e2']);
   });
   it('filters exact only and priced only', () => {
-    expect(orderOffers(item, 'priceAsc', { exactOnly: true, pricedOnly: true }).merged.map((x) => x.id)).toEqual(['e3', 'e1']);
+    expect(orderOffers(item, 'priceAsc', { exactOnly: true, pricedOnly: true, hideTest: false }).merged.map((x) => x.id)).toEqual(['e3', 'e1']);
+  });
+});
+
+describe('test data filter', () => {
+  const test = { ...offer('t1', '5100'), demo: true };
+  const item = { offers: [offer('e1', '4850'), test], similar: [] };
+  it('hides test data only when asked, and never the chosen offer', () => {
+    expect(orderOffers(item, 'exactFirst', NO_FILTER).exact.map((x) => x.id)).toEqual(['e1', 't1']);
+    expect(orderOffers(item, 'exactFirst', { ...NO_FILTER, hideTest: true }).exact.map((x) => x.id)).toEqual(['e1']);
+    expect(orderOffers(item, 'exactFirst', { ...NO_FILTER, hideTest: true }, 't1').exact.map((x) => x.id)).toEqual(['e1', 't1']);
   });
 });
 
