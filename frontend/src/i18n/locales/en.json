@@ -965,7 +965,8 @@
         "test": "Test data: made-up prices and a supplier for demonstration. They are not real offers and are labelled on every card, in the sheet and in Excel.",
         "similar": "Similar part numbers are other designations of the same family (such as 6205 and 6205-2RS): a person checks compatibility. “Available at the supplier” does not mean a local warehouse."
       },
-      "storeCatalog": "Supplier catalogue"
+      "storeCatalog": "Supplier catalogue",
+      "storeCatalogKind": "Prices from store pages"
     },
     "needsCheck": "Needs checking ({{count}})",
     "needsCheckHint": "These part numbers were not found word for word in the document. Open the source and check them.",

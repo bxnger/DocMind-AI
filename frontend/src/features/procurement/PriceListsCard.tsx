@@ -78,10 +78,10 @@ export function PriceListsCard({ api, lists, showExamples = false }: Props) {
       {Boolean(lists?.length) && (
         <ul className="mt-1 space-y-1">
           {lists?.map((item) => (
-            <li key={item.id} data-testid="price-list" className="flex items-center gap-2 rounded-lg bg-sidebar px-2 py-1 text-sm">
-              <span className="min-w-0 flex-1 truncate" title={item.kind === 'store_catalog' ? t('procurement.prices.storeCatalog') : item.fileName}>{item.kind === 'store_catalog' ? t('procurement.prices.storeCatalog') : item.supplier || item.fileName}</span>
+            <li key={item.id} data-testid="price-list" className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-sidebar px-2 py-1 text-sm">
+              <span className="min-w-0 flex-1 basis-36 truncate" title={item.kind === 'store_catalog' ? t('procurement.prices.storeCatalog') : item.fileName}>{item.kind === 'store_catalog' ? t('procurement.prices.storeCatalog') : item.supplier || item.fileName}</span>
               {item.kind === 'store_catalog'
-                ? <span data-testid="list-kind" data-source="store" className="inline-flex shrink-0 items-center gap-1 rounded bg-success-tint px-1.5 py-0.5 text-[11px] font-semibold text-success"><ShieldCheck size={11} aria-hidden />{t('procurement.sourceKind.store')}</span>
+                ? <span data-testid="list-kind" data-source="store" className="inline-flex shrink-0 items-center gap-1 rounded bg-success-tint px-1.5 py-0.5 text-[11px] font-semibold text-success"><ShieldCheck size={11} aria-hidden />{t('procurement.prices.storeCatalogKind')}</span>
                 : item.demo
                   ? <span data-testid="list-kind" data-source="test" className="inline-flex shrink-0 items-center gap-1 rounded bg-warning-tint px-1.5 py-0.5 text-[11px] font-semibold text-warning"><FlaskConical size={11} aria-hidden />{t('procurement.sourceKind.test')}</span>
                   : <span data-testid="list-kind" data-source="file" className="inline-flex shrink-0 items-center gap-1 rounded border border-line bg-bg px-1.5 py-0.5 text-[11px] font-medium text-muted"><FileSpreadsheet size={11} aria-hidden />{t('procurement.sourceKind.file')}</span>}
@@ -95,9 +95,9 @@ export function PriceListsCard({ api, lists, showExamples = false }: Props) {
         <div data-testid="price-examples" className="mt-2 rounded-control border border-line bg-sidebar p-2">
           <p className="text-xs font-medium">{t('procurement.prices.examplesTitle')}</p>
           <div className="mt-1 flex flex-wrap gap-2">
-            <Button size="sm" data-testid="add-real-prices" icon={<ShieldCheck size={14} aria-hidden />} disabled={upload.isPending || has(REAL_PRICE_LIST.name)} onClick={() => void addExample(REAL_PRICE_LIST, false)}>{t('procurement.prices.addReal')}</Button>
-            <Button size="sm" data-testid="add-verified-prices" icon={<ShieldCheck size={14} aria-hidden />} disabled={upload.isPending || has(VERIFIED_PRICE_LIST.name)} onClick={() => void addExample(VERIFIED_PRICE_LIST, false)}>{t('procurement.prices.addVerified')}</Button>
-            <Button size="sm" data-testid="add-demo-prices" icon={<FlaskConical size={14} aria-hidden />} disabled={upload.isPending || has(DEMO_PRICE_LIST.name)} onClick={() => void addExample(DEMO_PRICE_LIST, true)}>{t('procurement.prices.addDemo')}</Button>
+            <Button size="sm" data-testid="add-real-prices" className="h-auto! min-h-8 max-w-full shrink! py-1 text-left whitespace-normal!" icon={<ShieldCheck size={14} aria-hidden />} disabled={upload.isPending || has(REAL_PRICE_LIST.name)} onClick={() => void addExample(REAL_PRICE_LIST, false)}>{t('procurement.prices.addReal')}</Button>
+            <Button size="sm" data-testid="add-verified-prices" className="h-auto! min-h-8 max-w-full shrink! py-1 text-left whitespace-normal!" icon={<ShieldCheck size={14} aria-hidden />} disabled={upload.isPending || has(VERIFIED_PRICE_LIST.name)} onClick={() => void addExample(VERIFIED_PRICE_LIST, false)}>{t('procurement.prices.addVerified')}</Button>
+            <Button size="sm" data-testid="add-demo-prices" className="h-auto! min-h-8 max-w-full shrink! py-1 text-left whitespace-normal!" icon={<FlaskConical size={14} aria-hidden />} disabled={upload.isPending || has(DEMO_PRICE_LIST.name)} onClick={() => void addExample(DEMO_PRICE_LIST, true)}>{t('procurement.prices.addDemo')}</Button>
           </div>
         </div>
       )}
