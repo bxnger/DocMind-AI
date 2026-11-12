@@ -147,7 +147,7 @@ export function OffersStep({ adapter, parts, lines, lists, offers, quoteItems, s
           {filtered && <Button size="sm" variant="ghost" icon={<FilterX size={13} aria-hidden />} onClick={() => setView({ filter: NO_FILTER })}>{t('partSearch.filter.reset')}</Button>}
         </div>
       )}
-      {!lists?.length && <StateBlock icon={<Store size={18} aria-hidden />} title={t('procurement.noListsTitle')} description={t('procurement.noListsBody')} />}
+      {!lists?.length && <StateBlock icon={<Store size={18} aria-hidden />} title={t('procurement.noListsTitle')} description={t(storeSearch && live ? 'procurement.noListsBodyStores' : 'procurement.noListsBody')} />}
       {searching && hits.length === 0 && (
         <div data-testid="search-empty">
           <StateBlock

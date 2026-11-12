@@ -1049,7 +1049,8 @@
       "test": "Test data"
     },
     "trainingTag": "Training document",
-    "trainingHint": "The TV-320 machine and its parts are made up for training; the file is processed like any other."
+    "trainingHint": "The TV-320 machine and its parts are made up for training; the file is processed like any other.",
+    "noListsBodyStores": "Upload a supplier’s price list or find the part in the supplier catalogue to see offers."
   },
   "hr": {
     "title": "Resume and vacancy",
